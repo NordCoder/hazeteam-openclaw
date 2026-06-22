@@ -25,11 +25,14 @@ const expectedRuntimeExports = [
   'isAdapterErr',
   'isAdapterOk',
   'isOpenClawAdapterRef',
+  'isOpenClawTelegramCallbackEvent',
+  'isOpenClawTelegramMessageEvent',
+  'isOpenClawTelegramSystemEvent',
   'isTelegramActionButtonPayload',
   'parseOpenClawAdapterRef',
 ];
 
-test('root dist index exports shared and delivery contract helpers', () => {
+test('root dist index exports shared, channel event, and delivery contract helpers', () => {
   for (const exportName of expectedRuntimeExports) {
     assert.equal(exportName in root, true, `missing root export ${exportName}`);
   }
@@ -37,11 +40,12 @@ test('root dist index exports shared and delivery contract helpers', () => {
   assert.equal(root.OPENCLAW_ADAPTER_PACKAGE.status, 'skeleton');
   assert.equal(root.createWorkspaceRef('acme'), 'workspace:acme');
   assert.equal(root.adapterOk('value').ok, true);
+  assert.equal(root.isOpenClawTelegramMessageEvent({ eventKind: 'message' }), true);
   assert.equal(root.createTelegramActionButtonPayload('token:approve'), 'hz:token:approve');
   assert.equal(root.isTelegramActionButtonPayload('hz:token:approve'), true);
 });
 
-test('dist contracts barrel exports shared and delivery contract helpers', () => {
+test('dist contracts barrel exports shared, channel event, and delivery contract helpers', () => {
   for (const exportName of expectedRuntimeExports.filter(
     (exportName) => exportName !== 'OPENCLAW_ADAPTER_PACKAGE',
   )) {
@@ -50,6 +54,7 @@ test('dist contracts barrel exports shared and delivery contract helpers', () =>
 
   assert.equal(contracts.createAdapterOperationRef('op-1'), 'operation:op-1');
   assert.equal(contracts.createAdapterSafeError({ code: 'not-found', message: 'missing' }).code, 'not-found');
+  assert.equal(contracts.isOpenClawTelegramCallbackEvent({ eventKind: 'callback' }), true);
   assert.equal(
     contracts.createTelegramDeliverySafeError({ code: 'timeout', message: 'timed out' }).code,
     'timeout',
