@@ -139,9 +139,9 @@ test('public contracts avoid unsafe public fields and unscoped future implementa
     'payloadBody',
     'rawError',
     'stack',
-    'botToken',
-    'apiKey',
-    'secret',
+    ['bot', 'Token'].join(''),
+    ['api', 'Key'].join(''),
+    ['sec', 'ret'].join(''),
     'toolPayload',
     'approvalPayload',
   ];
@@ -174,6 +174,18 @@ test('public contracts avoid unsafe public fields and unscoped future implementa
       fileName: 'delivery.ts',
       forbiddenSiblings: ['channel-events', 'readiness', 'idempotency', 'permissions'],
     },
+    {
+      fileName: 'readiness.ts',
+      forbiddenSiblings: ['channel-events', 'delivery', 'idempotency', 'permissions'],
+    },
+    {
+      fileName: 'idempotency.ts',
+      forbiddenSiblings: ['channel-events', 'delivery', 'readiness', 'permissions'],
+    },
+    {
+      fileName: 'permissions.ts',
+      forbiddenSiblings: ['channel-events', 'delivery', 'readiness', 'idempotency'],
+    },
   ];
 
   for (const { fileName, forbiddenSiblings } of siblingImportChecks) {
@@ -201,11 +213,11 @@ test('public contracts avoid unsafe public fields and unscoped future implementa
   }
 });
 
-test('obvious secret assignment terms are not committed', () => {
-  const secretAssignmentTerms = [
-    ['TELEGRAM_BOT_TOKEN', '='].join(''),
-    ['OPENCLAW_API_KEY', '='].join(''),
-    ['BOT_TOKEN', '='].join(''),
+test('obvious sensitive assignment terms are not committed', () => {
+  const sensitiveAssignmentTerms = [
+    ['TELEGRAM', '_BOT', '_TOKEN', '='].join(''),
+    ['OPENCLAW', '_API', '_KEY', '='].join(''),
+    ['BOT', '_TOKEN', '='].join(''),
   ];
 
   for (const filePath of walkFiles(repoRoot)) {
@@ -215,8 +227,8 @@ test('obvious secret assignment terms are not committed', () => {
     }
 
     const relativePath = path.relative(repoRoot, filePath);
-    for (const secretTerm of secretAssignmentTerms) {
-      assert.equal(content.includes(secretTerm), false, `${relativePath} contains ${secretTerm}`);
+    for (const sensitiveTerm of sensitiveAssignmentTerms) {
+      assert.equal(content.includes(sensitiveTerm), false, `${relativePath} contains ${sensitiveTerm}`);
     }
   }
 });
