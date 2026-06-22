@@ -123,7 +123,7 @@ test('production source does not import private hazeteam-core implementation pat
   }
 });
 
-test('S01 public contracts avoid unsafe public fields and future-phase files', () => {
+test('public contracts avoid unsafe public fields and unscoped future-phase files', () => {
   const contractsDir = repoPath('packages', 'openclaw-adapter', 'src', 'contracts');
   assertDir('packages', 'openclaw-adapter', 'src', 'contracts');
 
@@ -132,6 +132,9 @@ test('S01 public contracts avoid unsafe public fields and future-phase files', (
     'telegramUpdate',
     'rawTelegramUpdate',
     'rawOpenClawEvent',
+    'rawMessage',
+    'rawCallback',
+    'payloadBody',
     'botToken',
     'apiKey',
     'secret',
@@ -153,7 +156,6 @@ test('S01 public contracts avoid unsafe public fields and future-phase files', (
   }
 
   for (const fileName of [
-    'channel-events.ts',
     'delivery.ts',
     'readiness.ts',
     'idempotency.ts',
@@ -163,15 +165,22 @@ test('S01 public contracts avoid unsafe public fields and future-phase files', (
     assert.equal(
       existsSync(path.join(contractsDir, fileName)),
       false,
-      `S01 must not create future contract file ${fileName}`,
+      `S02A must not create future contract file ${fileName}`,
     );
   }
+
+  const channelEventsSource = readFileSync(path.join(contractsDir, 'channel-events.ts'), 'utf8');
+  assert.doesNotMatch(
+    channelEventsSource,
+    /from\s+['"]\.\/(?:delivery|readiness|idempotency|permissions)\.js['"]/,
+    'S02A channel event contracts must not import sibling S02 contract files',
+  );
 
   for (const dirName of ['mapper', 'renderer', 'delivery', 'callback', 'runtime', 'approval']) {
     assert.equal(
       existsSync(repoPath('packages', 'openclaw-adapter', 'src', dirName)),
       false,
-      `S01 must not create future implementation directory ${dirName}`,
+      `S02A must not create future implementation directory ${dirName}`,
     );
   }
 });
