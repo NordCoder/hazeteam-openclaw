@@ -124,12 +124,11 @@ export type OpenClawTelegramChannelEvent =
   | OpenClawTelegramSystemEvent;
 
 function hasEventKind(candidate: unknown, eventKind: OpenClawTelegramChannelEvent['eventKind']): boolean {
-  return (
-    typeof candidate === 'object' &&
-    candidate !== null &&
-    'eventKind' in candidate &&
-    candidate.eventKind === eventKind
-  );
+  if (typeof candidate !== 'object' || candidate === null) {
+    return false;
+  }
+
+  return (candidate as { readonly eventKind?: unknown }).eventKind === eventKind;
 }
 
 export function isOpenClawTelegramMessageEvent(
