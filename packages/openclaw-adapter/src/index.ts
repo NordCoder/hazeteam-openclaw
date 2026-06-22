@@ -9,3 +9,5 @@ export const OPENCLAW_ADAPTER_PACKAGE: OpenClawAdapterPackageMetadata = {
   name: '@hazeteam/openclaw-adapter',
   status: 'skeleton',
 };
+
+export * from './contracts/index.js';
