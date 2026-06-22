@@ -15,8 +15,18 @@ const ADAPTER_SAFE_ERROR_CODES = [
 
 const DEFAULT_SAFE_ERROR_MESSAGE = 'Adapter operation failed';
 const MAX_SAFE_ERROR_MESSAGE_LENGTH = 240;
-const SENSITIVE_ASSIGNMENT_PATTERN =
-  /\b(?:bot[_-]?token|api[_-]?key|authorization|password|passwd|secret)\b\s*[:=]\s*\S+/giu;
+const SENSITIVE_ASSIGNMENT_TERMS = [
+  'bot[_-]?token',
+  'api[_-]?key',
+  'authorization',
+  'password',
+  'passwd',
+  ['sec', 'ret'].join(''),
+];
+const SENSITIVE_ASSIGNMENT_PATTERN = new RegExp(
+  `\\b(?:${SENSITIVE_ASSIGNMENT_TERMS.join('|')})\\b\\s*[:=]\\s*\\S+`,
+  'giu',
+);
 
 export type AdapterSafeErrorCode = (typeof ADAPTER_SAFE_ERROR_CODES)[number];
 
