@@ -4,15 +4,17 @@
 
 `hazeteam-openclaw` is an external adapter/product repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, and LifeOS behavior must not be treated as generic core semantics.
 
-Current repository status: early foundation. Package, tooling, CI, source, and tests may still be absent or owned by a parallel S00A workspace slice. This documentation slice intentionally changes only `docs/**`.
+Current repository status: workspace, docs foundation, shared adapter contracts, channel event contracts, delivery contracts, and readiness/idempotency/permission contracts are present. Further implementation must follow the conflict-aware parallel roadmap: implementation leaves use disjoint files, and shared barrels/static/export snapshots are handled by fan-in slices.
 
 ## Documentation index
 
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
 - [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md) — target OpenClaw Telegram flow, topic model, callback model, and fake-first rule.
-- [Testing strategy](architecture/testing-strategy.md) — static, contract, fake integration, fake E2E, no-leak, durable, and real-smoke layers.
-- [Implementation waves](roadmap/implementation-waves.md) — planned phase sequence and parallelization constraints.
+- [Testing strategy](architecture/testing-strategy.md) — static, contract, fan-in snapshot, fake integration, fake E2E, no-leak, durable, and real-smoke layers.
+- [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md) — conflict-free worker scheduling rules.
+- [Implementation waves](roadmap/implementation-waves.md) — phase sequence, dependency boundaries, parallel leaves, and fan-in slices.
+- [File ownership matrix](roadmap/file-ownership-matrix.md) — default file ownership and conflict-avoidance table.
 - ADRs:
   - [ADR 0001: OpenClaw Telegram reference adapter scope](adr/0001-openclaw-telegram-reference-adapter-scope.md)
   - [ADR 0002: Core public API only and fake-first](adr/0002-core-public-api-only-and-fake-first.md)
