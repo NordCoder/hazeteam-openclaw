@@ -123,7 +123,7 @@ test('production source does not import private hazeteam-core implementation pat
   }
 });
 
-test('public contracts avoid unsafe public fields and future implementation directories', () => {
+test('public contracts avoid unsafe public fields and unscoped future implementation files', () => {
   const contractsDir = repoPath('packages', 'openclaw-adapter', 'src', 'contracts');
   assertDir('packages', 'openclaw-adapter', 'src', 'contracts');
 
@@ -134,6 +134,9 @@ test('public contracts avoid unsafe public fields and future implementation dire
     'rawOpenClawEvent',
     'rawProviderResponse',
     'rawDeliveryResponse',
+    'rawMessage',
+    'rawCallback',
+    'payloadBody',
     'rawError',
     'stack',
     'botToken',
@@ -156,15 +159,35 @@ test('public contracts avoid unsafe public fields and future implementation dire
     }
   }
 
-  const deliveryContractPath = path.join(contractsDir, 'delivery.ts');
-  if (existsSync(deliveryContractPath)) {
-    const deliverySource = readFileSync(deliveryContractPath, 'utf8');
+  assert.equal(
+    existsSync(path.join(contractsDir, 'topic-binding.ts')),
+    false,
+    'S02 contracts must not create topic-binding.ts before the topic binding phase',
+  );
 
-    for (const siblingContractName of ['channel-events', 'readiness', 'idempotency', 'permissions']) {
+  const siblingImportChecks = [
+    {
+      fileName: 'channel-events.ts',
+      forbiddenSiblings: ['delivery', 'readiness', 'idempotency', 'permissions'],
+    },
+    {
+      fileName: 'delivery.ts',
+      forbiddenSiblings: ['channel-events', 'readiness', 'idempotency', 'permissions'],
+    },
+  ];
+
+  for (const { fileName, forbiddenSiblings } of siblingImportChecks) {
+    const sourcePath = path.join(contractsDir, fileName);
+    if (!existsSync(sourcePath)) {
+      continue;
+    }
+
+    const source = readFileSync(sourcePath, 'utf8');
+    for (const siblingContractName of forbiddenSiblings) {
       assert.doesNotMatch(
-        deliverySource,
+        source,
         new RegExp(`from\\s+['"]\\./${siblingContractName}\\.js['"]`, 'u'),
-        `delivery.ts must not import sibling contract ${siblingContractName}.ts`,
+        `${fileName} must not import sibling contract ${siblingContractName}.ts`,
       );
     }
   }
