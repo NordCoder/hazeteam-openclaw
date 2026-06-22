@@ -123,7 +123,7 @@ test('production source does not import private hazeteam-core implementation pat
   }
 });
 
-test('public contracts avoid unsafe public fields and unscoped future-phase files', () => {
+test('public contracts avoid unsafe public fields and unscoped future implementation files', () => {
   const contractsDir = repoPath('packages', 'openclaw-adapter', 'src', 'contracts');
   assertDir('packages', 'openclaw-adapter', 'src', 'contracts');
 
@@ -132,14 +132,18 @@ test('public contracts avoid unsafe public fields and unscoped future-phase file
     'telegramUpdate',
     'rawTelegramUpdate',
     'rawOpenClawEvent',
+    'rawProviderResponse',
+    'rawDeliveryResponse',
     'rawMessage',
     'rawCallback',
     'payloadBody',
+    'rawError',
+    'stack',
     'botToken',
     'apiKey',
     'secret',
-    'stack',
-    'rawError',
+    'toolPayload',
+    'approvalPayload',
   ];
 
   for (const sourceFile of walkFiles(contractsDir)) {
@@ -155,32 +159,44 @@ test('public contracts avoid unsafe public fields and unscoped future-phase file
     }
   }
 
-  for (const fileName of [
-    'delivery.ts',
-    'readiness.ts',
-    'idempotency.ts',
-    'permissions.ts',
-    'topic-binding.ts',
-  ]) {
-    assert.equal(
-      existsSync(path.join(contractsDir, fileName)),
-      false,
-      `S02A must not create future contract file ${fileName}`,
-    );
-  }
-
-  const channelEventsSource = readFileSync(path.join(contractsDir, 'channel-events.ts'), 'utf8');
-  assert.doesNotMatch(
-    channelEventsSource,
-    /from\s+['"]\.\/(?:delivery|readiness|idempotency|permissions)\.js['"]/,
-    'S02A channel event contracts must not import sibling S02 contract files',
+  assert.equal(
+    existsSync(path.join(contractsDir, 'topic-binding.ts')),
+    false,
+    'S02 contracts must not create topic-binding.ts before the topic binding phase',
   );
+
+  const siblingImportChecks = [
+    {
+      fileName: 'channel-events.ts',
+      forbiddenSiblings: ['delivery', 'readiness', 'idempotency', 'permissions'],
+    },
+    {
+      fileName: 'delivery.ts',
+      forbiddenSiblings: ['channel-events', 'readiness', 'idempotency', 'permissions'],
+    },
+  ];
+
+  for (const { fileName, forbiddenSiblings } of siblingImportChecks) {
+    const sourcePath = path.join(contractsDir, fileName);
+    if (!existsSync(sourcePath)) {
+      continue;
+    }
+
+    const source = readFileSync(sourcePath, 'utf8');
+    for (const siblingContractName of forbiddenSiblings) {
+      assert.doesNotMatch(
+        source,
+        new RegExp(`from\\s+['"]\\./${siblingContractName}\\.js['"]`, 'u'),
+        `${fileName} must not import sibling contract ${siblingContractName}.ts`,
+      );
+    }
+  }
 
   for (const dirName of ['mapper', 'renderer', 'delivery', 'callback', 'runtime', 'approval']) {
     assert.equal(
       existsSync(repoPath('packages', 'openclaw-adapter', 'src', dirName)),
       false,
-      `S02A must not create future implementation directory ${dirName}`,
+      `S02 contracts must not create future implementation directory ${dirName}`,
     );
   }
 });
