@@ -123,6 +123,59 @@ test('production source does not import private hazeteam-core implementation pat
   }
 });
 
+test('S01 public contracts avoid unsafe public fields and future-phase files', () => {
+  const contractsDir = repoPath('packages', 'openclaw-adapter', 'src', 'contracts');
+  assertDir('packages', 'openclaw-adapter', 'src', 'contracts');
+
+  const forbiddenPublicFieldNames = [
+    'rawUpdate',
+    'telegramUpdate',
+    'rawTelegramUpdate',
+    'rawOpenClawEvent',
+    'botToken',
+    'apiKey',
+    'secret',
+    'stack',
+    'rawError',
+  ];
+
+  for (const sourceFile of walkFiles(contractsDir)) {
+    const relativePath = path.relative(repoRoot, sourceFile);
+    const source = readFileSync(sourceFile, 'utf8');
+
+    for (const fieldName of forbiddenPublicFieldNames) {
+      assert.doesNotMatch(
+        source,
+        new RegExp(`\\b${fieldName}\\b`, 'u'),
+        `${relativePath} exposes forbidden public field ${fieldName}`,
+      );
+    }
+  }
+
+  for (const fileName of [
+    'channel-events.ts',
+    'delivery.ts',
+    'readiness.ts',
+    'idempotency.ts',
+    'permissions.ts',
+    'topic-binding.ts',
+  ]) {
+    assert.equal(
+      existsSync(path.join(contractsDir, fileName)),
+      false,
+      `S01 must not create future contract file ${fileName}`,
+    );
+  }
+
+  for (const dirName of ['mapper', 'renderer', 'delivery', 'callback', 'runtime', 'approval']) {
+    assert.equal(
+      existsSync(repoPath('packages', 'openclaw-adapter', 'src', dirName)),
+      false,
+      `S01 must not create future implementation directory ${dirName}`,
+    );
+  }
+});
+
 test('obvious secret assignment terms are not committed', () => {
   const secretAssignmentTerms = [
     ['TELEGRAM_BOT_TOKEN', '='].join(''),
