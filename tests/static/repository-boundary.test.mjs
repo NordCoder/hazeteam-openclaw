@@ -123,7 +123,7 @@ test('production source does not import private hazeteam-core implementation pat
   }
 });
 
-test('S01 public contracts avoid unsafe public fields and future-phase files', () => {
+test('public contracts avoid unsafe public fields and future implementation directories', () => {
   const contractsDir = repoPath('packages', 'openclaw-adapter', 'src', 'contracts');
   assertDir('packages', 'openclaw-adapter', 'src', 'contracts');
 
@@ -132,11 +132,15 @@ test('S01 public contracts avoid unsafe public fields and future-phase files', (
     'telegramUpdate',
     'rawTelegramUpdate',
     'rawOpenClawEvent',
+    'rawProviderResponse',
+    'rawDeliveryResponse',
+    'rawError',
+    'stack',
     'botToken',
     'apiKey',
     'secret',
-    'stack',
-    'rawError',
+    'toolPayload',
+    'approvalPayload',
   ];
 
   for (const sourceFile of walkFiles(contractsDir)) {
@@ -152,26 +156,24 @@ test('S01 public contracts avoid unsafe public fields and future-phase files', (
     }
   }
 
-  for (const fileName of [
-    'channel-events.ts',
-    'delivery.ts',
-    'readiness.ts',
-    'idempotency.ts',
-    'permissions.ts',
-    'topic-binding.ts',
-  ]) {
-    assert.equal(
-      existsSync(path.join(contractsDir, fileName)),
-      false,
-      `S01 must not create future contract file ${fileName}`,
-    );
+  const deliveryContractPath = path.join(contractsDir, 'delivery.ts');
+  if (existsSync(deliveryContractPath)) {
+    const deliverySource = readFileSync(deliveryContractPath, 'utf8');
+
+    for (const siblingContractName of ['channel-events', 'readiness', 'idempotency', 'permissions']) {
+      assert.doesNotMatch(
+        deliverySource,
+        new RegExp(`from\\s+['"]\\./${siblingContractName}\\.js['"]`, 'u'),
+        `delivery.ts must not import sibling contract ${siblingContractName}.ts`,
+      );
+    }
   }
 
   for (const dirName of ['mapper', 'renderer', 'delivery', 'callback', 'runtime', 'approval']) {
     assert.equal(
       existsSync(repoPath('packages', 'openclaw-adapter', 'src', dirName)),
       false,
-      `S01 must not create future implementation directory ${dirName}`,
+      `S02 contracts must not create future implementation directory ${dirName}`,
     );
   }
 });
