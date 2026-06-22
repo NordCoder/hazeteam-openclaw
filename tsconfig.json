@@ -1,0 +1,7 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/openclaw-adapter" },
+    { "path": "./packages/openclaw-testkit" }
+  ]
+}
