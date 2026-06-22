@@ -1,0 +1,21 @@
+{
+  "name": "hazeteam-openclaw",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist packages/*/dist packages/*/*.tsbuildinfo *.tsbuildinfo",
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test:static": "node ./tools/run-node-tests.mjs tests/static",
+    "test:unit": "node ./tools/run-node-tests.mjs packages",
+    "test": "npm run test:static && npm run test:unit",
+    "check": "npm run build && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.0",
+    "typescript": "^5.8.3"
+  }
+}
