@@ -21,6 +21,9 @@ const expectedRuntimeExports = [
   'isAdapterErr',
   'isAdapterOk',
   'isOpenClawAdapterRef',
+  'isOpenClawTelegramCallbackEvent',
+  'isOpenClawTelegramMessageEvent',
+  'isOpenClawTelegramSystemEvent',
   'parseOpenClawAdapterRef',
 ];
 
@@ -32,6 +35,7 @@ test('root dist index exports shared adapter contract helpers', () => {
   assert.equal(root.OPENCLAW_ADAPTER_PACKAGE.status, 'skeleton');
   assert.equal(root.createWorkspaceRef('acme'), 'workspace:acme');
   assert.equal(root.adapterOk('value').ok, true);
+  assert.equal(root.isOpenClawTelegramMessageEvent({ eventKind: 'message' }), true);
 });
 
 test('dist contracts barrel exports shared contract helpers', () => {
@@ -43,4 +47,5 @@ test('dist contracts barrel exports shared contract helpers', () => {
 
   assert.equal(contracts.createAdapterOperationRef('op-1'), 'operation:op-1');
   assert.equal(contracts.createAdapterSafeError({ code: 'not-found', message: 'missing' }).code, 'not-found');
+  assert.equal(contracts.isOpenClawTelegramCallbackEvent({ eventKind: 'callback' }), true);
 });
