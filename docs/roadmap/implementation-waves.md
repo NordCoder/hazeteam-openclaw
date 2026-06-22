@@ -27,7 +27,12 @@ Define adapter readiness, idempotency key, idempotency record, permission requir
 
 ## S03 — testkit fakes/factories
 
-Add deterministic testkit fakes before real provider wiring: fake events, fake delivery sink, fake runtime bridge, fake approval source/resolver, fake clock/id helpers, and safe fixture data.
+Add deterministic testkit fakes before real provider wiring.
+
+- S03A can add fake event factories.
+- S03B can add fake delivery/runtime/approval fakes after the relevant S02 contracts exist.
+
+Keep fakes deterministic: fake events, fake delivery sink, fake runtime bridge, fake approval source/resolver, fake clock/id helpers, and safe fixture data must not require real network or credentials.
 
 ## S04 — topic binding
 
@@ -38,7 +43,7 @@ channelId + chatId + messageThreadId
 -> workspaceRef + agentRef + hostSessionRef
 ```
 
-Include status, safe snapshots, duplicate conflict behavior, and in-memory test support where scoped. Topic name is display-only.
+S04A can introduce the binding contract/store shell after the S02 batch. Later S04 slices can add persistence variants when scoped. Include status, safe snapshots, duplicate conflict behavior, and in-memory test support where scoped. Topic name is display-only.
 
 ## S05 — inbound mapper
 
@@ -46,7 +51,12 @@ Map normalized OpenClaw Telegram events into public core-facing inputs after bin
 
 ## S06 — UI descriptors/renderer
 
-Add topic-aware UI descriptors and renderer behavior. The renderer produces safe OpenClaw/Telegram delivery requests with escaped text, layout limits, safe fallbacks, and tokenized buttons. It should not send external messages unless a slice explicitly scopes delivery.
+Add topic-aware UI descriptors and renderer behavior.
+
+- S06A can add UI/command descriptor contracts after the S02 batch.
+- S06B can add renderer behavior after delivery and descriptor dependencies exist.
+
+The renderer produces safe OpenClaw/Telegram delivery requests with escaped text, layout limits, safe fallbacks, and tokenized buttons. It should not send external messages unless a slice explicitly scopes delivery.
 
 ## S07 — core host factory
 
@@ -121,4 +131,5 @@ OCA/Codex and LifeOS are future product/composite integration layers. They must 
 - S03A, S03B, S04A, and S06A can run in parallel after the S02 batch.
 - S05, S06B, S07, and S08 can run in parallel after their relevant dependencies.
 - S09, S10, S11, and S12 can run in parallel after mapper, renderer, host, and permission dependencies exist.
+- Parallel workers must not import files that exist only in sibling branches.
 - Real SDK/API wiring is allowed only after fake E2E/no-leak matrix.
