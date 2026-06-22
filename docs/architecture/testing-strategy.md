@@ -17,7 +17,9 @@ Static tests should fail when code violates architecture rules:
 - raw Telegram/OpenClaw payload field names in public contracts;
 - obvious secret-bearing fields in public DTOs;
 - placeholder packages becoming active outside their scoped phase;
-- package source or package-local tests excluded from root checks.
+- package source or package-local tests excluded from root checks;
+- implementation directories appearing before their phase;
+- sibling branch modules being imported by parallel leaf slices.
 
 ### Public import tests
 
@@ -34,6 +36,18 @@ Contract tests validate pure adapter-owned DTOs and helpers:
 - topic binding keys and snapshots;
 - tokenized callback payload parser;
 - no raw provider payload or secret fields in public contracts.
+
+### Fan-in export snapshots
+
+Every parallel wave that has multiple leaves must end with a fan-in export snapshot when leaves need public barrels or global static boundaries.
+
+Fan-in tests should assert:
+
+- all intended runtime exports exist from package root and subpath barrels;
+- TypeScript-only types are not asserted as runtime values;
+- shared static boundaries reflect all merged leaves;
+- future-phase files and directories are still absent;
+- no leaf lost its tests or exports during merge conflict resolution.
 
 ### Package-local unit tests
 
@@ -116,7 +130,7 @@ These tests must have cleanup behavior and must not require secrets in ordinary 
 
 ## CI expectations
 
-Once S00A or another tooling slice creates workspace tooling, root CI must see package source and package-local tests. A green root check is not sufficient if it ignores `packages/**/src` or package-local tests.
+Root CI must see package source and package-local tests. A green root check is not sufficient if it ignores `packages/**/src` or package-local tests.
 
 Recommended default layers for non-real CI:
 
@@ -125,9 +139,12 @@ Recommended default layers for non-real CI:
 - public import tests;
 - package-local unit tests;
 - contract tests;
+- fan-in export snapshots when their phases exist;
 - fake integration tests;
 - fake E2E/no-leak tests when their phases exist.
 
 ## Merge readiness rule
 
 A slice is merge-ready only when changed files match scope, public imports are respected, no future phase has been implemented accidentally, relevant checks pass or tooling limitations are reported, and no raw payload or secret leakage is introduced.
+
+For parallel waves, individual leaves can be merge-ready without public barrel exposure only if the wave plan explicitly assigns public exposure to a later fan-in slice. The wave itself is not complete until fan-in is merged.
