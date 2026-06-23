@@ -333,9 +333,9 @@ function normalizeOperationContext(context: AdapterOperationContext): AdapterOpe
   });
 }
 
-function hasFragment(input: Record<string, unknown>): input is Record<string, unknown> & {
-  readonly fragment: TelegramRenderFragment;
-} {
+function hasFragment(
+  input: TelegramDeliveryPumpRequestInput & Record<string, unknown>,
+): input is TelegramDeliveryPumpFragmentInput & Record<string, unknown> {
   return 'fragment' in input;
 }
 
@@ -506,20 +506,16 @@ function normalizeFailureResult(
   assertSameDeliveryRef(deliveryRef, request.deliveryRef);
 
   const retryable = result.retryable ?? result.error.retryable ?? false;
+  const detailsCandidate = result.detailsRef ?? result.error.detailsRef;
+  const correlationCandidate = result.correlationRef ?? result.error.correlationRef ?? request.correlationRef;
   const detailsRef =
-    result.detailsRef ?? result.error.detailsRef === undefined
+    detailsCandidate === undefined
       ? undefined
-      : normalizeDetailsRef(
-          result.detailsRef ?? result.error.detailsRef,
-          'Telegram delivery pump failure detailsRef',
-        );
+      : normalizeDetailsRef(detailsCandidate, 'Telegram delivery pump failure detailsRef');
   const correlationRef =
-    result.correlationRef ?? result.error.correlationRef ?? request.correlationRef === undefined
+    correlationCandidate === undefined
       ? undefined
-      : normalizeCorrelationRef(
-          result.correlationRef ?? result.error.correlationRef ?? request.correlationRef,
-          'Telegram delivery pump failure correlationRef',
-        );
+      : normalizeCorrelationRef(correlationCandidate, 'Telegram delivery pump failure correlationRef');
   const error = createTelegramDeliverySafeError({
     code: normalizeDeliverySafeErrorCode(result.error.code),
     message: result.error.message,
