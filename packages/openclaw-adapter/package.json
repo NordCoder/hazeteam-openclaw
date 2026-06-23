@@ -9,10 +9,10 @@
     "dist"
   ],
   "scripts": {
-    "clean": "node ../../scripts/clean.mjs",
+    "clean": "node ..\/..\/scripts\/clean.mjs",
     "build": "tsc -b tsconfig.json --pretty false",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
-    "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:unit": "node --test tests\/unit",
     "test": "npm run test:unit"
   }
 }
