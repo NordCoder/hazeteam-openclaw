@@ -86,9 +86,9 @@ function resolveDisableKey(input: TelegramTopicBindingDisableInput): TelegramTop
   }
 
   return createTelegramTopicBindingKey({
-    channelId: input.channelId,
-    chatId: input.chatId,
-    messageThreadId: input.messageThreadId,
+    channelId: input.channelId as string,
+    chatId: input.chatId as string,
+    messageThreadId: input.messageThreadId as string,
   });
 }
 
