@@ -94,6 +94,28 @@ test('denies safely when actor context is not trusted', () => {
   assert.equal('tokenRecord' in decision, false);
 });
 
+test('denies safely when actor or topic context is missing', () => {
+  const missingActorDecision = evaluateOpenClawTelegramPermission({
+    requirement: callbackRequirement,
+    context: trustedContext,
+    grants: [callbackGrant],
+  });
+  const missingTopicDecision = evaluateOpenClawTelegramPermission({
+    requirement: sendMessageRequirement,
+    actor: trustedActor,
+    context: {
+      workspaceRef: 'workspace:acme',
+      agentRef: 'agent:coder',
+    },
+    grants: [sendMessageGrant],
+  });
+
+  assert.equal(missingActorDecision.status, 'denied');
+  assert.equal(missingActorDecision.reason, 'Actor context is not trusted.');
+  assert.equal(missingTopicDecision.status, 'denied');
+  assert.equal(missingTopicDecision.reason, 'Topic binding is not trusted.');
+});
+
 test('denies callback permission when evaluated after token consume', () => {
   const decision = evaluateOpenClawTelegramPermission({
     requirement: callbackRequirement,
@@ -110,7 +132,7 @@ test('denies callback permission when evaluated after token consume', () => {
   assert.equal(decision.reason.includes('tokenRef'), false);
 });
 
-test('denies when trusted topic binding is missing or inactive before considering grants', () => {
+test('denies when trusted topic binding is inactive before considering grants', () => {
   const decision = evaluateOpenClawTelegramPermission({
     requirement: sendMessageRequirement,
     actor: trustedActor,
@@ -145,6 +167,48 @@ test('denies when no adapter permission grant matches the effective requirement'
 
   assert.equal(decision.status, 'denied');
   assert.equal(decision.reason, 'No matching adapter permission grant.');
+});
+
+test('keeps permission denial reasons bounded and free from raw provider fields', () => {
+  const decisions = [
+    evaluateOpenClawTelegramPermission({
+      requirement: callbackRequirement,
+      actor: { ...trustedActor, trust: 'unknown' },
+      context: trustedContext,
+      grants: [callbackGrant],
+    }),
+    evaluateOpenClawTelegramPermission({
+      requirement: callbackRequirement,
+      actor: trustedActor,
+      context: trustedContext,
+      grants: [],
+    }),
+  ];
+
+  for (const decision of decisions) {
+    assert.equal(decision.status, 'denied');
+    assert.equal(decision.reason.length <= 160, true);
+    assert.equal(decision.reason.includes('\n'), false);
+    assert.equal(decision.reason.includes('rawProviderPayload'), false);
+    assert.equal(decision.reason.includes('secret'), false);
+    assert.equal(decision.reason.includes('stack'), false);
+  }
+});
+
+test('rejects unsupported unsafe permission requirement values through existing contracts', () => {
+  assert.throws(
+    () =>
+      evaluateOpenClawTelegramPermission({
+        requirement: {
+          ...callbackRequirement,
+          action: 'delete-world',
+        },
+        actor: trustedActor,
+        context: trustedContext,
+        grants: [callbackGrant],
+      }),
+    TypeError,
+  );
 });
 
 test('matches grants by action resource kind and optional scoped refs', () => {
@@ -184,6 +248,19 @@ test('creates deterministic static permission evaluators without provider side e
 
   assert.deepEqual(first, second);
   assert.equal(first.status, 'allowed');
+});
+
+test('static permission evaluators ignore call-time grants', () => {
+  const evaluator = createStaticPermissionEvaluator({ grants: [] });
+  const decision = evaluator({
+    requirement: callbackRequirement,
+    actor: trustedActor,
+    context: trustedContext,
+    grants: [callbackGrant],
+  });
+
+  assert.equal(decision.status, 'denied');
+  assert.equal(decision.reason, 'No matching adapter permission grant.');
 });
 
 test('evaluates batches as frozen allow or deny decisions', () => {
