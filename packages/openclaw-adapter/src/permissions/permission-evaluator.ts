@@ -266,11 +266,11 @@ export function evaluateOpenClawTelegramPermissions(
     input.requirements.map((requirement) =>
       evaluateOpenClawTelegramPermission({
         requirement,
-        actor: input.actor,
-        context: input.context,
-        grants: input.grants,
-        detailsRef: input.detailsRef,
-        correlationRef: input.correlationRef,
+        ...(input.actor === undefined ? {} : { actor: input.actor }),
+        ...(input.context === undefined ? {} : { context: input.context }),
+        ...(input.grants === undefined ? {} : { grants: input.grants }),
+        ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
+        ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
       }),
     ),
   );
