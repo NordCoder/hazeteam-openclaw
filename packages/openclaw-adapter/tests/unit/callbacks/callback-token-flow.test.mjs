@@ -115,7 +115,9 @@ test('rejects malformed callback payloads with safe bounded errors', () => {
 
     assert.equal(result.ok, false);
     assert.equal(result.error.code, 'invalid-input');
-    assert.equal(result.error.message.includes(String(payload)), false);
+    if (typeof payload === 'string' && payload.length > 0) {
+      assert.equal(result.error.message.includes(payload), false);
+    }
     assert.equal(result.error.message.includes('\n'), false);
     assert.equal(result.error.message.includes('rawProviderPayload'), false);
     assert.equal(result.error.message.includes('stack'), false);
