@@ -12,10 +12,10 @@ import type {
   OpenClawTelegramChannelRef,
   OpenClawTelegramExternalMessageRef,
   OpenClawTelegramMessageEvent,
-  OpenClawTelegramMessageId,
   OpenClawTelegramSystemEvent,
   TelegramChatId,
   TelegramForumTopicRef,
+  TelegramMessageId,
   TelegramMessageThreadId,
 } from '@hazeteam/openclaw-adapter';
 
