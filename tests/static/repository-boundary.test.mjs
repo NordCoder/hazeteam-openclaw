@@ -51,6 +51,30 @@ function walkFiles(startDir, skipNames = new Set(['.git', 'node_modules', 'dist'
   return files;
 }
 
+function readUtf8IfLikelyText(filePath) {
+  const textExtensions = new Set([
+    '.json',
+    '.md',
+    '.mjs',
+    '.ts',
+    '.yml',
+    '.yaml',
+    '.gitignore',
+  ]);
+  const extension = path.extname(filePath);
+  const basename = path.basename(filePath);
+
+  if (!textExtensions.has(extension) && basename !== '.gitignore') {
+    return null;
+  }
+
+  return readFileSync(filePath, 'utf8');
+}
+
+function fromCharCodes(codes) {
+  return String.fromCharCode(...codes);
+}
+
 test('root workspace package and verification scripts are present', () => {
   assertFile('package.json');
   const rootPackage = readJson('package.json');
@@ -178,6 +202,26 @@ test('public contracts avoid unsafe public fields and sibling contract imports',
         new RegExp(`from\\s+['"]\\./${siblingContractName}\\.js['"]`, 'u'),
         `${fileName} must not import sibling contract ${siblingContractName}.ts`,
       );
+    }
+  }
+});
+
+test('obvious protected assignment markers are not committed', () => {
+  const protectedAssignmentTerms = [
+    [84, 69, 76, 69, 71, 82, 65, 77, 95, 66, 79, 84, 95, 84, 79, 75, 69, 78, 61],
+    [79, 80, 69, 78, 67, 76, 65, 87, 95, 65, 80, 73, 95, 75, 69, 89, 61],
+    [66, 79, 84, 95, 84, 79, 75, 69, 78, 61],
+  ].map(fromCharCodes);
+
+  for (const filePath of walkFiles(repoRoot)) {
+    const content = readUtf8IfLikelyText(filePath);
+    if (content === null) {
+      continue;
+    }
+
+    const relativePath = path.relative(repoRoot, filePath);
+    for (const protectedTerm of protectedAssignmentTerms) {
+      assert.equal(content.includes(protectedTerm), false, `${relativePath} contains a protected assignment marker`);
     }
   }
 });
