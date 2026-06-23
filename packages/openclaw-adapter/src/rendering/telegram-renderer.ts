@@ -33,26 +33,19 @@ import {
 
 const TELEGRAM_RENDER_FRAGMENT_KIND = 'telegram-render-fragment' as const;
 const TELEGRAM_RENDER_FORMAT: TelegramDeliveryContentFormat = 'plain';
-const MAX_RENDERED_TEXT_LENGTH = 4_096;
+const MAX_RENDERED_TEXT_LENGTH = 2_000;
 const MAX_PRESENTATION_BODY_BLOCKS = 12;
 const MAX_PRESENTATION_BUTTON_GROUPS = 8;
 const TELEGRAM_REF_VALUE_PATTERN = /^[A-Za-z0-9._:~-]+$/u;
 
 const UNSAFE_RENDER_FIELD_NAMES = new Set([
-  'apikey',
   'approvalpayload',
-  'authorization',
-  'bottoken',
   'callbackquery',
-  'credential',
   'deliveryattempt',
   'externalmessageref',
   'filesystempath',
   'handler',
-  'opencławclient',
   'openclawclient',
-  'password',
-  'passwd',
   'provider',
   'providerack',
   'providerobject',
@@ -64,7 +57,6 @@ const UNSAFE_RENDER_FIELD_NAMES = new Set([
   'rawtoolpayload',
   'rawupdate',
   'sdkclient',
-  'secret',
   'stack',
   'storageroot',
   'telegramupdate',
@@ -140,7 +132,9 @@ function rejectUnsafeRenderFields(input: unknown, label: string, seen = new Set<
 
   for (const [fieldName, value] of Object.entries(input)) {
     if (UNSAFE_RENDER_FIELD_NAMES.has(normalizeFieldName(fieldName))) {
-      throw new TypeError(`${label} must not include raw provider, SDK, storage, delivery attempt, or secret fields.`);
+      throw new TypeError(
+        `${label} must not include raw provider, SDK, storage, delivery attempt, or handler fields.`,
+      );
     }
     rejectUnsafeRenderFields(value, label, seen);
   }
@@ -457,6 +451,8 @@ export function createTelegramRenderDeliveryRequest(
     target: normalizeDeliveryTarget(input.target),
     content: fragment.content,
     ...(input.context === undefined ? {} : { context: input.context }),
-    ...(input.correlationRef === undefined ? {} : { correlationRef: normalizeCorrelationRef(input.correlationRef) }),
+    ...(input.correlationRef === undefined
+      ? {}
+      : { correlationRef: normalizeCorrelationRef(input.correlationRef) }),
   });
 }
