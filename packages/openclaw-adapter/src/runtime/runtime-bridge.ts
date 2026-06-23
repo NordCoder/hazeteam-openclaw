@@ -68,18 +68,18 @@ export type OpenClawRuntimeOutputRef = `${typeof RUNTIME_OUTPUT_REF_PREFIX}${str
 
 export interface OpenClawRuntimeIntent {
   readonly kind: string;
-  readonly text?: string;
-  readonly resourceRef?: string;
+  readonly text?: string | undefined;
+  readonly resourceRef?: string | undefined;
 }
 
 export interface OpenClawRuntimeDispatchRequest {
   readonly dispatchRef: AdapterOperationRef;
   readonly intent: OpenClawRuntimeIntent;
-  readonly workspaceRef?: WorkspaceRef;
-  readonly agentRef?: AgentRef;
-  readonly actorRef?: ActorRef;
-  readonly correlationRef?: AdapterCorrelationRef;
-  readonly detailsRef?: AdapterDetailsRef;
+  readonly workspaceRef?: WorkspaceRef | undefined;
+  readonly agentRef?: AgentRef | undefined;
+  readonly actorRef?: ActorRef | undefined;
+  readonly correlationRef?: AdapterCorrelationRef | undefined;
+  readonly detailsRef?: AdapterDetailsRef | undefined;
 }
 
 export interface OpenClawRuntimeBridgeOutput {
@@ -90,8 +90,8 @@ export interface OpenClawRuntimeBridgeOutput {
 export interface OpenClawRuntimeBridgeDispatchOutput {
   readonly dispatchRef: AdapterOperationRef;
   readonly output: OpenClawRuntimeBridgeOutput;
-  readonly correlationRef?: AdapterCorrelationRef;
-  readonly detailsRef?: AdapterDetailsRef;
+  readonly correlationRef?: AdapterCorrelationRef | undefined;
+  readonly detailsRef?: AdapterDetailsRef | undefined;
 }
 
 export interface OpenClawRuntimeBoundary {
@@ -100,14 +100,14 @@ export interface OpenClawRuntimeBoundary {
 }
 
 export interface OpenClawRuntimeBridgeInput {
-  readonly runtime?: OpenClawRuntimeBoundary;
-  readonly context?: AdapterOperationContext;
+  readonly runtime?: OpenClawRuntimeBoundary | undefined;
+  readonly context?: AdapterOperationContext | undefined;
 }
 
 export interface OpenClawRuntimeBridgeDispatchInput {
-  readonly runtime?: OpenClawRuntimeBoundary;
+  readonly runtime?: OpenClawRuntimeBoundary | undefined;
   readonly request: OpenClawRuntimeDispatchRequest;
-  readonly context?: AdapterOperationContext;
+  readonly context?: AdapterOperationContext | undefined;
 }
 
 export interface OpenClawRuntimeBridge {
@@ -116,6 +116,15 @@ export interface OpenClawRuntimeBridge {
     context?: AdapterOperationContext,
   ) => AdapterOperationResult<OpenClawRuntimeBridgeDispatchOutput>;
   readonly getReadiness: () => OpenClawTelegramAdapterReadiness;
+}
+
+interface RuntimeFailureInput {
+  readonly code: AdapterSafeErrorCode;
+  readonly message: string;
+  readonly context?: AdapterOperationContext | undefined;
+  readonly retryable?: boolean | undefined;
+  readonly detailsRef?: AdapterDetailsRef | undefined;
+  readonly correlationRef?: AdapterCorrelationRef | undefined;
 }
 
 function isPlainRecord(input: unknown): input is Record<string, unknown> {
@@ -279,6 +288,10 @@ function normalizeOptionalAdapterRef<T extends string>(
   return normalizeAdapterRef<T>(input, kind, label);
 }
 
+function preferDefined(primary: unknown, fallback: unknown): unknown {
+  return primary === undefined ? fallback : primary;
+}
+
 function normalizeRuntimeIntent(input: unknown): OpenClawRuntimeIntent {
   assertPlainRecord(input, 'Runtime intent');
   rejectUnsafeRuntimeFields(input, 'Runtime intent');
@@ -336,14 +349,9 @@ function normalizeRuntimeDispatchRequest(input: unknown): OpenClawRuntimeDispatc
   });
 }
 
-function createRuntimeFailure(input: {
-  readonly code: AdapterSafeErrorCode;
-  readonly message: string;
-  readonly context?: AdapterOperationContext;
-  readonly retryable?: boolean;
-  readonly detailsRef?: AdapterDetailsRef;
-  readonly correlationRef?: AdapterCorrelationRef;
-}): AdapterOperationResult<OpenClawRuntimeBridgeDispatchOutput> {
+function createRuntimeFailure(
+  input: RuntimeFailureInput,
+): AdapterOperationResult<OpenClawRuntimeBridgeDispatchOutput> {
   return adapterErr(
     createAdapterSafeError({
       code: input.code,
@@ -390,12 +398,12 @@ function normalizeRuntimeBoundarySuccess(
   }
 
   const correlationRef = normalizeOptionalAdapterRef<AdapterCorrelationRef>(
-    result.correlationRef ?? request.correlationRef,
+    preferDefined(result.correlationRef, request.correlationRef),
     'correlation',
     'Runtime result correlationRef',
   );
   const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
-    result.detailsRef ?? request.detailsRef,
+    preferDefined(result.detailsRef, request.detailsRef),
     'details',
     'Runtime result detailsRef',
   );
@@ -416,8 +424,7 @@ function normalizeRuntimeBoundaryFailure(
   result: Record<string, unknown>,
   context: AdapterOperationContext | undefined,
 ): AdapterOperationResult<OpenClawRuntimeBridgeDispatchOutput> {
-  const error = result.error;
-  const errorRecord = isPlainRecord(error) ? error : undefined;
+  const errorRecord = isPlainRecord(result.error) ? result.error : undefined;
   const resultDispatchRef =
     result.dispatchRef === undefined
       ? request.dispatchRef
@@ -428,12 +435,12 @@ function normalizeRuntimeBoundaryFailure(
   }
 
   const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
-    result.detailsRef ?? errorRecord?.detailsRef ?? request.detailsRef,
+    preferDefined(preferDefined(result.detailsRef, errorRecord?.detailsRef), request.detailsRef),
     'details',
     'Runtime failure detailsRef',
   );
   const correlationRef = normalizeOptionalAdapterRef<AdapterCorrelationRef>(
-    result.correlationRef ?? errorRecord?.correlationRef ?? request.correlationRef,
+    preferDefined(preferDefined(result.correlationRef, errorRecord?.correlationRef), request.correlationRef),
     'correlation',
     'Runtime failure correlationRef',
   );
@@ -454,9 +461,9 @@ function normalizeRuntimeBoundaryFailure(
     code,
     message,
     context,
-    ...(retryable === undefined ? {} : { retryable }),
-    ...(detailsRef === undefined ? {} : { detailsRef }),
-    ...(correlationRef === undefined ? {} : { correlationRef }),
+    retryable,
+    detailsRef,
+    correlationRef,
   });
 }
 
@@ -505,13 +512,25 @@ export function dispatchOpenClawRuntime(
     });
   }
 
+  let boundaryResult: unknown;
   try {
-    const result = input.runtime.dispatch(request);
-    return normalizeRuntimeBoundaryResult(request, result, input.context);
+    boundaryResult = input.runtime.dispatch(request);
   } catch {
     return createRuntimeFailure({
       code: 'dependency-failed',
       message: 'Runtime boundary threw during dispatch.',
+      context: input.context,
+      correlationRef: request.correlationRef,
+      detailsRef: request.detailsRef,
+    });
+  }
+
+  try {
+    return normalizeRuntimeBoundaryResult(request, boundaryResult, input.context);
+  } catch {
+    return createRuntimeFailure({
+      code: 'dependency-failed',
+      message: UNSAFE_RUNTIME_RESULT_MESSAGE,
       context: input.context,
       correlationRef: request.correlationRef,
       detailsRef: request.detailsRef,
@@ -538,9 +557,9 @@ function readinessCheckStatusFromRuntimeStatus(status: unknown): 'pass' | 'warn'
 }
 
 export function summarizeOpenClawRuntimeBridgeReadiness(input: {
-  readonly runtime?: OpenClawRuntimeBoundary;
-  readonly detailsRef?: AdapterDetailsRef;
-  readonly correlationRef?: AdapterCorrelationRef;
+  readonly runtime?: OpenClawRuntimeBoundary | undefined;
+  readonly detailsRef?: AdapterDetailsRef | undefined;
+  readonly correlationRef?: AdapterCorrelationRef | undefined;
 } = {}): OpenClawTelegramAdapterReadiness {
   if (!isRuntimeBoundary(input.runtime)) {
     return summarizeAdapterReadiness({
