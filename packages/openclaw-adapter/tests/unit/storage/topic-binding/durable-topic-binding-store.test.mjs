@@ -37,8 +37,8 @@ function cloneJson(value) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 }
 
-function makeSnapshot(overrides = {}) {
-  return createTopicBindingSnapshot({
+function makeSnapshotInput(overrides = {}) {
+  return {
     key: {
       workspaceId: 'workspace-a',
       channelId: 'channel-main',
@@ -51,7 +51,11 @@ function makeSnapshot(overrides = {}) {
     updatedAtIso: '2026-06-24T01:00:00.000Z',
     metadata: { labels: ['initial'], nested: { count: 1 } },
     ...overrides,
-  });
+  };
+}
+
+function makeSnapshot(overrides = {}) {
+  return createTopicBindingSnapshot(makeSnapshotInput(overrides));
 }
 
 function createFakeRecordPort() {
@@ -233,7 +237,7 @@ test('malformed durable records are rejected when read from the injected boundar
 test('rejects unsafe durable metadata field names before persistence', () => {
   for (const forbiddenTerm of forbiddenSerializedTerms) {
     assert.throws(
-      () => createDurableTopicBindingRecord(makeSnapshot({ metadata: { [forbiddenTerm]: 'unsafe' } })),
+      () => createDurableTopicBindingRecord(makeSnapshotInput({ metadata: { [forbiddenTerm]: 'unsafe' } })),
       /must not include/u,
       forbiddenTerm,
     );
