@@ -10,6 +10,7 @@ Further implementation must follow the conflict-aware parallel roadmap: implemen
 
 ## Documentation index
 
+- [Current development state](roadmap/current-development-state.md) — short handoff for continuing from current `main`; identifies completed foundations and the next W3E fan-in gate.
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
 - [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md) — target OpenClaw Telegram flow, topic model, callback model, and fake-first rule.
@@ -26,14 +27,16 @@ Further implementation must follow the conflict-aware parallel roadmap: implemen
 
 ## Reading order for workers
 
-1. [Core context digest](core-context.md)
-2. [Core boundary](architecture/core-boundary.md)
-3. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
-4. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
-5. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
-6. [Implementation waves](roadmap/implementation-waves.md)
-7. [File ownership matrix](roadmap/file-ownership-matrix.md)
-8. Source and tests in the assigned allowed area.
+1. [Current development state](roadmap/current-development-state.md)
+2. [Core context digest](core-context.md)
+3. [Adapter authoring guide](adapter-authoring/README.md)
+4. [Core boundary](architecture/core-boundary.md)
+5. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
+6. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
+7. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
+8. [Implementation waves](roadmap/implementation-waves.md)
+9. [File ownership matrix](roadmap/file-ownership-matrix.md)
+10. Source and tests in the assigned allowed area.
 
 ## Relationship to `hazeteam-core` docs
 
