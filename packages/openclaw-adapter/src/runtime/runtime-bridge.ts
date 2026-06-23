@@ -4,6 +4,7 @@ import type {
   AdapterCorrelationRef,
   AdapterDetailsRef,
   AdapterOperationRef,
+  AdapterRawDebugRef,
   AgentRef,
   WorkspaceRef,
 } from '../contracts/refs.js';
@@ -292,6 +293,67 @@ function preferDefined(primary: unknown, fallback: unknown): unknown {
   return primary === undefined ? fallback : primary;
 }
 
+function normalizeOperationContext(input: unknown): AdapterOperationContext {
+  assertPlainRecord(input, 'Runtime operation context');
+  rejectUnsafeRuntimeFields(input, 'Runtime operation context');
+
+  const workspaceRef = normalizeOptionalAdapterRef<WorkspaceRef>(
+    input.workspaceRef,
+    'workspace',
+    'Runtime context workspaceRef',
+  );
+  const agentRef = normalizeOptionalAdapterRef<AgentRef>(
+    input.agentRef,
+    'agent',
+    'Runtime context agentRef',
+  );
+  const actorRef = normalizeOptionalAdapterRef<ActorRef>(
+    input.actorRef,
+    'actor',
+    'Runtime context actorRef',
+  );
+  const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
+    input.detailsRef,
+    'details',
+    'Runtime context detailsRef',
+  );
+  const rawDebugRef = normalizeOptionalAdapterRef<AdapterRawDebugRef>(
+    input.rawDebugRef,
+    'raw-debug',
+    'Runtime context rawDebugRef',
+  );
+
+  return Object.freeze({
+    operationRef: normalizeAdapterRef<AdapterOperationRef>(
+      input.operationRef,
+      'operation',
+      'Runtime context operationRef',
+    ),
+    correlationRef: normalizeAdapterRef<AdapterCorrelationRef>(
+      input.correlationRef,
+      'correlation',
+      'Runtime context correlationRef',
+    ),
+    ...(workspaceRef === undefined ? {} : { workspaceRef }),
+    ...(agentRef === undefined ? {} : { agentRef }),
+    ...(actorRef === undefined ? {} : { actorRef }),
+    ...(detailsRef === undefined ? {} : { detailsRef }),
+    ...(rawDebugRef === undefined ? {} : { rawDebugRef }),
+  });
+}
+
+function normalizeOptionalOperationContext(input: unknown): AdapterOperationContext | undefined {
+  return input === undefined ? undefined : normalizeOperationContext(input);
+}
+
+function safeResultContext(input: AdapterOperationContext | undefined): AdapterOperationContext | undefined {
+  try {
+    return normalizeOptionalOperationContext(input);
+  } catch {
+    return undefined;
+  }
+}
+
 function normalizeRuntimeIntent(input: unknown): OpenClawRuntimeIntent {
   assertPlainRecord(input, 'Runtime intent');
   rejectUnsafeRuntimeFields(input, 'Runtime intent');
@@ -360,7 +422,7 @@ function createRuntimeFailure(
       ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
       ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
     }),
-    input.context,
+    safeResultContext(input.context),
   );
 }
 
@@ -493,11 +555,21 @@ function isRuntimeBoundary(runtime: unknown): runtime is OpenClawRuntimeBoundary
 export function dispatchOpenClawRuntime(
   input: OpenClawRuntimeBridgeDispatchInput,
 ): AdapterOperationResult<OpenClawRuntimeBridgeDispatchOutput> {
+  let context: AdapterOperationContext | undefined;
+  try {
+    context = normalizeOptionalOperationContext(input.context);
+  } catch (error) {
+    return createRuntimeFailure({
+      code: 'invalid-input',
+      message: error instanceof Error ? error.message : 'Runtime operation context is invalid.',
+    });
+  }
+
   if (!isRuntimeBoundary(input.runtime)) {
     return createRuntimeFailure({
       code: 'dependency-missing',
       message: 'Runtime boundary is not configured.',
-      context: input.context,
+      context,
     });
   }
 
@@ -508,7 +580,7 @@ export function dispatchOpenClawRuntime(
     return createRuntimeFailure({
       code: 'invalid-input',
       message: error instanceof Error ? error.message : 'Runtime dispatch request is invalid.',
-      context: input.context,
+      context,
     });
   }
 
@@ -519,19 +591,19 @@ export function dispatchOpenClawRuntime(
     return createRuntimeFailure({
       code: 'dependency-failed',
       message: 'Runtime boundary threw during dispatch.',
-      context: input.context,
+      context,
       correlationRef: request.correlationRef,
       detailsRef: request.detailsRef,
     });
   }
 
   try {
-    return normalizeRuntimeBoundaryResult(request, boundaryResult, input.context);
+    return normalizeRuntimeBoundaryResult(request, boundaryResult, context);
   } catch {
     return createRuntimeFailure({
       code: 'dependency-failed',
       message: UNSAFE_RUNTIME_RESULT_MESSAGE,
-      context: input.context,
+      context,
       correlationRef: request.correlationRef,
       detailsRef: request.detailsRef,
     });
