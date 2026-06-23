@@ -22,6 +22,7 @@ import {
   createTelegramButtonGroupDescriptor,
   createTelegramCardDescriptor,
   createTelegramTextBlock,
+  isTelegramCardDescriptor,
   type TelegramCardDescriptor,
 } from '../commands/ui-descriptors.js';
 
@@ -160,7 +161,7 @@ export interface SubmitApprovalBridgeRequestInput {
 export interface ResolveApprovalBridgeDecisionInput {
   readonly resolver?: ApprovalBridgeResolver;
   readonly decision: ApprovalBridgeDecisionInput;
-  readonly permissionDecision?: PermissionDecision;
+  readonly permissionDecision: PermissionDecision;
   readonly context?: AdapterOperationContext;
 }
 
@@ -539,12 +540,12 @@ export function isApprovalBridgeRequest(candidate: unknown): candidate is Approv
   }
 
   const request = candidate as Partial<ApprovalBridgeRequest> & Partial<ApprovalBridgeRequestInput>;
-  if (request.kind !== APPROVAL_BRIDGE_REQUEST_KIND) {
+  if (request.kind !== APPROVAL_BRIDGE_REQUEST_KIND || !isTelegramCardDescriptor(request.card)) {
     return false;
   }
 
   try {
-    createApprovalBridgeRequest({
+    const normalizedRequest = createApprovalBridgeRequest({
       approvalRef: request.approvalRef as string,
       title: request.title as string,
       message: request.message as string,
@@ -557,15 +558,31 @@ export function isApprovalBridgeRequest(candidate: unknown): candidate is Approv
       ...(request.detailsRef === undefined ? {} : { detailsRef: request.detailsRef }),
       ...(request.correlationRef === undefined ? {} : { correlationRef: request.correlationRef }),
     });
-    return true;
+    return JSON.stringify(request.card) === JSON.stringify(normalizedRequest.card);
   } catch {
     return false;
   }
 }
 
 export function isApprovalBridgeDecision(candidate: unknown): candidate is ApprovalBridgeDecision {
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+    return false;
+  }
+
+  const decision = candidate as Partial<ApprovalBridgeDecision> & Partial<ApprovalBridgeDecisionInput>;
+  if (decision.kind !== APPROVAL_BRIDGE_DECISION_KIND) {
+    return false;
+  }
+
   try {
-    createApprovalBridgeDecision(candidate as ApprovalBridgeDecisionInput);
+    createApprovalBridgeDecision({
+      approvalRef: decision.approvalRef as string,
+      status: decision.status as ApprovalBridgeDecisionStatus,
+      ...(decision.actorRef === undefined ? {} : { actorRef: decision.actorRef }),
+      ...(decision.reason === undefined ? {} : { reason: decision.reason }),
+      ...(decision.detailsRef === undefined ? {} : { detailsRef: decision.detailsRef }),
+      ...(decision.correlationRef === undefined ? {} : { correlationRef: decision.correlationRef }),
+    });
     return true;
   } catch {
     return false;
@@ -652,7 +669,19 @@ export async function resolveApprovalBridgeDecision(
     });
   }
 
-  if (input.permissionDecision !== undefined && !isPermissionAllowed(input.permissionDecision)) {
+  if (input.permissionDecision === undefined) {
+    return createApprovalBridgeFailure({
+      code: 'forbidden',
+      message: 'Approval resolution requires an allowed permission decision before resolver boundary call.',
+      context,
+      ...(getInputDetailsRef(decision) === undefined ? {} : { detailsRef: getInputDetailsRef(decision) }),
+      ...(getInputCorrelationRef(decision) === undefined
+        ? {}
+        : { correlationRef: getInputCorrelationRef(decision) }),
+    });
+  }
+
+  if (!isPermissionAllowed(input.permissionDecision)) {
     return createApprovalBridgeFailure({
       code: 'forbidden',
       message: 'Approval resolution permission denied before resolver boundary call.',
