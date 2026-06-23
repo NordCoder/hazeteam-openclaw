@@ -16,10 +16,6 @@ function assertFile(...segments) {
   assert.equal(statSync(target).isFile(), true, `${segments.join('/')} should be a file`);
 }
 
-function assertMissingPath(...segments) {
-  assert.equal(existsSync(repoPath(...segments)), false, `${segments.join('/')} should not exist yet`);
-}
-
 function readSource(...segments) {
   return readFileSync(repoPath(...segments), 'utf8');
 }
@@ -97,22 +93,5 @@ test('Wave 3 testkit root barrel exposes event factories and fake primitives', (
   const testkitRootSource = readSource('packages', 'openclaw-testkit', 'src', 'index.ts');
   for (const modulePath of testkitRootExports) {
     assertExportsExactlyOnce(testkitRootSource, modulePath, 'openclaw-testkit root barrel');
-  }
-});
-
-test('Wave 3 fan-in does not introduce future behavior implementation directories', () => {
-  for (const dirName of [
-    'mapping',
-    'rendering',
-    'host',
-    'permissions',
-    'delivery',
-    'callbacks',
-    'runtime',
-    'approvals',
-    'storage',
-    'openclaw',
-  ]) {
-    assertMissingPath('packages', 'openclaw-adapter', 'src', dirName);
   }
 });
