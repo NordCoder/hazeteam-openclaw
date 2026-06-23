@@ -111,14 +111,6 @@ export interface DurableCoreStoreAdapterBundleInput {
   readonly context?: AdapterOperationContext;
 }
 
-export interface DurableCoreStoreAdapterBundle {
-  readonly adapters: DurableCoreStoreAdapters;
-  readonly ports: DurableCoreHostStorePorts;
-  readonly configuredStores: readonly DurableCoreStoreAdapterName[];
-  readonly missingStores: readonly DurableCoreStoreAdapterName[];
-  readonly readiness: OpenClawTelegramAdapterReadiness;
-}
-
 export interface DurableCoreStoreAdapters {
   readonly sessionBindingStore?: DurableCoreSessionBindingStoreAdapter;
   readonly presentationOutboxStore?: DurableCorePresentationOutboxStoreAdapter;
@@ -126,6 +118,14 @@ export interface DurableCoreStoreAdapters {
 }
 
 export type DurableCoreHostStorePorts = Pick<AdapterCoreHostPorts, DurableCoreStoreAdapterName>;
+
+export interface DurableCoreStoreAdapterBundle {
+  readonly adapters: DurableCoreStoreAdapters;
+  readonly ports: DurableCoreHostStorePorts;
+  readonly configuredStores: readonly DurableCoreStoreAdapterName[];
+  readonly missingStores: readonly DurableCoreStoreAdapterName[];
+  readonly readiness: OpenClawTelegramAdapterReadiness;
+}
 
 export interface DurableCoreSessionBindingStoreAdapter {
   readonly get: (
@@ -205,6 +205,14 @@ export interface DurableCoreActionTokenConsumeInput {
   readonly safeMessage?: string;
 }
 
+interface DurableCoreBaseRecordFields {
+  readonly updatedByOperationRef?: AdapterOperationRef;
+  readonly correlationRef?: AdapterCorrelationRef;
+  readonly detailsRef?: AdapterDetailsRef;
+  readonly safeMessage?: string;
+  readonly serializedPayloadDescriptor?: DurableCoreSerializedRecordDescriptor;
+}
+
 const RECORD_KEY_PATTERN = /^[A-Za-z0-9._~:-]+$/u;
 const MAX_RECORD_KEY_LENGTH = 256;
 const MAX_SAFE_MESSAGE_LENGTH = 240;
@@ -226,7 +234,6 @@ const SENSITIVE_ASSIGNMENT_PATTERN = new RegExp(
   `\\b(?:${SENSITIVE_ASSIGNMENT_TERMS.join('|')})\\b\\s*[:=]\\s*\\S+`,
   'giu',
 );
-
 const BASE_RECORD_ALLOWED_KEYS = [
   'recordKind',
   'recordKey',
@@ -236,7 +243,6 @@ const BASE_RECORD_ALLOWED_KEYS = [
   'safeMessage',
   'serializedPayloadDescriptor',
 ] as const;
-
 const SESSION_BINDING_ALLOWED_KEYS = new Set([
   ...BASE_RECORD_ALLOWED_KEYS,
   'externalSessionRef',
@@ -246,7 +252,6 @@ const SESSION_BINDING_ALLOWED_KEYS = new Set([
   'actorRef',
   'status',
 ]);
-
 const PRESENTATION_OUTBOX_ALLOWED_KEYS = new Set([
   ...BASE_RECORD_ALLOWED_KEYS,
   'presentationRef',
@@ -256,7 +261,6 @@ const PRESENTATION_OUTBOX_ALLOWED_KEYS = new Set([
   'externalMessageRef',
   'attemptRef',
 ]);
-
 const ACTION_TOKEN_ALLOWED_KEYS = new Set([
   ...BASE_RECORD_ALLOWED_KEYS,
   'actionTokenRef',
@@ -266,8 +270,8 @@ const ACTION_TOKEN_ALLOWED_KEYS = new Set([
   'issuedByOperationRef',
   'consumedByOperationRef',
 ]);
-
 const SERIALIZED_DESCRIPTOR_ALLOWED_KEYS = new Set(['format', 'contentRef', 'summary']);
+const LIST_INPUT_ALLOWED_KEYS = new Set(['status', 'limit']);
 const ACTION_TOKEN_CONSUME_ALLOWED_KEYS = new Set([
   'consumedByOperationRef',
   'correlationRef',
@@ -295,6 +299,49 @@ function assertAllowedKeys(
       throw new TypeError(`${label} contains unsupported fields.`);
     }
   }
+}
+
+function invalidInputResult<T>(
+  message: string,
+  context: AdapterOperationContext | undefined,
+): AdapterOperationResult<T> {
+  return adapterErr(createAdapterSafeError({ code: 'invalid-input', message }), context);
+}
+
+function dependencyMissingResult<T>(
+  message: string,
+  context: AdapterOperationContext | undefined,
+): AdapterOperationResult<T> {
+  return adapterErr(createAdapterSafeError({ code: 'dependency-missing', message }), context);
+}
+
+function dependencyFailedResult<T>(
+  storeName: DurableCoreStoreAdapterName,
+  operation: string,
+  context: AdapterOperationContext | undefined,
+): AdapterOperationResult<T> {
+  return adapterErr(
+    createAdapterSafeError({
+      code: 'dependency-failed',
+      message: `Durable core ${storeName} boundary failed during ${operation}.`,
+      retryable: true,
+    }),
+    context,
+  );
+}
+
+function notFoundResult<T>(
+  message: string,
+  context: AdapterOperationContext | undefined,
+): AdapterOperationResult<T> {
+  return adapterErr(createAdapterSafeError({ code: 'not-found', message }), context);
+}
+
+function conflictResult<T>(
+  message: string,
+  context: AdapterOperationContext | undefined,
+): AdapterOperationResult<T> {
+  return adapterErr(createAdapterSafeError({ code: 'conflict', message }), context);
 }
 
 function normalizeRecordKey(value: unknown): string {
@@ -438,43 +485,39 @@ function normalizeSerializedPayloadDescriptor(
   });
 }
 
-function normalizeBaseRecord(input: {
+function normalizeBaseRecordFields(input: {
   readonly record: Record<string, unknown>;
   readonly expectedKind: DurableCoreRecordKind;
   readonly label: string;
-}): DurableCoreSafeRecordBase {
+}): DurableCoreBaseRecordFields {
+  normalizeRecordKind(input.record.recordKind, input.expectedKind, input.label);
+  const updatedByOperationRef = normalizeOptionalAdapterRef<AdapterOperationRef>(
+    'updatedByOperationRef',
+    input.record.updatedByOperationRef,
+    'operation',
+  );
+  const correlationRef = normalizeOptionalAdapterRef<AdapterCorrelationRef>(
+    'correlationRef',
+    input.record.correlationRef,
+    'correlation',
+  );
+  const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
+    'detailsRef',
+    input.record.detailsRef,
+    'details',
+  );
+  const safeMessage = normalizeOptionalSafeMessage(input.record.safeMessage);
+  const serializedPayloadDescriptor = normalizeSerializedPayloadDescriptor(
+    input.record.serializedPayloadDescriptor,
+  );
+
   return Object.freeze({
-    recordKind: normalizeRecordKind(input.record.recordKind, input.expectedKind, input.label),
-    recordKey: normalizeRecordKey(input.record.recordKey),
-    ...optionalRecordRef('updatedByOperationRef', input.record.updatedByOperationRef, 'operation'),
-    ...optionalRecordRef('correlationRef', input.record.correlationRef, 'correlation'),
-    ...optionalRecordRef('detailsRef', input.record.detailsRef, 'details'),
-    ...optionalSafeMessageField(input.record.safeMessage),
-    ...optionalSerializedDescriptorField(input.record.serializedPayloadDescriptor),
+    ...(updatedByOperationRef === undefined ? {} : { updatedByOperationRef }),
+    ...(correlationRef === undefined ? {} : { correlationRef }),
+    ...(detailsRef === undefined ? {} : { detailsRef }),
+    ...(safeMessage === undefined ? {} : { safeMessage }),
+    ...(serializedPayloadDescriptor === undefined ? {} : { serializedPayloadDescriptor }),
   });
-}
-
-function optionalRecordRef<TRef extends OpenClawAdapterRef>(
-  fieldName: string,
-  value: unknown,
-  expectedKind?: OpenClawAdapterRefKind,
-): { readonly [key: string]: TRef } | Record<string, never> {
-  const ref = normalizeOptionalAdapterRef<TRef>(fieldName, value, expectedKind);
-  return ref === undefined ? {} : { [fieldName]: ref };
-}
-
-function optionalSafeMessageField(
-  value: unknown,
-): { readonly safeMessage: string } | Record<string, never> {
-  const safeMessage = normalizeOptionalSafeMessage(value);
-  return safeMessage === undefined ? {} : { safeMessage };
-}
-
-function optionalSerializedDescriptorField(
-  value: unknown,
-): { readonly serializedPayloadDescriptor: DurableCoreSerializedRecordDescriptor } | Record<string, never> {
-  const descriptor = normalizeSerializedPayloadDescriptor(value);
-  return descriptor === undefined ? {} : { serializedPayloadDescriptor: descriptor };
 }
 
 function normalizeListInput(input: unknown): DurableCoreRecordListInput {
@@ -483,7 +526,7 @@ function normalizeListInput(input: unknown): DurableCoreRecordListInput {
   }
 
   assertRecord(input, 'list input');
-  assertAllowedKeys(input, new Set(['status', 'limit']), 'list input');
+  assertAllowedKeys(input, LIST_INPUT_ALLOWED_KEYS, 'list input');
 
   const limit = normalizeOptionalLimit(input.limit);
   return Object.freeze({
@@ -492,71 +535,37 @@ function normalizeListInput(input: unknown): DurableCoreRecordListInput {
   });
 }
 
-function invalidInputResult<T>(
-  message: string,
-  context: AdapterOperationContext | undefined,
-): AdapterOperationResult<T> {
-  return adapterErr(
-    createAdapterSafeError({
-      code: 'invalid-input',
-      message,
-    }),
-    context,
-  );
-}
+function normalizeActionTokenConsumeInput(input: unknown): DurableCoreActionTokenConsumeInput {
+  if (input === undefined) {
+    return Object.freeze({});
+  }
 
-function dependencyMissingResult<T>(
-  message: string,
-  context: AdapterOperationContext | undefined,
-): AdapterOperationResult<T> {
-  return adapterErr(
-    createAdapterSafeError({
-      code: 'dependency-missing',
-      message,
-    }),
-    context,
-  );
-}
+  assertRecord(input, 'action token consume input');
+  assertAllowedKeys(input, ACTION_TOKEN_CONSUME_ALLOWED_KEYS, 'action token consume input');
 
-function dependencyFailedResult<T>(
-  storeName: DurableCoreStoreAdapterName,
-  operation: string,
-  context: AdapterOperationContext | undefined,
-): AdapterOperationResult<T> {
-  return adapterErr(
-    createAdapterSafeError({
-      code: 'dependency-failed',
-      message: `Durable core ${storeName} boundary failed during ${operation}.`,
-      retryable: true,
-    }),
-    context,
+  const consumedByOperationRef = normalizeOptionalAdapterRef<AdapterOperationRef>(
+    'consumedByOperationRef',
+    input.consumedByOperationRef,
+    'operation',
   );
-}
+  const correlationRef = normalizeOptionalAdapterRef<AdapterCorrelationRef>(
+    'correlationRef',
+    input.correlationRef,
+    'correlation',
+  );
+  const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
+    'detailsRef',
+    input.detailsRef,
+    'details',
+  );
+  const safeMessage = normalizeOptionalSafeMessage(input.safeMessage);
 
-function notFoundResult<T>(
-  message: string,
-  context: AdapterOperationContext | undefined,
-): AdapterOperationResult<T> {
-  return adapterErr(
-    createAdapterSafeError({
-      code: 'not-found',
-      message,
-    }),
-    context,
-  );
-}
-
-function conflictResult<T>(
-  message: string,
-  context: AdapterOperationContext | undefined,
-): AdapterOperationResult<T> {
-  return adapterErr(
-    createAdapterSafeError({
-      code: 'conflict',
-      message,
-    }),
-    context,
-  );
+  return Object.freeze({
+    ...(consumedByOperationRef === undefined ? {} : { consumedByOperationRef }),
+    ...(correlationRef === undefined ? {} : { correlationRef }),
+    ...(detailsRef === undefined ? {} : { detailsRef }),
+    ...(safeMessage === undefined ? {} : { safeMessage }),
+  });
 }
 
 function isDurableCoreRecordStore(value: unknown): value is DurableCoreRecordStore<DurableCoreSafeRecordBase> {
@@ -572,128 +581,162 @@ function isDurableCoreRecordStore(value: unknown): value is DurableCoreRecordSto
 function assertDurableCoreRecordStore(
   value: unknown,
   storeName: DurableCoreStoreAdapterName,
-): asserts value is DurableCoreRecordStore<DurableCoreSafeRecordBase> {
+): void {
   if (!isDurableCoreRecordStore(value)) {
     throw new TypeError(`Durable core ${storeName} boundary must expose get and put functions.`);
   }
 }
 
-async function getNormalizedRecord<TRecord extends DurableCoreSafeRecordBase>(input: {
+function createSafeGetOperation<TRecord extends DurableCoreSafeRecordBase>(input: {
   readonly storeName: DurableCoreStoreAdapterName;
   readonly boundary: DurableCoreRecordStore<TRecord>;
-  readonly recordKey: string;
   readonly normalize: (record: unknown) => TRecord;
-  readonly context?: AdapterOperationContext;
-}): Promise<AdapterOperationResult<TRecord | undefined>> {
-  const recordKey = normalizeRecordKey(input.recordKey);
-  let rawRecord: unknown | null | undefined;
+}): (
+  recordKey: string,
+  context?: AdapterOperationContext,
+) => Promise<AdapterOperationResult<TRecord | undefined>> {
+  return async (recordKey, context) => {
+    let safeRecordKey: string;
+    try {
+      safeRecordKey = normalizeRecordKey(recordKey);
+    } catch (error) {
+      return invalidInputResult(
+        error instanceof Error ? error.message : 'Durable core record key is malformed.',
+        context,
+      );
+    }
 
-  try {
-    rawRecord = await input.boundary.get(recordKey);
-  } catch {
-    return dependencyFailedResult(input.storeName, 'read', input.context);
-  }
+    let rawRecord: unknown | null | undefined;
+    try {
+      rawRecord = await input.boundary.get(safeRecordKey);
+    } catch {
+      return dependencyFailedResult(input.storeName, 'read', context);
+    }
 
-  if (rawRecord === undefined || rawRecord === null) {
-    return adapterOk(undefined, input.context);
-  }
+    if (rawRecord === undefined || rawRecord === null) {
+      return adapterOk(undefined, context);
+    }
 
-  try {
-    return adapterOk(input.normalize(rawRecord), input.context);
-  } catch (error) {
-    return invalidInputResult(
-      error instanceof Error ? error.message : 'Durable core record is malformed.',
-      input.context,
-    );
-  }
+    try {
+      return adapterOk(input.normalize(rawRecord), context);
+    } catch (error) {
+      return invalidInputResult(
+        error instanceof Error ? error.message : 'Durable core record is malformed.',
+        context,
+      );
+    }
+  };
 }
 
-async function putNormalizedRecord<TRecord extends DurableCoreSafeRecordBase>(input: {
+function createSafePutOperation<TRecord extends DurableCoreSafeRecordBase>(input: {
   readonly storeName: DurableCoreStoreAdapterName;
   readonly boundary: DurableCoreRecordStore<TRecord>;
-  readonly record: unknown;
   readonly normalize: (record: unknown) => TRecord;
-  readonly context?: AdapterOperationContext;
-}): Promise<AdapterOperationResult<TRecord>> {
-  let record: TRecord;
-  try {
-    record = input.normalize(input.record);
-  } catch (error) {
-    return invalidInputResult(
-      error instanceof Error ? error.message : 'Durable core record is malformed.',
-      input.context,
-    );
-  }
+}): (record: unknown, context?: AdapterOperationContext) => Promise<AdapterOperationResult<TRecord>> {
+  return async (record, context) => {
+    let normalizedRecord: TRecord;
+    try {
+      normalizedRecord = input.normalize(record);
+    } catch (error) {
+      return invalidInputResult(
+        error instanceof Error ? error.message : 'Durable core record is malformed.',
+        context,
+      );
+    }
 
-  try {
-    await input.boundary.put(record);
-  } catch {
-    return dependencyFailedResult(input.storeName, 'write', input.context);
-  }
+    try {
+      await input.boundary.put(normalizedRecord);
+    } catch {
+      return dependencyFailedResult(input.storeName, 'write', context);
+    }
 
-  return adapterOk(record, input.context);
+    return adapterOk(normalizedRecord, context);
+  };
 }
 
-async function deleteRecord(input: {
-  readonly storeName: DurableCoreStoreAdapterName;
-  readonly boundary: DurableCoreRecordStore<DurableCoreSafeRecordBase>;
-  readonly recordKey: string;
-  readonly context?: AdapterOperationContext;
-}): Promise<AdapterOperationResult<{ readonly deleted: true }>> {
-  if (input.boundary.delete === undefined) {
-    return dependencyMissingResult(
-      `Durable core ${input.storeName} boundary does not expose delete.`,
-      input.context,
-    );
-  }
-
-  const recordKey = normalizeRecordKey(input.recordKey);
-
-  try {
-    await input.boundary.delete(recordKey);
-  } catch {
-    return dependencyFailedResult(input.storeName, 'delete', input.context);
-  }
-
-  return adapterOk(Object.freeze({ deleted: true as const }), input.context);
-}
-
-async function listNormalizedRecords<TRecord extends DurableCoreSafeRecordBase>(input: {
+function createSafeDeleteOperation<TRecord extends DurableCoreSafeRecordBase>(input: {
   readonly storeName: DurableCoreStoreAdapterName;
   readonly boundary: DurableCoreRecordStore<TRecord>;
-  readonly filter?: DurableCoreRecordListInput;
+}): (
+  recordKey: string,
+  context?: AdapterOperationContext,
+) => Promise<AdapterOperationResult<{ readonly deleted: true }>> {
+  return async (recordKey, context) => {
+    if (input.boundary.delete === undefined) {
+      return dependencyMissingResult(
+        `Durable core ${input.storeName} boundary does not expose delete.`,
+        context,
+      );
+    }
+
+    let safeRecordKey: string;
+    try {
+      safeRecordKey = normalizeRecordKey(recordKey);
+    } catch (error) {
+      return invalidInputResult(
+        error instanceof Error ? error.message : 'Durable core record key is malformed.',
+        context,
+      );
+    }
+
+    try {
+      await input.boundary.delete(safeRecordKey);
+    } catch {
+      return dependencyFailedResult(input.storeName, 'delete', context);
+    }
+
+    return adapterOk(Object.freeze({ deleted: true as const }), context);
+  };
+}
+
+function createSafeListOperation<TRecord extends DurableCoreSafeRecordBase>(input: {
+  readonly storeName: DurableCoreStoreAdapterName;
+  readonly boundary: DurableCoreRecordStore<TRecord>;
   readonly normalize: (record: unknown) => TRecord;
-  readonly context?: AdapterOperationContext;
-}): Promise<AdapterOperationResult<readonly TRecord[]>> {
-  if (input.boundary.list === undefined) {
-    return dependencyMissingResult(
-      `Durable core ${input.storeName} boundary does not expose list.`,
-      input.context,
-    );
-  }
+}): (
+  listInput?: DurableCoreRecordListInput,
+  context?: AdapterOperationContext,
+) => Promise<AdapterOperationResult<readonly TRecord[]>> {
+  return async (listInput, context) => {
+    if (input.boundary.list === undefined) {
+      return dependencyMissingResult(
+        `Durable core ${input.storeName} boundary does not expose list.`,
+        context,
+      );
+    }
 
-  let rawRecords: readonly unknown[];
-  try {
-    rawRecords = await input.boundary.list(input.filter);
-  } catch {
-    return dependencyFailedResult(input.storeName, 'list', input.context);
-  }
+    let filter: DurableCoreRecordListInput;
+    try {
+      filter = normalizeListInput(listInput);
+    } catch (error) {
+      return invalidInputResult(
+        error instanceof Error ? error.message : 'Durable core record list input is malformed.',
+        context,
+      );
+    }
 
-  try {
-    const normalized = rawRecords.map((record) => input.normalize(record));
-    const status = input.filter?.status;
-    const filtered =
-      status === undefined
-        ? normalized
-        : normalized.filter((record) => 'status' in record && record.status === status);
-    const limited = input.filter?.limit === undefined ? filtered : filtered.slice(0, input.filter.limit);
-    return adapterOk(Object.freeze(limited), input.context);
-  } catch (error) {
-    return invalidInputResult(
-      error instanceof Error ? error.message : 'Durable core records are malformed.',
-      input.context,
-    );
-  }
+    let rawRecords: readonly unknown[];
+    try {
+      rawRecords = await input.boundary.list(filter);
+    } catch {
+      return dependencyFailedResult(input.storeName, 'list', context);
+    }
+
+    try {
+      const normalized = rawRecords.map((record) => input.normalize(record));
+      const filtered =
+        filter.status === undefined
+          ? normalized
+          : normalized.filter((record) => 'status' in record && record.status === filter.status);
+      const limited = filter.limit === undefined ? filtered : filtered.slice(0, filter.limit);
+      return adapterOk(Object.freeze(limited), context);
+    } catch (error) {
+      return invalidInputResult(
+        error instanceof Error ? error.message : 'Durable core records are malformed.',
+        context,
+      );
+    }
+  };
 }
 
 export function normalizeDurableCoreSessionBindingRecord(
@@ -701,20 +744,24 @@ export function normalizeDurableCoreSessionBindingRecord(
 ): DurableCoreSessionBindingRecord {
   assertRecord(input, 'session binding record');
   assertAllowedKeys(input, SESSION_BINDING_ALLOWED_KEYS, 'session binding record');
-  const baseRecord = normalizeBaseRecord({
+  const baseRecord = normalizeBaseRecordFields({
     record: input,
     expectedKind: 'core.session-binding',
     label: 'session binding record',
   });
+  const workspaceRef = normalizeOptionalAdapterRef<WorkspaceRef>('workspaceRef', input.workspaceRef, 'workspace');
+  const agentRef = normalizeOptionalAdapterRef<AgentRef>('agentRef', input.agentRef, 'agent');
+  const actorRef = normalizeOptionalAdapterRef<ActorRef>('actorRef', input.actorRef, 'actor');
 
   return Object.freeze({
-    ...baseRecord,
     recordKind: 'core.session-binding' as const,
+    recordKey: normalizeRecordKey(input.recordKey),
+    ...baseRecord,
     externalSessionRef: normalizeAdapterRef('externalSessionRef', input.externalSessionRef),
     hostSessionRef: normalizeAdapterRef('hostSessionRef', input.hostSessionRef),
-    ...optionalRecordRef<WorkspaceRef>('workspaceRef', input.workspaceRef, 'workspace'),
-    ...optionalRecordRef<AgentRef>('agentRef', input.agentRef, 'agent'),
-    ...optionalRecordRef<ActorRef>('actorRef', input.actorRef, 'actor'),
+    ...(workspaceRef === undefined ? {} : { workspaceRef }),
+    ...(agentRef === undefined ? {} : { agentRef }),
+    ...(actorRef === undefined ? {} : { actorRef }),
     status: normalizeStatus('status', input.status, SESSION_BINDING_STATUSES),
   });
 }
@@ -724,50 +771,60 @@ export function normalizeDurableCorePresentationOutboxRecord(
 ): DurableCorePresentationOutboxRecord {
   assertRecord(input, 'presentation outbox record');
   assertAllowedKeys(input, PRESENTATION_OUTBOX_ALLOWED_KEYS, 'presentation outbox record');
-  const baseRecord = normalizeBaseRecord({
+  const baseRecord = normalizeBaseRecordFields({
     record: input,
     expectedKind: 'core.presentation-outbox',
     label: 'presentation outbox record',
   });
+  const claimRef = normalizeOptionalAdapterRef('claimRef', input.claimRef);
+  const deliveryRequestRef = normalizeOptionalAdapterRef('deliveryRequestRef', input.deliveryRequestRef);
+  const externalMessageRef = normalizeOptionalAdapterRef('externalMessageRef', input.externalMessageRef);
+  const attemptRef = normalizeOptionalAdapterRef('attemptRef', input.attemptRef);
 
   return Object.freeze({
-    ...baseRecord,
     recordKind: 'core.presentation-outbox' as const,
+    recordKey: normalizeRecordKey(input.recordKey),
+    ...baseRecord,
     presentationRef: normalizeAdapterRef('presentationRef', input.presentationRef),
     status: normalizeStatus('status', input.status, PRESENTATION_OUTBOX_STATUSES),
-    ...optionalRecordRef('claimRef', input.claimRef),
-    ...optionalRecordRef('deliveryRequestRef', input.deliveryRequestRef),
-    ...optionalRecordRef('externalMessageRef', input.externalMessageRef),
-    ...optionalRecordRef('attemptRef', input.attemptRef),
+    ...(claimRef === undefined ? {} : { claimRef }),
+    ...(deliveryRequestRef === undefined ? {} : { deliveryRequestRef }),
+    ...(externalMessageRef === undefined ? {} : { externalMessageRef }),
+    ...(attemptRef === undefined ? {} : { attemptRef }),
   });
 }
 
 export function normalizeDurableCoreActionTokenRecord(input: unknown): DurableCoreActionTokenRecord {
   assertRecord(input, 'action token record');
   assertAllowedKeys(input, ACTION_TOKEN_ALLOWED_KEYS, 'action token record');
-  const baseRecord = normalizeBaseRecord({
+  const baseRecord = normalizeBaseRecordFields({
     record: input,
     expectedKind: 'core.action-token',
     label: 'action token record',
   });
+  const presentationRef = normalizeOptionalAdapterRef('presentationRef', input.presentationRef);
+  const actorRef = normalizeOptionalAdapterRef<ActorRef>('actorRef', input.actorRef, 'actor');
+  const issuedByOperationRef = normalizeOptionalAdapterRef<AdapterOperationRef>(
+    'issuedByOperationRef',
+    input.issuedByOperationRef,
+    'operation',
+  );
+  const consumedByOperationRef = normalizeOptionalAdapterRef<AdapterOperationRef>(
+    'consumedByOperationRef',
+    input.consumedByOperationRef,
+    'operation',
+  );
 
   return Object.freeze({
-    ...baseRecord,
     recordKind: 'core.action-token' as const,
+    recordKey: normalizeRecordKey(input.recordKey),
+    ...baseRecord,
     actionTokenRef: normalizeAdapterRef('actionTokenRef', input.actionTokenRef),
-    ...optionalRecordRef('presentationRef', input.presentationRef),
-    ...optionalRecordRef<ActorRef>('actorRef', input.actorRef, 'actor'),
+    ...(presentationRef === undefined ? {} : { presentationRef }),
+    ...(actorRef === undefined ? {} : { actorRef }),
     status: normalizeStatus('status', input.status, ACTION_TOKEN_STATUSES),
-    ...optionalRecordRef<AdapterOperationRef>(
-      'issuedByOperationRef',
-      input.issuedByOperationRef,
-      'operation',
-    ),
-    ...optionalRecordRef<AdapterOperationRef>(
-      'consumedByOperationRef',
-      input.consumedByOperationRef,
-      'operation',
-    ),
+    ...(issuedByOperationRef === undefined ? {} : { issuedByOperationRef }),
+    ...(consumedByOperationRef === undefined ? {} : { consumedByOperationRef }),
   });
 }
 
@@ -793,34 +850,22 @@ export function createDurableCoreSessionBindingStoreAdapter(
 ): DurableCoreSessionBindingStoreAdapter {
   assertDurableCoreRecordStore(boundary, 'sessionBindingStore');
 
-  const get = (recordKey: string, context?: AdapterOperationContext) =>
-    getNormalizedRecord({
-      storeName: 'sessionBindingStore',
-      boundary,
-      recordKey,
-      normalize: normalizeDurableCoreSessionBindingRecord,
-      context,
-    });
-  const put = (record: unknown, context?: AdapterOperationContext) =>
-    putNormalizedRecord({
-      storeName: 'sessionBindingStore',
-      boundary,
-      record,
-      normalize: normalizeDurableCoreSessionBindingRecord,
-      context,
-    });
-  const remove = (recordKey: string, context?: AdapterOperationContext) =>
-    deleteRecord({ storeName: 'sessionBindingStore', boundary, recordKey, context });
-  const list = (input?: DurableCoreRecordListInput, context?: AdapterOperationContext) => {
-    const filter = normalizeListInput(input);
-    return listNormalizedRecords({
-      storeName: 'sessionBindingStore',
-      boundary,
-      filter,
-      normalize: normalizeDurableCoreSessionBindingRecord,
-      context,
-    });
-  };
+  const get = createSafeGetOperation({
+    storeName: 'sessionBindingStore',
+    boundary,
+    normalize: normalizeDurableCoreSessionBindingRecord,
+  });
+  const put = createSafePutOperation({
+    storeName: 'sessionBindingStore',
+    boundary,
+    normalize: normalizeDurableCoreSessionBindingRecord,
+  });
+  const remove = createSafeDeleteOperation({ storeName: 'sessionBindingStore', boundary });
+  const list = createSafeListOperation({
+    storeName: 'sessionBindingStore',
+    boundary,
+    normalize: normalizeDurableCoreSessionBindingRecord,
+  });
 
   return Object.freeze({
     get,
@@ -837,34 +882,22 @@ export function createDurableCorePresentationOutboxStoreAdapter(
 ): DurableCorePresentationOutboxStoreAdapter {
   assertDurableCoreRecordStore(boundary, 'presentationOutboxStore');
 
-  const get = (recordKey: string, context?: AdapterOperationContext) =>
-    getNormalizedRecord({
-      storeName: 'presentationOutboxStore',
-      boundary,
-      recordKey,
-      normalize: normalizeDurableCorePresentationOutboxRecord,
-      context,
-    });
-  const put = (record: unknown, context?: AdapterOperationContext) =>
-    putNormalizedRecord({
-      storeName: 'presentationOutboxStore',
-      boundary,
-      record,
-      normalize: normalizeDurableCorePresentationOutboxRecord,
-      context,
-    });
-  const remove = (recordKey: string, context?: AdapterOperationContext) =>
-    deleteRecord({ storeName: 'presentationOutboxStore', boundary, recordKey, context });
-  const list = (input?: DurableCoreRecordListInput, context?: AdapterOperationContext) => {
-    const filter = normalizeListInput(input);
-    return listNormalizedRecords({
-      storeName: 'presentationOutboxStore',
-      boundary,
-      filter,
-      normalize: normalizeDurableCorePresentationOutboxRecord,
-      context,
-    });
-  };
+  const get = createSafeGetOperation({
+    storeName: 'presentationOutboxStore',
+    boundary,
+    normalize: normalizeDurableCorePresentationOutboxRecord,
+  });
+  const put = createSafePutOperation({
+    storeName: 'presentationOutboxStore',
+    boundary,
+    normalize: normalizeDurableCorePresentationOutboxRecord,
+  });
+  const remove = createSafeDeleteOperation({ storeName: 'presentationOutboxStore', boundary });
+  const list = createSafeListOperation({
+    storeName: 'presentationOutboxStore',
+    boundary,
+    normalize: normalizeDurableCorePresentationOutboxRecord,
+  });
   const listPendingPresentationOutboxRecords = (context?: AdapterOperationContext) =>
     list(Object.freeze({ status: 'pending' }), context);
 
@@ -884,34 +917,22 @@ export function createDurableCorePresentationActionTokenStoreAdapter(
 ): DurableCorePresentationActionTokenStoreAdapter {
   assertDurableCoreRecordStore(boundary, 'presentationActionTokenStore');
 
-  const get = (recordKey: string, context?: AdapterOperationContext) =>
-    getNormalizedRecord({
-      storeName: 'presentationActionTokenStore',
-      boundary,
-      recordKey,
-      normalize: normalizeDurableCoreActionTokenRecord,
-      context,
-    });
-  const put = (record: unknown, context?: AdapterOperationContext) =>
-    putNormalizedRecord({
-      storeName: 'presentationActionTokenStore',
-      boundary,
-      record,
-      normalize: normalizeDurableCoreActionTokenRecord,
-      context,
-    });
-  const remove = (recordKey: string, context?: AdapterOperationContext) =>
-    deleteRecord({ storeName: 'presentationActionTokenStore', boundary, recordKey, context });
-  const list = (input?: DurableCoreRecordListInput, context?: AdapterOperationContext) => {
-    const filter = normalizeListInput(input);
-    return listNormalizedRecords({
-      storeName: 'presentationActionTokenStore',
-      boundary,
-      filter,
-      normalize: normalizeDurableCoreActionTokenRecord,
-      context,
-    });
-  };
+  const get = createSafeGetOperation({
+    storeName: 'presentationActionTokenStore',
+    boundary,
+    normalize: normalizeDurableCoreActionTokenRecord,
+  });
+  const put = createSafePutOperation({
+    storeName: 'presentationActionTokenStore',
+    boundary,
+    normalize: normalizeDurableCoreActionTokenRecord,
+  });
+  const remove = createSafeDeleteOperation({ storeName: 'presentationActionTokenStore', boundary });
+  const list = createSafeListOperation({
+    storeName: 'presentationActionTokenStore',
+    boundary,
+    normalize: normalizeDurableCoreActionTokenRecord,
+  });
   const consumeActionTokenRecord = async (
     recordKey: string,
     input?: DurableCoreActionTokenConsumeInput,
@@ -969,29 +990,16 @@ export function createDurableCorePresentationActionTokenStoreAdapter(
   });
 }
 
-function normalizeActionTokenConsumeInput(input: unknown): DurableCoreActionTokenConsumeInput {
-  if (input === undefined) {
-    return Object.freeze({});
+function assertBoundaryObject(input: DurableCoreStoreAdapterBoundaries): void {
+  for (const storeName of DURABLE_CORE_STORE_ADAPTER_NAMES) {
+    const boundary = input[storeName];
+    if (boundary !== undefined && !isDurableCoreRecordStore(boundary)) {
+      throw new TypeError(`Durable core ${storeName} boundary must expose get and put functions.`);
+    }
   }
-
-  assertRecord(input, 'action token consume input');
-  assertAllowedKeys(input, ACTION_TOKEN_CONSUME_ALLOWED_KEYS, 'action token consume input');
-
-  return Object.freeze({
-    ...optionalRecordRef<AdapterOperationRef>(
-      'consumedByOperationRef',
-      input.consumedByOperationRef,
-      'operation',
-    ),
-    ...optionalRecordRef<AdapterCorrelationRef>('correlationRef', input.correlationRef, 'correlation'),
-    ...optionalRecordRef<AdapterDetailsRef>('detailsRef', input.detailsRef, 'details'),
-    ...optionalSafeMessageField(input.safeMessage),
-  });
 }
 
-function createAdapters(
-  boundaries: DurableCoreStoreAdapterBoundaries,
-): DurableCoreStoreAdapters {
+function createAdapters(boundaries: DurableCoreStoreAdapterBoundaries): DurableCoreStoreAdapters {
   return Object.freeze({
     ...(boundaries.sessionBindingStore === undefined
       ? {}
@@ -1048,6 +1056,7 @@ export function createDurableCoreStoreAdapterBundle(
   }
 
   try {
+    assertBoundaryObject(boundaries);
     const adapters = createAdapters(boundaries);
     const ports = createPorts(adapters);
 
