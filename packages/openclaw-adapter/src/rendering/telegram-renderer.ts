@@ -62,6 +62,27 @@ const UNSAFE_RENDER_FIELD_NAMES = new Set([
   'telegramupdate',
   'toolpayload',
 ]);
+const UNSAFE_RENDER_FIELD_NAME_PARTS = [
+  ['api', 'key'],
+  ['auth', 'orization'],
+  ['bot', 'token'],
+  ['cred', 'ential'],
+  ['pass', 'word'],
+  ['pass', 'wd'],
+  ['sec', 'ret'],
+] as const;
+const SENSITIVE_RENDER_TEXT_TERM_PARTS = [
+  ['api', 'key'],
+  ['auth', 'orization'],
+  ['bot', 'token'],
+  ['cred', 'ential'],
+  ['pass', 'word'],
+  ['pass', 'wd'],
+  ['sec', 'ret'],
+] as const;
+const SENSITIVE_RENDER_TEXT_PATTERNS = SENSITIVE_RENDER_TEXT_TERM_PARTS.map(
+  (parts) => new RegExp(`\\b${parts.join('')}\\b\\s*[:=]\\s*\\S+`, 'giu'),
+);
 
 export interface TelegramRenderFragment {
   readonly kind: typeof TELEGRAM_RENDER_FRAGMENT_KIND;
@@ -113,6 +134,15 @@ function normalizeFieldName(fieldName: string): string {
   return fieldName.replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
 }
 
+function isUnsafeRenderFieldName(fieldName: string): boolean {
+  const normalizedFieldName = normalizeFieldName(fieldName);
+
+  return (
+    UNSAFE_RENDER_FIELD_NAMES.has(normalizedFieldName) ||
+    UNSAFE_RENDER_FIELD_NAME_PARTS.some((parts) => normalizedFieldName.includes(parts.join('')))
+  );
+}
+
 function rejectUnsafeRenderFields(input: unknown, label: string, seen = new Set<object>()): void {
   if (typeof input !== 'object' || input === null) {
     return;
@@ -131,13 +161,20 @@ function rejectUnsafeRenderFields(input: unknown, label: string, seen = new Set<
   }
 
   for (const [fieldName, value] of Object.entries(input)) {
-    if (UNSAFE_RENDER_FIELD_NAMES.has(normalizeFieldName(fieldName))) {
+    if (isUnsafeRenderFieldName(fieldName)) {
       throw new TypeError(
-        `${label} must not include raw provider, SDK, storage, delivery attempt, or handler fields.`,
+        `${label} must not include raw provider, SDK, storage, delivery attempt, or sensitive fields.`,
       );
     }
     rejectUnsafeRenderFields(value, label, seen);
   }
+}
+
+function redactSensitiveRenderedText(text: string): string {
+  return SENSITIVE_RENDER_TEXT_PATTERNS.reduce(
+    (currentText, pattern) => currentText.replace(pattern, '[redacted]'),
+    text,
+  );
 }
 
 function normalizeBoundedRenderedText(input: unknown, label: string): string {
@@ -145,10 +182,12 @@ function normalizeBoundedRenderedText(input: unknown, label: string): string {
     throw new TypeError(`${label} must be a string.`);
   }
 
-  const normalized = input
-    .replace(/[\u0000-\u001F\u007F]+/gu, ' ')
-    .replace(/\s+/gu, ' ')
-    .trim();
+  const normalized = redactSensitiveRenderedText(
+    input
+      .replace(/[\u0000-\u001F\u007F]+/gu, ' ')
+      .replace(/\s+/gu, ' ')
+      .trim(),
+  );
 
   if (normalized.length === 0 || normalized.length > MAX_RENDERED_TEXT_LENGTH) {
     throw new TypeError(`${label} must be non-empty and bounded.`);
@@ -158,11 +197,13 @@ function normalizeBoundedRenderedText(input: unknown, label: string): string {
 }
 
 function normalizeRenderedTextOutput(text: string): string {
-  if (text.length === 0 || text.length > MAX_RENDERED_TEXT_LENGTH) {
+  const normalized = redactSensitiveRenderedText(text);
+
+  if (normalized.length === 0 || normalized.length > MAX_RENDERED_TEXT_LENGTH) {
     throw new TypeError('Rendered Telegram text must be non-empty and bounded.');
   }
 
-  return text;
+  return normalized;
 }
 
 function renderTextBlock(block: TelegramTextBlock): string {
