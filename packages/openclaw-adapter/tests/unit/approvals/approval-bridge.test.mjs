@@ -41,6 +41,7 @@ function assertNoForbiddenPublicFields(sample) {
     'execute',
     'network',
     'filesystem',
+    'filesystemPath',
     'database',
     'sdkClient',
     'openClawClient',
@@ -127,6 +128,29 @@ const baseDecisionInput = Object.freeze({
   correlationRef: 'correlation:approval-correlation-1',
 });
 
+const safeOperationContext = Object.freeze({
+  operationRef: 'operation:approval-operation-1',
+  correlationRef: 'correlation:approval-context-1',
+  workspaceRef: 'workspace:workspace-alpha',
+  agentRef: 'agent:coder',
+  actorRef: 'actor:reviewer',
+  detailsRef: 'details:approval-context-details-1',
+  rawDebugRef: 'raw-debug:approval-debug-1',
+  ignoredDisplayField: 'safe field that must not be preserved',
+});
+
+function createUnsafeOperationContext() {
+  return {
+    operationRef: 'operation:approval-operation-unsafe',
+    correlationRef: 'correlation:approval-context-unsafe',
+    rawApprovalPayload: { tool: 'deploy', value: 'unsafe-approval-context-value' },
+    nested: {
+      rawToolPayload: { providerObject: 'unsafe-tool-context-value' },
+      stack: 'unsafe-stack-context-value',
+    },
+  };
+}
+
 function createAllowedApprovalPermissionDecision() {
   return allowPermission(
     createApprovalBridgePermissionRequirement({
@@ -191,6 +215,50 @@ test('approval bridge submit calls injected source with safe DTO and ignores raw
   assertNoForbiddenPublicFields(result);
 });
 
+test('approval bridge submit preserves only normalized safe context in successful result', async () => {
+  const recording = createRecordingApprovalSource();
+
+  const result = await submitApprovalBridgeRequest({
+    source: recording.source,
+    request: baseApprovalRequestInput,
+    context: safeOperationContext,
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.context, {
+    operationRef: 'operation:approval-operation-1',
+    correlationRef: 'correlation:approval-context-1',
+    workspaceRef: 'workspace:workspace-alpha',
+    agentRef: 'agent:coder',
+    actorRef: 'actor:reviewer',
+    detailsRef: 'details:approval-context-details-1',
+    rawDebugRef: 'raw-debug:approval-debug-1',
+  });
+  assert.equal('ignoredDisplayField' in result.context, false);
+  assert.equal(recording.getRequests().length, 1);
+  assertNoForbiddenPublicFields(result);
+});
+
+test('approval bridge rejects unsafe context before source submit without leaking raw values', async () => {
+  const recording = createRecordingApprovalSource();
+
+  const result = await submitApprovalBridgeRequest({
+    source: recording.source,
+    request: baseApprovalRequestInput,
+    context: createUnsafeOperationContext(),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'invalid-input');
+  assert.equal('context' in result, false);
+  assert.equal(recording.getRequests().length, 0);
+  assertNoForbiddenPublicFields(result);
+  const serialized = JSON.stringify(result);
+  assert.equal(serialized.includes('unsafe-approval-context-value'), false);
+  assert.equal(serialized.includes('unsafe-tool-context-value'), false);
+  assert.equal(serialized.includes('unsafe-stack-context-value'), false);
+});
+
 test('approval bridge decision normalizes safe decision DTO and permission requirement', () => {
   const decision = createApprovalBridgeDecision(baseDecisionInput);
   const requirement = createApprovalBridgePermissionRequirement({
@@ -242,6 +310,52 @@ test('approval bridge resolve calls injected resolver after allowed permission d
   assert.equal(JSON.stringify(result).includes('rawToolPayload'), false);
   assert.equal(JSON.stringify(result).includes('ignored raw resolver stack'), false);
   assertNoForbiddenPublicFields(result);
+});
+
+test('approval bridge resolve preserves only normalized safe context in successful result', async () => {
+  const recording = createRecordingApprovalResolver();
+
+  const result = await resolveApprovalBridgeDecision({
+    resolver: recording.resolver,
+    decision: baseDecisionInput,
+    permissionDecision: createAllowedApprovalPermissionDecision(),
+    context: safeOperationContext,
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.context, {
+    operationRef: 'operation:approval-operation-1',
+    correlationRef: 'correlation:approval-context-1',
+    workspaceRef: 'workspace:workspace-alpha',
+    agentRef: 'agent:coder',
+    actorRef: 'actor:reviewer',
+    detailsRef: 'details:approval-context-details-1',
+    rawDebugRef: 'raw-debug:approval-debug-1',
+  });
+  assert.equal('ignoredDisplayField' in result.context, false);
+  assert.equal(recording.getDecisions().length, 1);
+  assertNoForbiddenPublicFields(result);
+});
+
+test('approval bridge rejects unsafe context before resolver call without leaking raw values', async () => {
+  const recording = createRecordingApprovalResolver();
+
+  const result = await resolveApprovalBridgeDecision({
+    resolver: recording.resolver,
+    decision: baseDecisionInput,
+    permissionDecision: createAllowedApprovalPermissionDecision(),
+    context: createUnsafeOperationContext(),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'invalid-input');
+  assert.equal('context' in result, false);
+  assert.equal(recording.getDecisions().length, 0);
+  assertNoForbiddenPublicFields(result);
+  const serialized = JSON.stringify(result);
+  assert.equal(serialized.includes('unsafe-approval-context-value'), false);
+  assert.equal(serialized.includes('unsafe-tool-context-value'), false);
+  assert.equal(serialized.includes('unsafe-stack-context-value'), false);
 });
 
 test('approval bridge resolve denies before resolver call when permission is denied', async () => {
