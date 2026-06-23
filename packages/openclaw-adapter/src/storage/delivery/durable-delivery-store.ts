@@ -4,7 +4,6 @@ import {
   createTelegramExternalMessageRef,
   type TelegramDeliveryFailure,
   type TelegramDeliveryRequest,
-  type TelegramDeliveryResult,
   type TelegramDeliverySafeError,
   type TelegramDeliverySafeErrorCode,
   type TelegramDeliverySuccess,
@@ -347,6 +346,18 @@ function normalizeOptionalDetailsRef(input: unknown, label: string): AdapterDeta
   return input === undefined ? undefined : normalizeAdapterRef<AdapterDetailsRef>(input, 'details', label);
 }
 
+function normalizeOptionalBoolean(input: unknown, label: string): boolean | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+
+  if (typeof input !== 'boolean') {
+    throw new TypeError(`${label} must be a boolean.`);
+  }
+
+  return input;
+}
+
 function normalizeIdempotencyKey(input: unknown): AdapterIdempotencyKey {
   if (!isAdapterIdempotencyKey(input)) {
     throw new TypeError('Delivery store idempotencyKey must be a safe adapter idempotency key.');
@@ -518,22 +529,19 @@ function normalizeDeliveryError(input: TelegramDeliverySafeError, fallbackRetrya
   assertPlainObject(input, 'Delivery store delivery error');
   rejectForbiddenSerializedFields(input, 'Delivery store delivery error');
 
-  const retryable = input.retryable ?? fallbackRetryable;
+  const retryable = normalizeOptionalBoolean(input.retryable, 'Delivery store error retryable') ?? fallbackRetryable;
+  const detailsRef = normalizeOptionalDetailsRef(input.detailsRef, 'Delivery store error detailsRef');
+  const correlationRef = normalizeOptionalCorrelationRef(
+    input.correlationRef,
+    'Delivery store error correlationRef',
+  );
+
   return createTelegramDeliverySafeError({
     code: input.code as TelegramDeliverySafeErrorCode,
     message: sanitizeSafeText(input.message),
     ...(retryable === undefined ? {} : { retryable }),
-    ...(normalizeOptionalDetailsRef(input.detailsRef, 'Delivery store error detailsRef') === undefined
-      ? {}
-      : { detailsRef: normalizeOptionalDetailsRef(input.detailsRef, 'Delivery store error detailsRef') }),
-    ...(normalizeOptionalCorrelationRef(input.correlationRef, 'Delivery store error correlationRef') === undefined
-      ? {}
-      : {
-          correlationRef: normalizeOptionalCorrelationRef(
-            input.correlationRef,
-            'Delivery store error correlationRef',
-          ),
-        }),
+    ...(detailsRef === undefined ? {} : { detailsRef }),
+    ...(correlationRef === undefined ? {} : { correlationRef }),
   });
 }
 
@@ -569,7 +577,10 @@ function normalizeFailureResult(input: TelegramDeliveryFailure): TelegramDeliver
   }
 
   const deliveryRef = normalizeOperationRef(input.deliveryRef, 'Delivery store failure deliveryRef');
-  const retryable = input.retryable ?? input.error.retryable ?? false;
+  const retryable =
+    normalizeOptionalBoolean(input.retryable, 'Delivery store failure retryable') ??
+    normalizeOptionalBoolean(input.error.retryable, 'Delivery store failure error retryable') ??
+    false;
   const error = normalizeDeliveryError(input.error, retryable);
   const context = input.context === undefined ? undefined : normalizeOperationContext(input.context);
   const detailsRef = normalizeOptionalDetailsRef(
@@ -648,21 +659,21 @@ function normalizeAttemptRecord(input: unknown): DurableDeliveryAttemptRecord | 
     if (input.schemaVersion !== DURABLE_DELIVERY_STORE_SCHEMA_VERSION || input.recordKind !== 'delivery-attempt') {
       return undefined;
     }
-    if (input.status !== 'created' && input.status !== 'delivered' && input.status !== 'failed') {
+    const status = input.status;
+    if (status !== 'created' && status !== 'delivered' && status !== 'failed') {
       return undefined;
     }
+    const attemptNumber = normalizeAttemptNumber(input.attemptNumber);
 
     const record: DurableDeliveryAttemptRecord = {
       schemaVersion: DURABLE_DELIVERY_STORE_SCHEMA_VERSION,
       recordKind: 'delivery-attempt',
       deliveryRef: normalizeOperationRef(input.deliveryRef, 'Delivery attempt record deliveryRef'),
       idempotencyKey: normalizeIdempotencyKey(input.idempotencyKey),
-      status: input.status,
+      status,
       target: normalizeDeliveryTarget(input.target as TelegramDeliveryTarget),
       content: normalizeDeliveryContent(input.content as TelegramDeliveryTextContent),
-      ...(normalizeAttemptNumber(input.attemptNumber) === undefined
-        ? {}
-        : { attemptNumber: normalizeAttemptNumber(input.attemptNumber) }),
+      ...(attemptNumber === undefined ? {} : { attemptNumber }),
       ...(input.context === undefined
         ? {}
         : { context: normalizeOperationContext(input.context as AdapterOperationContext) }),
@@ -738,7 +749,8 @@ function normalizeResultRecord(input: unknown): DurableDeliveryResultRecord | un
 
     if (input.recordKind === 'delivery-failure-result') {
       const deliveryResult = normalizeFailureResult(input.deliveryResult as TelegramDeliveryFailure);
-      const retryable = Boolean(input.retryable ?? deliveryResult.retryable ?? deliveryResult.error.retryable);
+      const storedRetryable = normalizeOptionalBoolean(input.retryable, 'Delivery failure record retryable');
+      const retryable = storedRetryable ?? deliveryResult.retryable ?? deliveryResult.error.retryable ?? false;
       const record: DurableDeliveryFailureResultRecord = {
         schemaVersion: DURABLE_DELIVERY_STORE_SCHEMA_VERSION,
         recordKind: 'delivery-failure-result',
