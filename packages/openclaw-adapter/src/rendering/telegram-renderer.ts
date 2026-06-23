@@ -37,6 +37,7 @@ const MAX_RENDERED_TEXT_LENGTH = 2_000;
 const MAX_PRESENTATION_BODY_BLOCKS = 12;
 const MAX_PRESENTATION_BUTTON_GROUPS = 8;
 const TELEGRAM_REF_VALUE_PATTERN = /^[A-Za-z0-9._:~-]+$/u;
+const CONTROL_CHARACTER_PATTERN = /[\u0000-\u0009\u000B-\u001F\u007F]+/gu;
 
 const UNSAFE_RENDER_FIELD_NAMES = new Set([
   'approvalpayload',
@@ -183,10 +184,7 @@ function normalizeBoundedRenderedText(input: unknown, label: string): string {
   }
 
   const normalized = redactSensitiveRenderedText(
-    input
-      .replace(/[\u0000-\u001F\u007F]+/gu, ' ')
-      .replace(/\s+/gu, ' ')
-      .trim(),
+    input.replace(CONTROL_CHARACTER_PATTERN, ' ').replace(/\s+/gu, ' ').trim(),
   );
 
   if (normalized.length === 0 || normalized.length > MAX_RENDERED_TEXT_LENGTH) {
@@ -197,10 +195,16 @@ function normalizeBoundedRenderedText(input: unknown, label: string): string {
 }
 
 function normalizeRenderedTextOutput(input: unknown): string {
-  const normalized = normalizeBoundedRenderedText(input, 'Rendered Telegram text');
+  if (typeof input !== 'string') {
+    throw new TypeError('Rendered Telegram text must be a string.');
+  }
 
-  if (normalized.length > MAX_RENDERED_TEXT_LENGTH) {
-    throw new TypeError('Rendered Telegram text must be bounded.');
+  const normalized = redactSensitiveRenderedText(
+    input.replace(CONTROL_CHARACTER_PATTERN, ' ').trim(),
+  );
+
+  if (normalized.length === 0 || normalized.length > MAX_RENDERED_TEXT_LENGTH) {
+    throw new TypeError('Rendered Telegram text must be non-empty and bounded.');
   }
 
   return normalized;
