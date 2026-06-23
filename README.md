@@ -30,6 +30,8 @@ The adapter may understand OpenClaw/Telegram concepts, but core must receive onl
 Start here:
 
 - `docs/README.md` — documentation index and worker reading order.
+- `docs/roadmap/current-development-state.md` — current handoff, completed foundations, and next development gate.
+- `docs/adapter-authoring/README.md` — imported core adapter-authoring guide for boundaries, flows, safety rules, blueprints, and certification checklists.
 - `docs/architecture/adapter-worker-onboarding.md` — worker-facing project mental model and layer map.
 - `docs/architecture/core-boundary.md` — boundary between `hazeteam-core`, this adapter, and OpenClaw platform concerns.
 - `docs/architecture/openclaw-telegram-adapter.md` — target Telegram/OpenClaw adapter flow.
