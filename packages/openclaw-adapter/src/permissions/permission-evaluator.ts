@@ -281,9 +281,9 @@ export function createStaticPermissionEvaluator(input: {
 }): PermissionEvaluator {
   const grants = normalizePermissionGrants(input.grants);
 
-  return (evaluationInput: PermissionEvaluationInput): PermissionDecision =>
+  return ({ grants: _ignoredGrants, ...evaluationInput }: PermissionEvaluationInput): PermissionDecision =>
     evaluateOpenClawTelegramPermission({
       ...evaluationInput,
-      grants: evaluationInput.grants ?? grants,
+      grants,
     });
 }
