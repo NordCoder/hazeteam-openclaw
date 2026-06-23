@@ -13,8 +13,11 @@ import {
 } from '../contracts/delivery.js';
 import {
   parseOpenClawAdapterRef,
+  type ActorRef,
   type AdapterCorrelationRef,
+  type AdapterDetailsRef,
   type AdapterOperationRef,
+  type AdapterRawDebugRef,
   type AgentRef,
   type WorkspaceRef,
 } from '../contracts/refs.js';
@@ -43,10 +46,12 @@ const UNSAFE_RENDER_FIELD_NAMES = new Set([
   'approvalpayload',
   'callbackquery',
   'deliveryattempt',
+  'deploymenthandle',
   'externalmessageref',
   'filesystempath',
   'handler',
   'openclawclient',
+  'platformhandle',
   'provider',
   'providerack',
   'providerobject',
@@ -59,6 +64,7 @@ const UNSAFE_RENDER_FIELD_NAMES = new Set([
   'rawupdate',
   'sdkclient',
   'stack',
+  'storagepath',
   'storageroot',
   'telegramupdate',
   'toolpayload',
@@ -286,24 +292,30 @@ function normalizeTelegramDeliveryContent(input: TelegramDeliveryTextContent): T
   });
 }
 
-function normalizeOperationRef(input: AdapterOperationRef): AdapterOperationRef {
+function normalizeAdapterRef<T extends string>(
+  input: unknown,
+  kind: string,
+  label: string,
+): T {
   const parsed = parseOpenClawAdapterRef(input);
 
-  if (parsed?.kind !== 'operation') {
-    throw new TypeError('Telegram render deliveryRef must be a safe operation ref.');
+  if (parsed?.kind !== kind) {
+    throw new TypeError(`${label} must be a safe adapter ref.`);
   }
 
-  return parsed.ref as AdapterOperationRef;
+  return parsed.ref as T;
 }
 
-function normalizeCorrelationRef(input: AdapterCorrelationRef): AdapterCorrelationRef {
-  const parsed = parseOpenClawAdapterRef(input);
+function normalizeOperationRef(input: unknown): AdapterOperationRef {
+  return normalizeAdapterRef<AdapterOperationRef>(input, 'operation', 'Telegram render operation ref');
+}
 
-  if (parsed?.kind !== 'correlation') {
-    throw new TypeError('Telegram render correlationRef must be a safe correlation ref.');
-  }
-
-  return parsed.ref as AdapterCorrelationRef;
+function normalizeCorrelationRef(input: unknown): AdapterCorrelationRef {
+  return normalizeAdapterRef<AdapterCorrelationRef>(
+    input,
+    'correlation',
+    'Telegram render correlation ref',
+  );
 }
 
 function normalizePrefixedRef<T extends string>(input: unknown, prefix: string, label: string): T {
@@ -361,6 +373,43 @@ function normalizeDeliveryTarget(target: TelegramDeliveryTarget): TelegramDelive
             target.agentRef,
             'agent:',
             'Telegram render delivery target agentRef',
+          ),
+        }),
+  });
+}
+
+function normalizeOperationContext(context: AdapterOperationContext): AdapterOperationContext {
+  assertPlainObject(context, 'Telegram render operation context');
+  rejectUnsafeRenderFields(context, 'Telegram render operation context');
+
+  return Object.freeze({
+    operationRef: normalizeOperationRef(context.operationRef),
+    correlationRef: normalizeCorrelationRef(context.correlationRef),
+    ...(context.workspaceRef === undefined
+      ? {}
+      : { workspaceRef: normalizeAdapterRef<WorkspaceRef>(context.workspaceRef, 'workspace', 'Workspace ref') }),
+    ...(context.agentRef === undefined
+      ? {}
+      : { agentRef: normalizeAdapterRef<AgentRef>(context.agentRef, 'agent', 'Agent ref') }),
+    ...(context.actorRef === undefined
+      ? {}
+      : { actorRef: normalizeAdapterRef<ActorRef>(context.actorRef, 'actor', 'Actor ref') }),
+    ...(context.detailsRef === undefined
+      ? {}
+      : {
+          detailsRef: normalizeAdapterRef<AdapterDetailsRef>(
+            context.detailsRef,
+            'details',
+            'Details ref',
+          ),
+        }),
+    ...(context.rawDebugRef === undefined
+      ? {}
+      : {
+          rawDebugRef: normalizeAdapterRef<AdapterRawDebugRef>(
+            context.rawDebugRef,
+            'raw-debug',
+            'Raw debug ref',
           ),
         }),
   });
@@ -495,7 +544,7 @@ export function createTelegramRenderDeliveryRequest(
     deliveryRef: normalizeOperationRef(input.deliveryRef),
     target: normalizeDeliveryTarget(input.target),
     content: fragment.content,
-    ...(input.context === undefined ? {} : { context: input.context }),
+    ...(input.context === undefined ? {} : { context: normalizeOperationContext(input.context) }),
     ...(input.correlationRef === undefined
       ? {}
       : { correlationRef: normalizeCorrelationRef(input.correlationRef) }),
