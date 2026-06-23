@@ -474,10 +474,11 @@ function normalizeSuccessResult(
   });
   assertSameTarget(externalMessageRef, request.target);
 
+  const correlationCandidate = result.correlationRef ?? externalMessageRef.correlationRef ?? request.correlationRef;
   const correlationRef =
-    result.correlationRef === undefined
-      ? externalMessageRef.correlationRef
-      : normalizeCorrelationRef(result.correlationRef, 'Telegram delivery pump success correlationRef');
+    correlationCandidate === undefined
+      ? undefined
+      : normalizeCorrelationRef(correlationCandidate, 'Telegram delivery pump success correlationRef');
 
   return Object.freeze({
     ok: true,
