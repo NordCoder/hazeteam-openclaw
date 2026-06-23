@@ -420,20 +420,20 @@ function normalizeExpectedTokenContext(
   });
 }
 
-function getDetailsRef(input: {
-  readonly detailsRef?: AdapterDetailsRef;
-  readonly context?: AdapterOperationContext;
-  readonly expectedTokenContext?: OpenClawTelegramCallbackTokenExpectedContext;
-}): AdapterDetailsRef | undefined {
-  return input.detailsRef ?? input.context?.detailsRef ?? input.expectedTokenContext?.detailsRef;
+function getDetailsRef(
+  detailsRef: AdapterDetailsRef | undefined,
+  context: AdapterOperationContext | undefined,
+  expectedTokenContext: OpenClawTelegramCallbackTokenExpectedContext | undefined,
+): AdapterDetailsRef | undefined {
+  return detailsRef ?? context?.detailsRef ?? expectedTokenContext?.detailsRef;
 }
 
-function getCorrelationRef(input: {
-  readonly correlationRef?: AdapterCorrelationRef;
-  readonly context?: AdapterOperationContext;
-  readonly expectedTokenContext?: OpenClawTelegramCallbackTokenExpectedContext;
-}): AdapterCorrelationRef | undefined {
-  return input.correlationRef ?? input.context?.correlationRef ?? input.expectedTokenContext?.correlationRef;
+function getCorrelationRef(
+  correlationRef: AdapterCorrelationRef | undefined,
+  context: AdapterOperationContext | undefined,
+  expectedTokenContext: OpenClawTelegramCallbackTokenExpectedContext | undefined,
+): AdapterCorrelationRef | undefined {
+  return correlationRef ?? context?.correlationRef ?? expectedTokenContext?.correlationRef;
 }
 
 function createDefaultPermissionRequirement(
@@ -615,14 +615,8 @@ export function runOpenClawTelegramCallbackTokenFlow(
   try {
     expectedContext = normalizeExpectedTokenContext(input.expectedTokenContext);
   } catch {
-    const detailsRef = getDetailsRef({
-      detailsRef: input.detailsRef,
-      context: normalizedContext,
-    });
-    const correlationRef = getCorrelationRef({
-      correlationRef: input.correlationRef,
-      context: normalizedContext,
-    });
+    const detailsRef = getDetailsRef(input.detailsRef, normalizedContext, undefined);
+    const correlationRef = getCorrelationRef(input.correlationRef, normalizedContext, undefined);
 
     return adapterErr(
       callbackFlowError({
@@ -635,16 +629,8 @@ export function runOpenClawTelegramCallbackTokenFlow(
     );
   }
 
-  const detailsRef = getDetailsRef({
-    detailsRef: input.detailsRef,
-    context: normalizedContext,
-    expectedTokenContext: expectedContext,
-  });
-  const correlationRef = getCorrelationRef({
-    correlationRef: input.correlationRef,
-    context: normalizedContext,
-    expectedTokenContext: expectedContext,
-  });
+  const detailsRef = getDetailsRef(input.detailsRef, normalizedContext, expectedContext);
+  const correlationRef = getCorrelationRef(input.correlationRef, normalizedContext, expectedContext);
 
   const permissionEvaluator = input.permissionEvaluator ?? evaluateOpenClawTelegramPermission;
   if (typeof permissionEvaluator !== 'function') {
