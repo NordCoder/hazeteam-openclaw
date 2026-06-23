@@ -127,6 +127,17 @@ const baseDecisionInput = Object.freeze({
   correlationRef: 'correlation:approval-correlation-1',
 });
 
+function createAllowedApprovalPermissionDecision() {
+  return allowPermission(
+    createApprovalBridgePermissionRequirement({
+      approvalRef: baseDecisionInput.approvalRef,
+      actorRef: baseDecisionInput.actorRef,
+      workspaceRef: 'workspace:workspace-alpha',
+      agentRef: 'agent:coder',
+    }),
+  );
+}
+
 test('approval bridge request normalizes safe approval DTO and tokenized card payloads', () => {
   const request = createApprovalBridgeRequest(baseApprovalRequestInput);
 
@@ -217,17 +228,11 @@ test('approval bridge decision normalizes safe decision DTO and permission requi
 
 test('approval bridge resolve calls injected resolver after allowed permission decision', async () => {
   const recording = createRecordingApprovalResolver();
-  const requirement = createApprovalBridgePermissionRequirement({
-    approvalRef: baseDecisionInput.approvalRef,
-    actorRef: baseDecisionInput.actorRef,
-    workspaceRef: 'workspace:workspace-alpha',
-    agentRef: 'agent:coder',
-  });
 
   const result = await resolveApprovalBridgeDecision({
     resolver: recording.resolver,
     decision: baseDecisionInput,
-    permissionDecision: allowPermission(requirement),
+    permissionDecision: createAllowedApprovalPermissionDecision(),
   });
 
   assert.equal(result.ok, true);
@@ -269,6 +274,21 @@ test('approval bridge resolve denies before resolver call when permission is den
   assertNoForbiddenPublicFields(result);
 });
 
+test('approval bridge resolve denies before resolver call when permission is missing', async () => {
+  const recording = createRecordingApprovalResolver();
+
+  const result = await resolveApprovalBridgeDecision({
+    resolver: recording.resolver,
+    decision: baseDecisionInput,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'forbidden');
+  assert.equal(result.error.correlationRef, 'correlation:approval-correlation-1');
+  assert.equal(recording.getDecisions().length, 0);
+  assertNoForbiddenPublicFields(result);
+});
+
 test('approval bridge returns safe failures for missing or throwing injected boundaries', async () => {
   const missingSource = await submitApprovalBridgeRequest({
     request: baseApprovalRequestInput,
@@ -291,6 +311,7 @@ test('approval bridge returns safe failures for missing or throwing injected bou
       },
     },
     decision: baseDecisionInput,
+    permissionDecision: createAllowedApprovalPermissionDecision(),
   });
 
   assert.equal(missingSource.ok, false);
@@ -312,6 +333,9 @@ test('approval bridge returns safe failures for missing or throwing injected bou
 });
 
 test('approval bridge rejects unsafe raw approval payloads and non-opaque callbacks', () => {
+  const request = createApprovalBridgeRequest(baseApprovalRequestInput);
+  const decision = createApprovalBridgeDecision(baseDecisionInput);
+
   assert.throws(
     () =>
       createApprovalBridgeRequest({
@@ -337,5 +361,34 @@ test('approval bridge rejects unsafe raw approval payloads and non-opaque callba
     TypeError,
   );
   assert.equal(isApprovalBridgeRequest({ ...baseApprovalRequestInput, approvalRef: 'bad/ref' }), false);
+  assert.equal(isApprovalBridgeRequest({ ...request, card: { ...request.card, rawToolPayload: {} } }), false);
   assert.equal(isApprovalBridgeDecision({ ...baseDecisionInput, status: 'executed' }), false);
+  assert.equal(isApprovalBridgeDecision({ ...decision, kind: undefined }), false);
+});
+
+test('approval bridge rejects unbounded approval request and decision fields', () => {
+  assert.throws(
+    () =>
+      createApprovalBridgeRequest({
+        ...baseApprovalRequestInput,
+        title: 'x'.repeat(161),
+      }),
+    TypeError,
+  );
+  assert.throws(
+    () =>
+      createApprovalBridgeRequest({
+        ...baseApprovalRequestInput,
+        message: 'x'.repeat(1_001),
+      }),
+    TypeError,
+  );
+  assert.throws(
+    () =>
+      createApprovalBridgeDecision({
+        ...baseDecisionInput,
+        reason: 'x'.repeat(241),
+      }),
+    TypeError,
+  );
 });
