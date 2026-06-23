@@ -534,8 +534,29 @@ export function createApprovalBridgePermissionRequirement(
 }
 
 export function isApprovalBridgeRequest(candidate: unknown): candidate is ApprovalBridgeRequest {
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+    return false;
+  }
+
+  const request = candidate as Partial<ApprovalBridgeRequest> & Partial<ApprovalBridgeRequestInput>;
+  if (request.kind !== APPROVAL_BRIDGE_REQUEST_KIND) {
+    return false;
+  }
+
   try {
-    createApprovalBridgeRequest(candidate as ApprovalBridgeRequestInput);
+    createApprovalBridgeRequest({
+      approvalRef: request.approvalRef as string,
+      title: request.title as string,
+      message: request.message as string,
+      approveTokenRef: request.approvePayload as string,
+      rejectTokenRef: request.rejectPayload as string,
+      ...(request.workspaceRef === undefined ? {} : { workspaceRef: request.workspaceRef }),
+      ...(request.agentRef === undefined ? {} : { agentRef: request.agentRef }),
+      ...(request.actorRef === undefined ? {} : { actorRef: request.actorRef }),
+      ...(request.subjectRef === undefined ? {} : { subjectRef: request.subjectRef }),
+      ...(request.detailsRef === undefined ? {} : { detailsRef: request.detailsRef }),
+      ...(request.correlationRef === undefined ? {} : { correlationRef: request.correlationRef }),
+    });
     return true;
   } catch {
     return false;
