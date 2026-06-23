@@ -167,6 +167,44 @@ test('denied and unknown actors do not verify or consume callback tokens', () =>
   assert.equal(result.value.permission.reason, 'Actor context is not trusted.');
 });
 
+test('untrusted or inactive callback binding context does not verify or consume callback tokens', () => {
+  const calls = [];
+  const result = runOpenClawTelegramCallbackTokenFlow({
+    payload: 'hz:token:approve-1',
+    actor,
+    permissionContext: Object.freeze({
+      ...permissionContext,
+      topic: Object.freeze({
+        trust: 'trusted-binding',
+        status: 'paused',
+        workspaceRef: 'workspace:acme',
+        agentRef: 'agent:coder',
+      }),
+    }),
+    permissionGrants: [callbackGrant],
+    expectedTokenContext,
+    permissionEvaluator: (input) => {
+      calls.push('permission');
+      return evaluateOpenClawTelegramPermission(input);
+    },
+    verifyToken: () => {
+      calls.push('verify');
+      throw new Error('verifier must not be called for inactive bindings');
+    },
+    consumeToken: () => {
+      calls.push('consume');
+      throw new Error('consumer must not be called for inactive bindings');
+    },
+  });
+
+  assert.deepEqual(calls, ['permission']);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.status, 'permission-denied');
+  assert.equal(result.value.tokenConsumed, false);
+  assert.equal(result.value.permission.status, 'denied');
+  assert.equal(result.value.permission.reason, 'Topic binding is not active.');
+});
+
 test('token verification failure prevents token consume', () => {
   const calls = [];
   const result = runOpenClawTelegramCallbackTokenFlow({
