@@ -786,11 +786,13 @@ export function runOpenClawTelegramCallbackTokenFlow(
     );
   }
 
+  const allowedPermission = permission as PermissionDecision & { readonly status: 'allowed' };
+
   return adapterOk(
     Object.freeze({
       status: 'token-consumed',
       tokenRef: parseResult.value.tokenRef,
-      permission,
+      permission: allowedPermission,
       verification,
       consumption,
       tokenConsumed: true,
