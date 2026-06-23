@@ -390,6 +390,18 @@ function normalizeDeliverySafeErrorCode(code: unknown): TelegramDeliverySafeErro
   return code;
 }
 
+function normalizeOptionalBoolean(input: unknown, label: string): boolean | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+
+  if (typeof input !== 'boolean') {
+    throw new TypeError(`${label} must be a boolean.`);
+  }
+
+  return input;
+}
+
 function assertSameDeliveryRef(actual: AdapterOperationRef, expected: AdapterOperationRef): void {
   if (actual !== expected) {
     throw new TypeError('Telegram delivery pump sink result deliveryRef must match the request.');
@@ -506,7 +518,10 @@ function normalizeFailureResult(
   );
   assertSameDeliveryRef(deliveryRef, request.deliveryRef);
 
-  const retryable = result.retryable ?? result.error.retryable ?? false;
+  const retryable =
+    normalizeOptionalBoolean(result.retryable, 'Telegram delivery pump failure retryable') ??
+    normalizeOptionalBoolean(result.error.retryable, 'Telegram delivery pump failure error retryable') ??
+    false;
   const detailsCandidate = result.detailsRef ?? result.error.detailsRef;
   const correlationCandidate = result.correlationRef ?? result.error.correlationRef ?? request.correlationRef;
   const detailsRef =
@@ -541,6 +556,7 @@ function normalizeSinkResult(
   request: TelegramDeliveryRequest,
 ): TelegramDeliveryResult {
   assertPlainObject(result, 'Telegram delivery pump sink result');
+  rejectUnsafeDeliveryFields(result, 'Telegram delivery pump sink result');
 
   if (result.ok === true) {
     return normalizeSuccessResult(result, request);
