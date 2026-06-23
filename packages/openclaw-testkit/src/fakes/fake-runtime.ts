@@ -117,9 +117,20 @@ function sanitizeText(input: unknown, label: string, maxLength = MAX_SAFE_TEXT_L
 }
 
 function sanitizeRef(input: unknown, label: string): string {
-  const normalized = sanitizeText(input, label, MAX_SAFE_REF_LENGTH);
+  if (typeof input !== 'string') {
+    throw new TypeError(`${label} must be a string.`);
+  }
 
-  if (!SAFE_REF_PATTERN.test(normalized)) {
+  const normalized = input
+    .replace(/[\u0000-\u001F\u007F]+/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+
+  if (
+    normalized.length === 0 ||
+    normalized.length > MAX_SAFE_REF_LENGTH ||
+    !SAFE_REF_PATTERN.test(normalized)
+  ) {
     throw new TypeError(`${label} must be a safe reference.`);
   }
 
