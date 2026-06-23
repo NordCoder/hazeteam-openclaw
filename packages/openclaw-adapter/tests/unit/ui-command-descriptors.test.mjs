@@ -272,6 +272,7 @@ test('find command descriptor performs lookup only and does not expose router be
   assert.equal(findCommandDescriptor(commandSet, 'unsafe command'), undefined);
 
   const help = findCommandDescriptor(commandSet, 'help');
+  assert.ok(help);
   assert.equal('handler' in help, false);
   assert.equal('execute' in help, false);
   assert.equal('dispatch' in help, false);
