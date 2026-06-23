@@ -11,3 +11,5 @@ export const OPENCLAW_ADAPTER_PACKAGE: OpenClawAdapterPackageMetadata = {
 };
 
 export * from './contracts/index.js';
+export * from './binding/index.js';
+export * from './commands/index.js';
