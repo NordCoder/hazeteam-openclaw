@@ -81,7 +81,7 @@ const SENSITIVE_RENDER_TEXT_TERM_PARTS = [
   ['sec', 'ret'],
 ] as const;
 const SENSITIVE_RENDER_TEXT_PATTERNS = SENSITIVE_RENDER_TEXT_TERM_PARTS.map(
-  (parts) => new RegExp(`\\b${parts.join('')}\\b\\s*[:=]\\s*\\S+`, 'giu'),
+  (parts) => new RegExp(`\\b${parts.join('[-_]?')}\\b\\s*[:=]\\s*\\S+`, 'giu'),
 );
 
 export interface TelegramRenderFragment {
@@ -196,11 +196,11 @@ function normalizeBoundedRenderedText(input: unknown, label: string): string {
   return normalized;
 }
 
-function normalizeRenderedTextOutput(text: string): string {
-  const normalized = redactSensitiveRenderedText(text);
+function normalizeRenderedTextOutput(input: unknown): string {
+  const normalized = normalizeBoundedRenderedText(input, 'Rendered Telegram text');
 
-  if (normalized.length === 0 || normalized.length > MAX_RENDERED_TEXT_LENGTH) {
-    throw new TypeError('Rendered Telegram text must be non-empty and bounded.');
+  if (normalized.length > MAX_RENDERED_TEXT_LENGTH) {
+    throw new TypeError('Rendered Telegram text must be bounded.');
   }
 
   return normalized;
