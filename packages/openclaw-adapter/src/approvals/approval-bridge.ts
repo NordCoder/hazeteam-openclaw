@@ -385,10 +385,10 @@ function getInputDetailsRef(input: ApprovalBridgeRequest | ApprovalBridgeDecisio
 function createApprovalBridgeFailure<T>(input: {
   readonly code: 'invalid-input' | 'forbidden' | 'dependency-missing' | 'dependency-failed';
   readonly message: string;
-  readonly retryable?: boolean;
-  readonly context?: AdapterOperationContext;
-  readonly detailsRef?: AdapterDetailsRef;
-  readonly correlationRef?: AdapterCorrelationRef;
+  readonly retryable?: boolean | undefined;
+  readonly context?: AdapterOperationContext | undefined;
+  readonly detailsRef?: AdapterDetailsRef | undefined;
+  readonly correlationRef?: AdapterCorrelationRef | undefined;
 }): AdapterOperationResult<T> {
   return adapterErr(
     createAdapterSafeError({
