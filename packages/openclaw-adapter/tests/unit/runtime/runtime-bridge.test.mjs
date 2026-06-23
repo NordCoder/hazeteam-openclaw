@@ -76,11 +76,21 @@ const safeRequest = Object.freeze({
   correlationRef: 'correlation:runtime-correlation-1',
 });
 
+const safeContext = Object.freeze({
+  operationRef: 'operation:runtime-context-1',
+  correlationRef: 'correlation:runtime-context-correlation-1',
+  workspaceRef: 'workspace:workspace-alpha',
+  agentRef: 'agent:coder',
+  actorRef: 'actor:operator',
+  detailsRef: 'details:runtime-context-details-1',
+  rawDebugRef: 'raw-debug:runtime-context-debug-1',
+});
+
 test('runtime bridge dispatches a normalized request to an injected fake runtime', () => {
   const runtime = createFakeOpenClawRuntime();
   const bridge = createOpenClawRuntimeBridge({ runtime });
 
-  const result = bridge.dispatch(safeRequest);
+  const result = bridge.dispatch(safeRequest, safeContext);
 
   assert.equal(result.ok, true);
   assert.deepEqual(runtime.getDispatches(), [safeRequest]);
@@ -92,8 +102,10 @@ test('runtime bridge dispatches a normalized request to an injected fake runtime
     },
     correlationRef: 'correlation:runtime-correlation-1',
   });
+  assert.deepEqual(result.context, safeContext);
   assert.equal(Object.isFrozen(result.value), true);
   assert.equal(Object.isFrozen(result.value.output), true);
+  assert.equal(Object.isFrozen(result.context), true);
   assertNoForbiddenPublicFields(result);
 });
 
@@ -267,6 +279,39 @@ test('runtime bridge rejects unsafe requests before calling the runtime boundary
   assert.equal(result.error.code, 'invalid-input');
   assert.equal(dispatchCount, 0);
   assertNoForbiddenPublicFields(result);
+});
+
+test('runtime bridge rejects unsafe context before calling the runtime boundary', () => {
+  let dispatchCount = 0;
+  const runtime = Object.freeze({
+    dispatch() {
+      dispatchCount += 1;
+      return {
+        ok: true,
+        dispatchRef: 'operation:runtime-dispatch-1',
+        output: {
+          outputRef: 'runtime-output:unsafe-context-1',
+          message: 'Should not run',
+        },
+      };
+    },
+  });
+
+  const result = dispatchOpenClawRuntime({
+    runtime,
+    request: safeRequest,
+    context: {
+      ...safeContext,
+      rawToolPayload: { providerObject: 'provider-object' },
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'invalid-input');
+  assert.equal('context' in result, false);
+  assert.equal(dispatchCount, 0);
+  assertNoForbiddenPublicFields(result);
+  assertNoForbiddenText(result);
 });
 
 test('runtime bridge rejects mismatched refs and unbounded runtime output', () => {
