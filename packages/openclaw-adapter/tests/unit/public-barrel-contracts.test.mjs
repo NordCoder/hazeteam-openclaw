@@ -1,14 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import * as approvals from '../../dist/approvals/index.js';
 import * as binding from '../../dist/binding/index.js';
+import * as callbacks from '../../dist/callbacks/index.js';
 import * as commands from '../../dist/commands/index.js';
 import * as contracts from '../../dist/contracts/index.js';
+import * as delivery from '../../dist/delivery/index.js';
 import * as host from '../../dist/host/index.js';
 import * as mapping from '../../dist/mapping/index.js';
 import * as permissions from '../../dist/permissions/index.js';
 import * as rendering from '../../dist/rendering/index.js';
 import * as root from '../../dist/index.js';
+import * as runtime from '../../dist/runtime/index.js';
 
 const expectedContractRuntimeExports = [
   'adapterErr',
@@ -105,6 +109,33 @@ const expectedPermissionRuntimeExports = [
   'permissionGrantMatchesRequirement',
 ];
 
+const expectedDeliveryRuntimeExports = [
+  'createTelegramDeliveryPumpRequest',
+  'pumpTelegramDeliveryRequest',
+  'createTelegramDeliveryPump',
+];
+
+const expectedCallbackRuntimeExports = [
+  'parseOpenClawTelegramCallbackPayload',
+  'runOpenClawTelegramCallbackTokenFlow',
+];
+
+const expectedRuntimeBridgeRuntimeExports = [
+  'dispatchOpenClawRuntime',
+  'summarizeOpenClawRuntimeBridgeReadiness',
+  'createOpenClawRuntimeBridge',
+];
+
+const expectedApprovalRuntimeExports = [
+  'createApprovalBridgeRequest',
+  'createApprovalBridgeDecision',
+  'createApprovalBridgePermissionRequirement',
+  'isApprovalBridgeRequest',
+  'isApprovalBridgeDecision',
+  'submitApprovalBridgeRequest',
+  'resolveApprovalBridgeDecision',
+];
+
 const expectedRootRuntimeExports = [
   'OPENCLAW_ADAPTER_PACKAGE',
   ...expectedContractRuntimeExports,
@@ -114,9 +145,19 @@ const expectedRootRuntimeExports = [
   ...expectedRenderingRuntimeExports,
   ...expectedHostRuntimeExports,
   ...expectedPermissionRuntimeExports,
+  ...expectedDeliveryRuntimeExports,
+  ...expectedCallbackRuntimeExports,
+  ...expectedRuntimeBridgeRuntimeExports,
+  ...expectedApprovalRuntimeExports,
 ];
 
-test('root dist index exports shared, event, delivery, support, binding, and descriptor helpers', () => {
+const telegramDeliveryTarget = Object.freeze({
+  channelId: 'telegram-channel:w5-fanin',
+  chatId: 'telegram-chat:w5-fanin',
+  messageThreadId: 'telegram-thread:general',
+});
+
+test('root dist index exports shared, event, delivery, support, binding, descriptor, and Wave 5 helpers', () => {
   for (const exportName of expectedRootRuntimeExports) {
     assert.equal(exportName in root, true, `missing root export ${exportName}`);
   }
@@ -297,4 +338,106 @@ test('dist permissions barrel and root export Wave 4 permission evaluator shell 
   assert.equal(decision.status, 'allowed');
   assert.equal(root.permissionGrantMatchesRequirement(grant, decision.requirement), true);
   assert.equal(root.PERMISSION_BEFORE_TOKEN_CONSUME_RULE.action, 'consume-callback');
+});
+
+test('dist delivery barrel and root export Wave 5 delivery pump helpers', () => {
+  for (const exportName of expectedDeliveryRuntimeExports) {
+    assert.equal(exportName in delivery, true, `missing delivery export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root delivery export ${exportName}`);
+  }
+
+  const request = root.createTelegramDeliveryPumpRequest({
+    deliveryRef: 'operation:w5-delivery',
+    target: telegramDeliveryTarget,
+    content: { format: 'plain', text: 'Wave 5 delivery ready' },
+    correlationRef: 'correlation:w5-delivery',
+  });
+  const pump = delivery.createTelegramDeliveryPump({
+    sink: Object.freeze({
+      submit(deliveryRequest) {
+        return Object.freeze({
+          ok: true,
+          deliveryRef: deliveryRequest.deliveryRef,
+          externalMessageRef: Object.freeze({
+            channelId: deliveryRequest.target.channelId,
+            chatId: deliveryRequest.target.chatId,
+            messageThreadId: deliveryRequest.target.messageThreadId,
+            messageId: 'telegram-message:w5-fanin',
+            ...(deliveryRequest.correlationRef === undefined
+              ? {}
+              : { correlationRef: deliveryRequest.correlationRef }),
+          }),
+          ...(deliveryRequest.correlationRef === undefined
+            ? {}
+            : { correlationRef: deliveryRequest.correlationRef }),
+        });
+      },
+    }),
+  });
+  const result = pump.deliver(request);
+
+  assert.equal(request.deliveryRef, 'operation:w5-delivery');
+  assert.equal(request.content.text, 'Wave 5 delivery ready');
+  assert.equal(result.ok, true);
+  assert.equal(result.value.kind, 'delivered');
+  assert.equal(result.value.externalMessageRef.messageId, 'telegram-message:w5-fanin');
+});
+
+test('dist callbacks barrel and root export Wave 5 callback token flow helpers', () => {
+  for (const exportName of expectedCallbackRuntimeExports) {
+    assert.equal(exportName in callbacks, true, `missing callbacks export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root callbacks export ${exportName}`);
+  }
+
+  const parsed = root.parseOpenClawTelegramCallbackPayload('hz:token:approve-1');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value.kind, 'openclaw-telegram-callback-payload');
+  assert.equal(parsed.value.tokenRef, 'token:approve-1');
+});
+
+test('dist runtime barrel and root export Wave 5 runtime bridge helpers', () => {
+  for (const exportName of expectedRuntimeBridgeRuntimeExports) {
+    assert.equal(exportName in runtime, true, `missing runtime export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root runtime export ${exportName}`);
+  }
+
+  const missingRuntimeReadiness = runtime.summarizeOpenClawRuntimeBridgeReadiness();
+  const bridge = root.createOpenClawRuntimeBridge();
+
+  assert.equal(missingRuntimeReadiness.status, 'not-ready');
+  assert.equal(missingRuntimeReadiness.checks[0].component, 'runtime');
+  assert.equal(bridge.getReadiness().status, 'not-ready');
+});
+
+test('dist approvals barrel and root export Wave 5 approval bridge helpers', () => {
+  for (const exportName of expectedApprovalRuntimeExports) {
+    assert.equal(exportName in approvals, true, `missing approvals export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root approvals export ${exportName}`);
+  }
+
+  const request = approvals.createApprovalBridgeRequest({
+    approvalRef: 'approval:w5-fanin',
+    title: 'Approve Wave 5 fan-in',
+    message: 'Safe approval bridge request.',
+    approveTokenRef: 'token:approve-w5',
+    rejectTokenRef: 'token:reject-w5',
+  });
+  const decision = root.createApprovalBridgeDecision({
+    approvalRef: 'approval:w5-fanin',
+    status: 'approved',
+    reason: 'Approved in static-free smoke.',
+  });
+  const requirement = approvals.createApprovalBridgePermissionRequirement({
+    approvalRef: 'approval:w5-fanin',
+  });
+
+  assert.equal(request.kind, 'openclaw-approval-request');
+  assert.equal(request.approvePayload, 'hz:token:approve-w5');
+  assert.equal(root.isApprovalBridgeRequest(request), true);
+  assert.equal(decision.kind, 'openclaw-approval-decision');
+  assert.equal(decision.status, 'approved');
+  assert.equal(root.isApprovalBridgeDecision(decision), true);
+  assert.equal(requirement.action, 'resolve-approval');
+  assert.equal(requirement.resourceKind, 'approval');
 });
