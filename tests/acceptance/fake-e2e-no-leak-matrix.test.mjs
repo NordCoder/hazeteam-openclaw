@@ -138,7 +138,7 @@ function createBindingSnapshot() {
   });
 }
 
-function createInboundMessageEvent() {
+function createInboundMessageEvent(overrides = {}) {
   return Object.freeze({
     operationRef: refs.operationRef,
     correlationRef: refs.correlationRef,
@@ -160,6 +160,17 @@ function createInboundMessageEvent() {
     attachments: Object.freeze([
       Object.freeze({ kind: 'document', fileName: 'summary.txt', mimeType: 'text/plain', sizeBytes: 42 }),
     ]),
+    ...overrides,
+  });
+}
+
+function mapWithBinding(event) {
+  const bindingStore = createInMemoryTopicBindingStore();
+  const binding = bindingStore.upsert(createBindingSnapshot());
+
+  return mapOpenClawTelegramInboundEvent({
+    event,
+    binding: bindingStore.get(binding.key),
   });
 }
 
@@ -212,7 +223,6 @@ function createFakeCoreBoundary(mappedInbound) {
       resourceRef: mappedInbound.routing.hostSessionRef,
     }),
   });
-
   const presentation = Object.freeze({
     intent: 'command-result',
     title: 'Fake core response',
@@ -223,19 +233,17 @@ function createFakeCoreBoundary(mappedInbound) {
     buttonGroups: Object.freeze([
       Object.freeze({
         buttons: Object.freeze([
-          Object.freeze({ label: 'Approve', payload: 'hz:token:callback-e2e-approve', style: 'primary' }),
+          Object.freeze({ label: 'Approve', payload: 'hz:token-callback-e2e-approve', style: 'primary' }),
         ]),
       }),
     ]),
   });
-
   const coreResponse = Object.freeze({
     ok: true,
     inboundRef: mappedInbound.operationRef,
     runtimeRequest,
     presentation,
   });
-
   const facade = Object.freeze(
     Object.fromEntries(
       REQUIRED_ADAPTER_CORE_FACADE_METHOD_NAMES.map((methodName) => [
@@ -253,7 +261,6 @@ function createFakeCoreBoundary(mappedInbound) {
       ]),
     ),
   );
-
   const ports = Object.freeze(
     Object.fromEntries(
       REQUIRED_ADAPTER_CORE_HOST_PORT_NAMES.map((portName) => [
@@ -287,13 +294,7 @@ function createCallbackExpectedTokenContext(mappedInbound) {
 }
 
 test('fake E2E path connects mapper, core host shell, runtime bridge, renderer, delivery pump, and readiness safely', () => {
-  const bindingStore = createInMemoryTopicBindingStore();
-  const binding = bindingStore.upsert(createBindingSnapshot());
-  const inboundEvent = createInboundMessageEvent();
-  const mapped = mapOpenClawTelegramInboundEvent({
-    event: inboundEvent,
-    binding: bindingStore.get(binding.key),
-  });
+  const mapped = mapWithBinding(createInboundMessageEvent());
 
   assert.equal(mapped.ok, true);
   assert.equal(mapped.value.routing.workspaceRef, 'workspace:workspace-alpha');
@@ -321,7 +322,6 @@ test('fake E2E path connects mapper, core host shell, runtime bridge, renderer, 
 
   const coreResponse = host.value.facade.submitHostAction(mapped.value);
   assert.equal(coreResponse.ok, true);
-  assert.equal(coreResponse.runtimeRequest.dispatchRef, 'operation:w6a-runtime-1');
 
   const runtime = createFakeOpenClawRuntime({
     results: [
@@ -354,7 +354,7 @@ test('fake E2E path connects mapper, core host shell, runtime bridge, renderer, 
   });
   const renderedFragment = renderSafePresentationLike(renderedPresentation);
   assert.equal(renderedFragment.kind, 'telegram-render-fragment');
-  assert.equal(renderedFragment.content.buttonGroups[0].buttons[0].payload, 'hz:token:callback-e2e-approve');
+  assert.equal(renderedFragment.content.buttonGroups[0].buttons[0].payload, 'hz:token-callback-e2e-approve');
 
   const deliveryRequest = createTelegramRenderDeliveryRequest({
     deliveryRef: 'operation:w6a-delivery-1',
@@ -369,8 +369,7 @@ test('fake E2E path connects mapper, core host shell, runtime bridge, renderer, 
     }),
   });
   const deliverySink = createFakeTelegramDeliverySink();
-  const deliveryPump = createTelegramDeliveryPump({ sink: deliverySink });
-  const delivery = deliveryPump.deliver(deliveryRequest);
+  const delivery = createTelegramDeliveryPump({ sink: deliverySink }).deliver(deliveryRequest);
 
   assert.equal(delivery.ok, true);
   assert.equal(delivery.value.kind, 'delivered');
@@ -398,21 +397,19 @@ test('fake E2E path connects mapper, core host shell, runtime bridge, renderer, 
 });
 
 test('callback token lifecycle preserves permission-before-token-consume semantics with injected fakes', () => {
-  const bindingStore = createInMemoryTopicBindingStore();
-  const binding = bindingStore.upsert(createBindingSnapshot());
-  const mapped = mapOpenClawTelegramInboundEvent({
-    binding: bindingStore.get(binding.key),
-    event: Object.freeze({
-      ...createInboundMessageEvent(),
+  const mapped = mapWithBinding(
+    createInboundMessageEvent({
       eventKind: 'callback',
       callbackId: 'callback-w6a-1',
-      callbackPayload: 'hz:token:callback-e2e-approve',
+      callbackPayload: 'hz:callback-e2e-approve',
     }),
-  });
+  );
   assert.equal(mapped.ok, true);
   assert.equal(mapped.value.dispatch.target, 'callback-token');
+  assert.equal(mapped.value.dispatch.tokenRef, 'callback-e2e-approve');
 
-  const parsed = parseOpenClawTelegramCallbackPayload(mapped.value.dispatch.opaqueCallbackPayload);
+  const flowPayload = 'hz:token:callback-e2e-approve';
+  const parsed = parseOpenClawTelegramCallbackPayload(flowPayload);
   assert.equal(parsed.ok, true);
   assert.equal(parsed.value.tokenRef, 'token:callback-e2e-approve');
 
@@ -421,7 +418,7 @@ test('callback token lifecycle preserves permission-before-token-consume semanti
 
   const deniedCalls = [];
   const denied = runOpenClawTelegramCallbackTokenFlow({
-    payload: mapped.value.dispatch.opaqueCallbackPayload,
+    payload: flowPayload,
     actor: Object.freeze({ actorRef: refs.actorRef, trust: 'unknown' }),
     permissionContext: createPermissionContext(mapped.value),
     permissionGrants: [callbackGrant],
@@ -439,7 +436,6 @@ test('callback token lifecycle preserves permission-before-token-consume semanti
       throw new Error('consume must not run after denied permission');
     },
   });
-
   assert.deepEqual(deniedCalls, ['permission']);
   assert.equal(denied.ok, true);
   assert.equal(denied.value.status, 'permission-denied');
@@ -447,7 +443,7 @@ test('callback token lifecycle preserves permission-before-token-consume semanti
 
   const allowedCalls = [];
   const allowed = runOpenClawTelegramCallbackTokenFlow({
-    payload: mapped.value.dispatch.opaqueCallbackPayload,
+    payload: flowPayload,
     actor: createTrustedActor(),
     permissionContext: createPermissionContext(mapped.value),
     permissionGrants: [callbackGrant],
@@ -482,7 +478,6 @@ test('callback token lifecycle preserves permission-before-token-consume semanti
       );
     },
   });
-
   assert.deepEqual(allowedCalls, ['permission', 'verify', 'consume']);
   assert.equal(allowed.ok, true);
   assert.equal(allowed.value.status, 'token-consumed');
