@@ -157,7 +157,7 @@ test('runtime bridge rejects unsafe runtime result payloads instead of exposing 
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'dependency-failed');
-  assert.equal(result.error.message, 'Runtime boundary threw during dispatch.');
+  assert.equal(result.error.message, 'Runtime boundary returned an unsafe or invalid result.');
   assertNoForbiddenPublicFields(result);
   assertNoForbiddenText(result);
 });
