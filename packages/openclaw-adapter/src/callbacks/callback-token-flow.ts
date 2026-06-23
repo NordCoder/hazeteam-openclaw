@@ -179,6 +179,11 @@ function isSafeBoundaryRef(candidate: string): boolean {
   );
 }
 
+function isSafeCallbackTokenRef(candidate: string): boolean {
+  const parsed = parseOpenClawAdapterRef(candidate);
+  return parsed?.kind === 'token' && parsed.ref === candidate && isSafeBoundaryRef(candidate);
+}
+
 function normalizeSafeBoundaryRef<T extends string>(input: unknown, label: string): T {
   if (typeof input !== 'string') {
     throw new TypeError(`${label} must be a safe string ref.`);
@@ -190,6 +195,19 @@ function normalizeSafeBoundaryRef<T extends string>(input: unknown, label: strin
   }
 
   return normalized as T;
+}
+
+function normalizeCallbackTokenRef(input: unknown, label: string): OpenClawTelegramCallbackTokenRef {
+  if (typeof input !== 'string') {
+    throw new TypeError(`${label} must be a safe token ref.`);
+  }
+
+  const normalized = input.trim();
+  if (!isSafeCallbackTokenRef(normalized)) {
+    throw new TypeError(`${label} must be a safe token ref.`);
+  }
+
+  return normalized;
 }
 
 function normalizeOptionalSafeBoundaryRef<T extends string>(input: unknown, label: string): T | undefined {
@@ -484,7 +502,7 @@ function normalizeTokenVerification(
     throw new TypeError('Callback token verification status must be verified.');
   }
 
-  const tokenRef = normalizeSafeBoundaryRef<OpenClawTelegramCallbackTokenRef>(
+  const tokenRef = normalizeCallbackTokenRef(
     input.tokenRef,
     'Callback token verification tokenRef',
   );
@@ -524,7 +542,7 @@ function normalizeTokenConsumption(
     throw new TypeError('Callback token consumption status must be consumed.');
   }
 
-  const tokenRef = normalizeSafeBoundaryRef<OpenClawTelegramCallbackTokenRef>(
+  const tokenRef = normalizeCallbackTokenRef(
     input.tokenRef,
     'Callback token consumption tokenRef',
   );
@@ -575,7 +593,7 @@ export function parseOpenClawTelegramCallbackPayload(
   }
 
   const tokenRef = normalizedPayload.slice(CALLBACK_PAYLOAD_PREFIX.length);
-  if (!isSafeBoundaryRef(tokenRef)) {
+  if (!isSafeCallbackTokenRef(tokenRef)) {
     return adapterErr(
       callbackFlowError({ code: 'invalid-input', message: 'Callback token reference is malformed.' }),
     );
