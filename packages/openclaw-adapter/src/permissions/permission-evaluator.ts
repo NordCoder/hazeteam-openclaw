@@ -173,11 +173,13 @@ function getContextDenialReason(
   }
 
   if (requiresTrustedTopicContext(requirement)) {
-    if (input.context?.topic?.trust !== 'trusted-binding') {
+    const topic = input.context?.topic;
+
+    if (topic?.trust !== 'trusted-binding') {
       return 'Topic binding is not trusted.';
     }
 
-    if (input.context.topic.status !== 'active') {
+    if (topic.status !== 'active') {
       return 'Topic binding is not active.';
     }
   }
