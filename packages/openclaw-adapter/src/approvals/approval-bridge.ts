@@ -9,7 +9,9 @@ import {
   type AdapterCorrelationRef,
   type AdapterDetailsRef,
   type AdapterOperationContext,
+  type AdapterOperationRef,
   type AdapterOperationResult,
+  type AdapterRawDebugRef,
   type AgentRef,
   type OpenClawAdapterRefKind,
   type PermissionDecision,
@@ -59,6 +61,7 @@ const UNSAFE_APPROVAL_FIELD_NAMES = new Set([
   'database',
   'execute',
   'filesystem',
+  'filesystempath',
   'handler',
   'network',
   'openclawclient',
@@ -180,14 +183,38 @@ function assertPlainObject(input: unknown, label: string): asserts input is Reco
   }
 }
 
-function rejectUnsafeApprovalFields(input: Record<string, unknown>, label: string): void {
-  for (const fieldName of Object.keys(input)) {
-    const normalizedFieldName = fieldName.replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
-    if (UNSAFE_APPROVAL_FIELD_NAMES.has(normalizedFieldName)) {
+function normalizeUnsafeFieldName(fieldName: string): string {
+  return fieldName.replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
+}
+
+function rejectUnsafeApprovalFields(
+  input: unknown,
+  label: string,
+  seen: WeakSet<object> = new WeakSet<object>(),
+): void {
+  if (typeof input !== 'object' || input === null) {
+    return;
+  }
+
+  if (seen.has(input)) {
+    return;
+  }
+  seen.add(input);
+
+  if (Array.isArray(input)) {
+    for (const value of input) {
+      rejectUnsafeApprovalFields(value, label, seen);
+    }
+    return;
+  }
+
+  for (const [fieldName, value] of Object.entries(input as Record<string, unknown>)) {
+    if (UNSAFE_APPROVAL_FIELD_NAMES.has(normalizeUnsafeFieldName(fieldName))) {
       throw new TypeError(
         `${label} must not include raw provider, runtime, tool, approval, storage, or handler fields.`,
       );
     }
+    rejectUnsafeApprovalFields(value, label, seen);
   }
 }
 
@@ -257,6 +284,61 @@ function normalizeOptionalAdapterRef<T extends string>(
   return input === undefined ? undefined : normalizeAdapterRef<T>(input, kind, label);
 }
 
+function normalizeApprovalBridgeContext(input: unknown): AdapterOperationContext | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+
+  assertSafeApprovalObject(input, 'Approval bridge context');
+  const context = input as Record<string, unknown>;
+
+  const operationRef = normalizeAdapterRef<AdapterOperationRef>(
+    context.operationRef,
+    'operation',
+    'Approval bridge context operationRef',
+  );
+  const correlationRef = normalizeAdapterRef<AdapterCorrelationRef>(
+    context.correlationRef,
+    'correlation',
+    'Approval bridge context correlationRef',
+  );
+  const workspaceRef = normalizeOptionalAdapterRef<WorkspaceRef>(
+    context.workspaceRef,
+    'workspace',
+    'Approval bridge context workspaceRef',
+  );
+  const agentRef = normalizeOptionalAdapterRef<AgentRef>(
+    context.agentRef,
+    'agent',
+    'Approval bridge context agentRef',
+  );
+  const actorRef = normalizeOptionalAdapterRef<ActorRef>(
+    context.actorRef,
+    'actor',
+    'Approval bridge context actorRef',
+  );
+  const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
+    context.detailsRef,
+    'details',
+    'Approval bridge context detailsRef',
+  );
+  const rawDebugRef = normalizeOptionalAdapterRef<AdapterRawDebugRef>(
+    context.rawDebugRef,
+    'raw-debug',
+    'Approval bridge context rawDebugRef',
+  );
+
+  return Object.freeze({
+    operationRef,
+    correlationRef,
+    ...(workspaceRef === undefined ? {} : { workspaceRef }),
+    ...(agentRef === undefined ? {} : { agentRef }),
+    ...(actorRef === undefined ? {} : { actorRef }),
+    ...(detailsRef === undefined ? {} : { detailsRef }),
+    ...(rawDebugRef === undefined ? {} : { rawDebugRef }),
+  });
+}
+
 function normalizeApprovalDecisionStatus(input: unknown): ApprovalBridgeDecisionStatus {
   if (
     typeof input !== 'string' ||
@@ -284,12 +366,12 @@ function isApprovalBridgeResolver(resolver: unknown): resolver is ApprovalBridge
   );
 }
 
-function getContextFromUnknownInput(input: unknown): AdapterOperationContext | undefined {
+function getRawContextFromUnknownInput(input: unknown): unknown | undefined {
   if (typeof input !== 'object' || input === null) {
     return undefined;
   }
 
-  return (input as { readonly context?: AdapterOperationContext }).context;
+  return (input as { readonly context?: unknown }).context;
 }
 
 function getInputCorrelationRef(input: ApprovalBridgeRequest | ApprovalBridgeDecision): AdapterCorrelationRef | undefined {
@@ -592,12 +674,20 @@ export function isApprovalBridgeDecision(candidate: unknown): candidate is Appro
 export async function submitApprovalBridgeRequest(
   input: SubmitApprovalBridgeRequestInput,
 ): Promise<AdapterOperationResult<ApprovalBridgeSubmission>> {
-  const context = getContextFromUnknownInput(input);
-
   if (typeof input !== 'object' || input === null) {
     return createApprovalBridgeFailure({
       code: 'invalid-input',
       message: 'Approval bridge submit input must be an object.',
+    });
+  }
+
+  let context: AdapterOperationContext | undefined;
+  try {
+    context = normalizeApprovalBridgeContext(getRawContextFromUnknownInput(input));
+  } catch {
+    return createApprovalBridgeFailure({
+      code: 'invalid-input',
+      message: 'Approval bridge context is invalid or unsafe.',
     });
   }
 
@@ -641,12 +731,20 @@ export async function submitApprovalBridgeRequest(
 export async function resolveApprovalBridgeDecision(
   input: ResolveApprovalBridgeDecisionInput,
 ): Promise<AdapterOperationResult<ApprovalBridgeResolution>> {
-  const context = getContextFromUnknownInput(input);
-
   if (typeof input !== 'object' || input === null) {
     return createApprovalBridgeFailure({
       code: 'invalid-input',
       message: 'Approval bridge resolve input must be an object.',
+    });
+  }
+
+  let context: AdapterOperationContext | undefined;
+  try {
+    context = normalizeApprovalBridgeContext(getRawContextFromUnknownInput(input));
+  } catch {
+    return createApprovalBridgeFailure({
+      code: 'invalid-input',
+      message: 'Approval bridge context is invalid or unsafe.',
     });
   }
 
