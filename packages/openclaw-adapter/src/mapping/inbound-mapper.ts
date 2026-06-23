@@ -1,23 +1,31 @@
+import { createAdapterOperationContext } from '../contracts/context.js';
+import type { AdapterOperationContext } from '../contracts/context.js';
+import {
+  createCallbackIdempotencyKey,
+  createInboundMessageIdempotencyKey,
+} from '../contracts/idempotency.js';
+import type { AdapterIdempotencyKey } from '../contracts/idempotency.js';
+import type { PermissionRequirement } from '../contracts/permissions.js';
 import {
   adapterErr,
   adapterOk,
-  createAdapterOperationContext,
   createAdapterSafeError,
+} from '../contracts/result.js';
+import type { AdapterOperationResult } from '../contracts/result.js';
+import {
   createAgentRef,
-  createCallbackIdempotencyKey,
-  createInboundMessageIdempotencyKey,
   createWorkspaceRef,
-} from '../contracts/index.js';
+} from '../contracts/refs.js';
 import type {
   ActorRef,
   AdapterCorrelationRef,
-  AdapterIdempotencyKey,
-  AdapterOperationContext,
-  AdapterOperationRef,
-  AdapterOperationResult,
-  AdapterRawDebugRef,
   AdapterDetailsRef,
+  AdapterOperationRef,
+  AdapterRawDebugRef,
   AgentRef,
+  WorkspaceRef,
+} from '../contracts/refs.js';
+import type {
   OpenClawTelegramActorRef,
   OpenClawTelegramAttachmentKind,
   OpenClawTelegramAttachmentRef,
@@ -26,12 +34,13 @@ import type {
   OpenClawTelegramExternalMessageRef,
   OpenClawTelegramMessageEvent,
   OpenClawTelegramSystemEvent,
-  PermissionRequirement,
   TelegramForumTopicRef,
-  WorkspaceRef,
-} from '../contracts/index.js';
-import { cloneTopicBindingSnapshot, serializeTopicBindingKey } from '../binding/index.js';
-import type { TopicBindingKey, TopicBindingSnapshot } from '../binding/index.js';
+} from '../contracts/channel-events.js';
+import {
+  cloneTopicBindingSnapshot,
+  serializeTopicBindingKey,
+} from '../binding/topic-binding.js';
+import type { TopicBindingKey, TopicBindingSnapshot } from '../binding/topic-binding.js';
 
 const MAPPED_INBOUND_SOURCE = 'openclaw-telegram' as const;
 const HOST_DISPATCH_TARGET = 'host-inbound-action' as const;
@@ -199,9 +208,25 @@ function cloneActor(actor: OpenClawTelegramActorRef | undefined): OpenClawMapped
   });
 }
 
-function cloneExternalMessageRef(
+function cloneExternalMessageRefForRouting(
   externalMessageRef: OpenClawTelegramExternalMessageRef,
+  routing: OpenClawMappedInboundRoutingContext,
 ): OpenClawTelegramExternalMessageRef {
+  if (externalMessageRef.channelId !== routing.telegramTopic.channelId) {
+    throw new TypeError('External message channel must match trusted routing context.');
+  }
+
+  if (externalMessageRef.chatId !== routing.telegramTopic.chatId) {
+    throw new TypeError('External message chat must match trusted routing context.');
+  }
+
+  if (
+    externalMessageRef.messageThreadId !== undefined &&
+    externalMessageRef.messageThreadId !== routing.telegramTopic.messageThreadId
+  ) {
+    throw new TypeError('External message thread must match trusted routing context.');
+  }
+
   return Object.freeze({
     channelId: externalMessageRef.channelId,
     chatId: externalMessageRef.chatId,
@@ -410,13 +435,12 @@ function mapMessageEvent(
     throw new TypeError('Inbound message must contain bounded text or attachment refs.');
   }
 
+  const externalMessageRef = cloneExternalMessageRefForRouting(event.externalMessageRef, routing);
   const idempotencyKey = createInboundMessageIdempotencyKey({
-    channelId: event.externalMessageRef.channelId,
-    chatId: event.externalMessageRef.chatId,
-    messageId: event.externalMessageRef.messageId,
-    ...(event.externalMessageRef.messageThreadId === undefined
-      ? {}
-      : { messageThreadId: event.externalMessageRef.messageThreadId }),
+    channelId: routing.telegramTopic.channelId,
+    chatId: routing.telegramTopic.chatId,
+    messageId: externalMessageRef.messageId,
+    messageThreadId: routing.telegramTopic.messageThreadId,
   });
 
   return Object.freeze({
@@ -428,7 +452,7 @@ function mapMessageEvent(
       actionKind: 'telegram-message',
       ...(text === undefined ? {} : { text }),
       attachments,
-      externalMessageRef: cloneExternalMessageRef(event.externalMessageRef),
+      externalMessageRef,
     }),
     permissionRequirement: createTopicPermissionRequirement({
       event,
@@ -462,12 +486,14 @@ function mapCallbackEvent(
   routing: OpenClawMappedInboundRoutingContext,
 ): OpenClawMappedInboundCallback {
   const callbackEnvelope = parseOpaqueCallbackPayload(event.callbackPayload);
-  const messageThreadId = event.topicRef?.messageThreadId ?? event.externalMessageRef?.messageThreadId;
+  const externalMessageRef = event.externalMessageRef === undefined
+    ? undefined
+    : cloneExternalMessageRefForRouting(event.externalMessageRef, routing);
   const idempotencyKey = createCallbackIdempotencyKey({
-    channelId: event.channelRef.channelId,
-    chatId: event.topicRef?.chatId ?? event.externalMessageRef?.chatId ?? 'chat-unknown',
+    channelId: routing.telegramTopic.channelId,
+    chatId: routing.telegramTopic.chatId,
     callbackId: event.callbackId,
-    ...(messageThreadId === undefined ? {} : { messageThreadId }),
+    messageThreadId: routing.telegramTopic.messageThreadId,
   });
 
   return Object.freeze({
@@ -480,9 +506,7 @@ function mapCallbackEvent(
       callbackId: event.callbackId,
       opaqueCallbackPayload: callbackEnvelope.opaqueCallbackPayload,
       tokenRef: callbackEnvelope.tokenRef,
-      ...(event.externalMessageRef === undefined
-        ? {}
-        : { externalMessageRef: cloneExternalMessageRef(event.externalMessageRef) }),
+      ...(externalMessageRef === undefined ? {} : { externalMessageRef }),
     }),
     permissionRequirement: createTopicPermissionRequirement({
       event,
@@ -498,6 +522,10 @@ function mapSystemEvent(
   event: OpenClawTelegramSystemEvent,
   routing: OpenClawMappedInboundRoutingContext,
 ): OpenClawMappedInboundSystemEvent {
+  const externalMessageRef = event.externalMessageRef === undefined
+    ? undefined
+    : cloneExternalMessageRefForRouting(event.externalMessageRef, routing);
+
   return Object.freeze({
     ...createBaseMappedFields(event, routing),
     eventKind: 'system',
@@ -505,9 +533,7 @@ function mapSystemEvent(
       target: SYSTEM_DISPATCH_TARGET,
       actionKind: 'telegram-system-event',
       systemEventKind: event.systemEventKind,
-      ...(event.externalMessageRef === undefined
-        ? {}
-        : { externalMessageRef: cloneExternalMessageRef(event.externalMessageRef) }),
+      ...(externalMessageRef === undefined ? {} : { externalMessageRef }),
     }),
   });
 }
