@@ -60,6 +60,18 @@ const wave4Barrels = [
   },
 ];
 
+const futureRoadmapPathFreezePattern = new RegExp(
+  [
+    'packages/openclaw-adapter/src/(?:delivery|callbacks|runtime|approvals|storage|openclaw)',
+    'packages/openclaw-adapter/tests/(?:integration|acceptance)',
+    'packages/openclaw-testkit/tests/(?:integration|acceptance)',
+    'tests/(?:integration|acceptance|fixtures)',
+  ]
+    .map((pattern) => pattern.replace(/\//gu, '\\/'))
+    .join('|'),
+  'u',
+);
+
 test('Wave 4 leaf files and fan-in boundary files exist', () => {
   for (const filePath of [
     ['packages', 'openclaw-adapter', 'src', 'mapping', 'inbound-mapper.ts'],
@@ -99,5 +111,5 @@ test('Wave 4 static fan-in does not freeze future roadmap implementation directo
 
   assert.doesNotMatch(repositoryBoundarySource, /future implementation directory/u);
   assert.doesNotMatch(repositoryBoundarySource, /must not create future/u);
-  assert.doesNotMatch(repositoryBoundarySource, /packages\/openclaw-adapter\/src\/(?:delivery|callbacks|runtime|approvals|storage|openclaw)/u);
+  assert.doesNotMatch(repositoryBoundarySource, futureRoadmapPathFreezePattern);
 });
