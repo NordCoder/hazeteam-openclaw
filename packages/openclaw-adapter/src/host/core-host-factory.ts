@@ -61,7 +61,7 @@ export type AdapterCoreHostRequiredPortName = (typeof REQUIRED_ADAPTER_CORE_HOST
 export type AdapterCoreHostOptionalPortName = (typeof OPTIONAL_ADAPTER_CORE_HOST_PORT_NAMES)[number];
 export type AdapterCoreHostPortName = (typeof ADAPTER_CORE_HOST_PORT_NAMES)[number];
 
-export type AdapterCoreFacadeMethod = (...args: readonly unknown[]) => unknown;
+export type AdapterCoreFacadeMethod = (...args: unknown[]) => unknown;
 
 export interface AdapterCorePublicFacade {
   readonly submitHostAction?: AdapterCoreFacadeMethod;
@@ -142,8 +142,12 @@ const MAX_METADATA_VALUE_LENGTH = 160;
 const MAX_METADATA_NOTES = 12;
 const UNSAFE_ASSIGNMENT_PATTERN = /\b[A-Za-z][A-Za-z0-9_-]{0,40}\b\s*[:=]\s*\S+/gu;
 
-function isRecordLike(value: unknown): value is Record<string, unknown> {
+function isFacadeBoundary(value: unknown): value is AdapterCorePublicFacade {
   return (typeof value === 'object' && value !== null) || typeof value === 'function';
+}
+
+function isPortsBoundary(value: unknown): value is AdapterCoreHostPorts {
+  return typeof value === 'object' && value !== null;
 }
 
 function normalizeMetadataValue(fieldName: string, value: string): string {
@@ -164,7 +168,7 @@ function normalizeMetadataValue(fieldName: string, value: string): string {
   return `${normalized.slice(0, MAX_METADATA_VALUE_LENGTH - 3)}...`;
 }
 
-function normalizeOptionalMetadataValue(fieldName: string, value: string | undefined): string | undefined {
+function normalizeOptionalMetadataValue(fieldName: string, value: unknown): string | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -176,7 +180,7 @@ function normalizeOptionalMetadataValue(fieldName: string, value: string | undef
   return normalizeMetadataValue(fieldName, value);
 }
 
-function normalizeMetadataNotes(notes: readonly string[] | undefined): readonly string[] {
+function normalizeMetadataNotes(notes: unknown): readonly string[] {
   if (notes === undefined) {
     return Object.freeze([]);
   }
@@ -240,11 +244,11 @@ function cloneConfiguredPorts(ports: AdapterCoreHostPorts | undefined): AdapterC
     }
   }
 
-  return Object.freeze(clonedPorts);
+  return Object.freeze(clonedPorts) as AdapterCoreHostPorts;
 }
 
-function getCallableFacadeMethodNames(
-  facade: AdapterCorePublicFacade | undefined,
+export function getAvailableAdapterCoreFacadeMethods(
+  facade?: AdapterCorePublicFacade,
 ): readonly AdapterCoreFacadeMethodName[] {
   if (facade === undefined) {
     return Object.freeze([]);
@@ -255,16 +259,12 @@ function getCallableFacadeMethodNames(
   );
 }
 
-export function getAvailableAdapterCoreFacadeMethods(
-  facade?: AdapterCorePublicFacade,
-): readonly AdapterCoreFacadeMethodName[] {
-  return getCallableFacadeMethodNames(facade);
-}
-
 export function getMissingRequiredAdapterCoreFacadeMethods(
   facade?: AdapterCorePublicFacade,
 ): readonly RequiredAdapterCoreFacadeMethodName[] {
-  const configuredMethods = new Set(getCallableFacadeMethodNames(facade));
+  const configuredMethods = new Set<AdapterCoreFacadeMethodName>(
+    getAvailableAdapterCoreFacadeMethods(facade),
+  );
 
   return Object.freeze(
     REQUIRED_ADAPTER_CORE_FACADE_METHOD_NAMES.filter((methodName) => !configuredMethods.has(methodName)),
@@ -284,7 +284,7 @@ export function getConfiguredAdapterCoreHostPorts(
 export function getMissingRequiredAdapterCoreHostPorts(
   ports?: AdapterCoreHostPorts,
 ): readonly AdapterCoreHostRequiredPortName[] {
-  const configuredPorts = new Set(getConfiguredAdapterCoreHostPorts(ports));
+  const configuredPorts = new Set<AdapterCoreHostPortName>(getConfiguredAdapterCoreHostPorts(ports));
 
   return Object.freeze(
     REQUIRED_ADAPTER_CORE_HOST_PORT_NAMES.filter((portName) => !configuredPorts.has(portName)),
@@ -294,14 +294,12 @@ export function getMissingRequiredAdapterCoreHostPorts(
 export function summarizeAdapterCoreHostReadiness(input: {
   readonly facade?: AdapterCorePublicFacade;
   readonly ports?: AdapterCoreHostPorts;
-  readonly metadata?: AdapterCoreHostFactoryMetadataInput;
 }): OpenClawTelegramAdapterReadiness {
   const missingRequiredFacadeMethods = getMissingRequiredAdapterCoreFacadeMethods(input.facade);
   const missingRequiredPorts = getMissingRequiredAdapterCoreHostPorts(input.ports);
   const configuredOptionalPorts = OPTIONAL_ADAPTER_CORE_HOST_PORT_NAMES.filter(
     (portName) => input.ports?.[portName] !== undefined,
   );
-  const metadata = createCoreHostFactoryMetadata(input);
 
   const checks = [
     createAdapterReadinessCheck({
@@ -337,10 +335,7 @@ export function summarizeAdapterCoreHostReadiness(input: {
     ),
   ];
 
-  return summarizeAdapterReadiness({
-    checks,
-    ...(metadata.corePackageVersion === undefined ? {} : { detailsRef: undefined }),
-  });
+  return summarizeAdapterReadiness({ checks });
 }
 
 function invalidInputResult(
@@ -359,17 +354,17 @@ function invalidInputResult(
 export function createAdapterCoreHostFactory(
   input: AdapterCoreHostFactoryInput = {},
 ): AdapterCoreHostFactoryResult {
-  if (input.facade !== undefined && !isRecordLike(input.facade)) {
+  if (input.facade !== undefined && !isFacadeBoundary(input.facade)) {
     return invalidInputResult('Core interaction facade must be an object or function when provided.', input.context);
   }
 
-  if (input.ports !== undefined && !isRecordLike(input.ports)) {
+  if (input.ports !== undefined && !isPortsBoundary(input.ports)) {
     return invalidInputResult('Core host ports must be an object when provided.', input.context);
   }
 
   try {
     const ports = cloneConfiguredPorts(input.ports);
-    const facadeMethods = getCallableFacadeMethodNames(input.facade);
+    const facadeMethods = getAvailableAdapterCoreFacadeMethods(input.facade);
     const missingRequiredFacadeMethods = getMissingRequiredAdapterCoreFacadeMethods(input.facade);
     const configuredPorts = getConfiguredAdapterCoreHostPorts(ports);
     const missingRequiredPorts = getMissingRequiredAdapterCoreHostPorts(ports);
@@ -377,7 +372,6 @@ export function createAdapterCoreHostFactory(
     const readiness = summarizeAdapterCoreHostReadiness({
       ...(input.facade === undefined ? {} : { facade: input.facade }),
       ports,
-      metadata,
     });
 
     return adapterOk(
