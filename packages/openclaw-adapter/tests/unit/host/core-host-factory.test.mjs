@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   REQUIRED_ADAPTER_CORE_FACADE_METHOD_NAMES,
@@ -11,6 +14,12 @@ import {
   getMissingRequiredAdapterCoreHostPorts,
   summarizeAdapterCoreHostReadiness,
 } from '../../../dist/host/core-host-factory.js';
+
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
+function readPackageSource(...segments) {
+  return readFileSync(path.join(packageRoot, ...segments), 'utf8');
+}
 
 function createCompleteFacade(method) {
   return Object.freeze(
@@ -157,4 +166,14 @@ test('returns safe errors for invalid injected shell inputs', () => {
   assert.equal(invalidMetadataResult.ok, false);
   assert.equal(invalidMetadataResult.error.code, 'invalid-input');
   assert.match(invalidMetadataResult.error.message, /metadata\.notes\[0\]/u);
+});
+
+test('host factory source keeps public core boundary and side-effect-free shell rules', () => {
+  const source = readPackageSource('src', 'host', 'core-host-factory.ts');
+
+  assert.doesNotMatch(source, /hazeteam-core\/(?:src|dist|tests)(?:\/|['"])/u);
+  assert.doesNotMatch(source, /from\s+['"]\.\.\/\.\.\/.*hazeteam-core/u);
+  assert.doesNotMatch(source, /\b(?:rawTelegramUpdate|rawOpenClawEvent|rawProviderPayload|providerPayload)\b/u);
+  assert.doesNotMatch(source, /\b(?:fetch|setTimeout|setInterval|Date\.now|Math\.random)\s*\(/u);
+  assert.doesNotMatch(source, /\b(?:readFile|writeFile|openSync|createConnection|connect)\s*\(/u);
 });
