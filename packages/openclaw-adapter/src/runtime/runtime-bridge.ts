@@ -128,6 +128,11 @@ interface RuntimeFailureInput {
   readonly correlationRef?: AdapterCorrelationRef | undefined;
 }
 
+interface RuntimeReadinessRefs {
+  readonly detailsRef?: AdapterDetailsRef | undefined;
+  readonly correlationRef?: AdapterCorrelationRef | undefined;
+}
+
 function isPlainRecord(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null && !Array.isArray(input);
 }
@@ -352,6 +357,46 @@ function safeResultContext(input: AdapterOperationContext | undefined): AdapterO
   } catch {
     return undefined;
   }
+}
+
+function normalizeReadinessRefs(input: RuntimeReadinessRefs): RuntimeReadinessRefs {
+  const detailsRef = normalizeOptionalAdapterRef<AdapterDetailsRef>(
+    input.detailsRef,
+    'details',
+    'Runtime readiness detailsRef',
+  );
+  const correlationRef = normalizeOptionalAdapterRef<AdapterCorrelationRef>(
+    input.correlationRef,
+    'correlation',
+    'Runtime readiness correlationRef',
+  );
+
+  return Object.freeze({
+    ...(detailsRef === undefined ? {} : { detailsRef }),
+    ...(correlationRef === undefined ? {} : { correlationRef }),
+  });
+}
+
+function createRuntimeReadiness(input: {
+  readonly status: 'pass' | 'warn' | 'fail' | 'unknown';
+  readonly message: string;
+  readonly refs?: RuntimeReadinessRefs | undefined;
+}): OpenClawTelegramAdapterReadiness {
+  const refs = input.refs ?? {};
+
+  return summarizeAdapterReadiness({
+    checks: [
+      createAdapterReadinessCheck({
+        component: 'runtime',
+        status: input.status,
+        message: input.message,
+        ...(refs.detailsRef === undefined ? {} : { detailsRef: refs.detailsRef }),
+        ...(refs.correlationRef === undefined ? {} : { correlationRef: refs.correlationRef }),
+      }),
+    ],
+    ...(refs.detailsRef === undefined ? {} : { detailsRef: refs.detailsRef }),
+    ...(refs.correlationRef === undefined ? {} : { correlationRef: refs.correlationRef }),
+  });
 }
 
 function normalizeRuntimeIntent(input: unknown): OpenClawRuntimeIntent {
@@ -633,35 +678,29 @@ export function summarizeOpenClawRuntimeBridgeReadiness(input: {
   readonly detailsRef?: AdapterDetailsRef | undefined;
   readonly correlationRef?: AdapterCorrelationRef | undefined;
 } = {}): OpenClawTelegramAdapterReadiness {
+  let refs: RuntimeReadinessRefs;
+  try {
+    refs = normalizeReadinessRefs(input);
+  } catch {
+    return createRuntimeReadiness({
+      status: 'fail',
+      message: 'Runtime readiness refs are invalid.',
+    });
+  }
+
   if (!isRuntimeBoundary(input.runtime)) {
-    return summarizeAdapterReadiness({
-      checks: [
-        createAdapterReadinessCheck({
-          component: 'runtime',
-          status: 'fail',
-          message: 'Runtime boundary dispatch port is not configured.',
-          ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-          ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
-        }),
-      ],
-      ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-      ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
+    return createRuntimeReadiness({
+      status: 'fail',
+      message: 'Runtime boundary dispatch port is not configured.',
+      refs,
     });
   }
 
   if (input.runtime.getReadiness === undefined) {
-    return summarizeAdapterReadiness({
-      checks: [
-        createAdapterReadinessCheck({
-          component: 'runtime',
-          status: 'pass',
-          message: 'Runtime boundary dispatch port is injected.',
-          ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-          ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
-        }),
-      ],
-      ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-      ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
+    return createRuntimeReadiness({
+      status: 'pass',
+      message: 'Runtime boundary dispatch port is injected.',
+      refs,
     });
   }
 
@@ -677,32 +716,12 @@ export function summarizeOpenClawRuntimeBridgeReadiness(input: {
       240,
     );
 
-    return summarizeAdapterReadiness({
-      checks: [
-        createAdapterReadinessCheck({
-          component: 'runtime',
-          status: checkStatus,
-          message,
-          ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-          ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
-        }),
-      ],
-      ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-      ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
-    });
+    return createRuntimeReadiness({ status: checkStatus, message, refs });
   } catch {
-    return summarizeAdapterReadiness({
-      checks: [
-        createAdapterReadinessCheck({
-          component: 'runtime',
-          status: 'fail',
-          message: 'Runtime readiness boundary failed safely.',
-          ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-          ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
-        }),
-      ],
-      ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
-      ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
+    return createRuntimeReadiness({
+      status: 'fail',
+      message: 'Runtime readiness boundary failed safely.',
+      refs,
     });
   }
 }
