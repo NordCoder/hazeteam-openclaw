@@ -7,8 +7,8 @@ import {
   createAdapterDetailsRef,
   createAdapterOperationRef,
   createAdapterRawDebugRef,
-} from '../../../dist/contracts/index.js';
-import { createTopicBindingSnapshot } from '../../../dist/binding/index.js';
+} from '../../../dist/contracts/refs.js';
+import { createTopicBindingSnapshot } from '../../../dist/binding/topic-binding.js';
 import { mapOpenClawTelegramInboundEvent } from '../../../dist/mapping/inbound-mapper.js';
 
 const topicRef = Object.freeze({
@@ -56,6 +56,7 @@ function makeBaseEvent(overrides = {}) {
     receivedAt: '2026-06-23T02:00:01.000Z',
     detailsRef: createAdapterDetailsRef('details-1'),
     rawDebugRef: createAdapterRawDebugRef('raw-1'),
+    rawTelegramUpdate: { bot_token: 'must-not-leak' },
     ...overrides,
   });
 }
@@ -106,6 +107,7 @@ test('maps a normalized Telegram message through trusted binding into safe host 
   assert.equal(result.value.permissionRequirement.resourceKind, 'topic');
   assert.equal(result.context.rawDebugRef, 'raw-debug:raw-1');
   assert.equal(JSON.stringify(result.value).includes('raw-debug:raw-1'), false);
+  assert.equal(JSON.stringify(result.value).includes('bot_token'), false);
 });
 
 test('fails safely when no trusted topic binding is provided', () => {
@@ -115,6 +117,17 @@ test('fails safely when no trusted topic binding is provided', () => {
   assert.equal(result.error.code, 'dependency-missing');
   assert.equal(result.error.retryable, true);
   assert.equal(result.error.correlationRef, 'correlation:corr-1');
+});
+
+test('fails safely when the normalized event has no trusted topic reference', () => {
+  const result = mapOpenClawTelegramInboundEvent({
+    event: makeMessageEvent({ topicRef: undefined }),
+    binding: makeBinding(),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'invalid-input');
+  assert.match(result.error.message, /topic reference/u);
 });
 
 test('fails safely for inactive or mismatched trusted bindings', () => {
@@ -133,6 +146,19 @@ test('fails safely for inactive or mismatched trusted bindings', () => {
   assert.equal(mismatched.ok, false);
   assert.equal(mismatched.error.code, 'conflict');
   assert.match(mismatched.error.message, /thread/u);
+});
+
+test('rejects inconsistent external message refs instead of mixing trusted routing contexts', () => {
+  const result = mapOpenClawTelegramInboundEvent({
+    binding: makeBinding(),
+    event: makeMessageEvent({
+      externalMessageRef: { ...externalMessageRef, chatId: 'other-chat' },
+    }),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'invalid-input');
+  assert.match(result.error.message, /chat/u);
 });
 
 test('maps an opaque Telegram callback without verifying or consuming the token', () => {
