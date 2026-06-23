@@ -49,6 +49,16 @@ const expectedTokenContext = Object.freeze({
   bindingRef: 'binding:telegram-topic-1',
 });
 
+const safeOperationContext = Object.freeze({
+  operationRef: 'operation:callback-flow',
+  correlationRef: 'correlation:callback-flow',
+  workspaceRef: 'workspace:acme',
+  agentRef: 'agent:coder',
+  actorRef: 'actor:user-1',
+  detailsRef: 'details:callback-flow',
+  rawDebugRef: 'raw-debug:callback-flow',
+});
+
 function createSuccessfulVerifier(calls) {
   return (request) => {
     calls.push('verify');
@@ -135,6 +145,93 @@ test('runs permission before verify and consume for valid callbacks', () => {
   assert.equal(result.value.permission.status, 'allowed');
   assert.equal(result.value.verification.verificationRef, 'verification:approve-1');
   assert.equal(result.value.consumption.consumptionRef, 'consumption:approve-1');
+});
+
+test('safe operation context is normalized in result and token boundaries', () => {
+  const calls = [];
+  const result = runOpenClawTelegramCallbackTokenFlow({
+    payload: 'hz:token:approve-1',
+    actor,
+    permissionContext,
+    permissionGrants: [callbackGrant],
+    expectedTokenContext,
+    context: safeOperationContext,
+    permissionEvaluator: (input) => {
+      calls.push('permission');
+      return evaluateOpenClawTelegramPermission(input);
+    },
+    verifyToken: (request) => {
+      calls.push('verify');
+      assert.deepEqual(request.context, safeOperationContext);
+      assert.equal(Object.isFrozen(request.context), true);
+      return adapterOk(
+        Object.freeze({
+          status: 'verified',
+          tokenRef: request.tokenRef,
+          verificationRef: 'verification:approve-1',
+        }),
+      );
+    },
+    consumeToken: (request) => {
+      calls.push('consume');
+      assert.deepEqual(request.context, safeOperationContext);
+      assert.equal(Object.isFrozen(request.context), true);
+      return adapterOk(
+        Object.freeze({
+          status: 'consumed',
+          tokenRef: request.tokenRef,
+          consumptionRef: 'consumption:approve-1',
+        }),
+      );
+    },
+  });
+
+  assert.deepEqual(calls, ['permission', 'verify', 'consume']);
+  assert.equal(result.ok, true);
+  assert.equal(result.value.status, 'token-consumed');
+  assert.deepEqual(result.context, safeOperationContext);
+  assert.equal(Object.isFrozen(result.context), true);
+  assert.equal('rawToolPayload' in result.context, false);
+  assert.equal('rawProviderObject' in result.context, false);
+});
+
+test('unsafe operation context is rejected before permission verifier or consumer boundaries', () => {
+  const calls = [];
+  const result = runOpenClawTelegramCallbackTokenFlow({
+    payload: 'hz:token:approve-1',
+    actor,
+    permissionContext,
+    permissionGrants: [callbackGrant],
+    expectedTokenContext,
+    context: Object.freeze({
+      operationRef: 'operation:callback-flow',
+      correlationRef: 'correlation:callback-flow',
+      rawToolPayload: Object.freeze({
+        rawProviderObject: 'provider-object-leak',
+      }),
+    }),
+    permissionEvaluator: (input) => {
+      calls.push('permission');
+      return evaluateOpenClawTelegramPermission(input);
+    },
+    verifyToken: () => {
+      calls.push('verify');
+      throw new Error('verifier must not be called with unsafe context');
+    },
+    consumeToken: () => {
+      calls.push('consume');
+      throw new Error('consumer must not be called with unsafe context');
+    },
+  });
+
+  assert.deepEqual(calls, []);
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'invalid-input');
+  assert.equal(result.error.message, 'Callback operation context is malformed.');
+  assert.equal(result.error.message.includes('rawToolPayload'), false);
+  assert.equal(result.error.message.includes('rawProviderObject'), false);
+  assert.equal(result.error.message.includes('provider-object-leak'), false);
+  assert.equal('context' in result, false);
 });
 
 test('denied and unknown actors do not verify or consume callback tokens', () => {
