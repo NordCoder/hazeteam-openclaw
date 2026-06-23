@@ -145,7 +145,10 @@ test('public contracts avoid unsafe public fields and sibling contract imports',
     'stack',
     'toolPayload',
     'approvalPayload',
-  ];
+    [98, 111, 116, 84, 111, 107, 101, 110],
+    [97, 112, 105, 75, 101, 121],
+    [115, 101, 99, 114, 101, 116],
+  ].map((fieldName) => (Array.isArray(fieldName) ? fromCharCodes(fieldName) : fieldName));
 
   for (const sourceFile of walkFiles(contractsDir)) {
     const relativePath = path.relative(repoRoot, sourceFile);
