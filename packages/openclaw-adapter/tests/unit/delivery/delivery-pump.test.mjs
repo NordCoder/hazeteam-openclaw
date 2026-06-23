@@ -207,6 +207,19 @@ test('delivery pump reports invalid rendered requests before calling the sink', 
   assertNoRawProviderFields(result);
 });
 
+test('delivery pump returns a safe dependency error when the sink is missing', () => {
+  const request = makeRenderedRequest('operation:delivery-pump-missing-sink');
+
+  const result = pumpTelegramDeliveryRequest({ request, sink: undefined });
+
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.context, request.context);
+  assert.equal(result.error.code, 'dependency-missing');
+  assert.equal(result.error.retryable, true);
+  assert.equal(result.error.correlationRef, 'correlation:delivery-pump-1');
+  assertNoRawProviderFields(result);
+});
+
 test('delivery pump converts thrown sink failures into safe retryable failed decisions', () => {
   const request = makeRenderedRequest('operation:delivery-pump-throw');
   const sink = Object.freeze({
@@ -292,5 +305,48 @@ test('delivery pump rejects sink results that do not preserve safe request refs'
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'dependency-failed');
   assert.match(result.error.message, /deliveryRef must match/u);
+  assertNoRawProviderFields(result);
+});
+
+test('delivery pump rejects unsafe sink result fields instead of passing them through', () => {
+  const request = makeRenderedRequest('operation:delivery-pump-unsafe-result');
+  const sink = Object.freeze({
+    submit(submittedRequest) {
+      return {
+        ...successFor(submittedRequest),
+        rawProviderResponse: { message_id: 1 },
+      };
+    },
+  });
+
+  const result = pumpTelegramDeliveryRequest({ request, sink });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'dependency-failed');
+  assert.match(result.error.message, /must not include raw provider/u);
+  assertNoRawProviderFields(result);
+});
+
+test('delivery pump rejects non-boolean retry flags from sink results', () => {
+  const request = makeRenderedRequest('operation:delivery-pump-bad-retryable');
+  const sink = Object.freeze({
+    submit(submittedRequest) {
+      return {
+        ok: false,
+        deliveryRef: submittedRequest.deliveryRef,
+        error: {
+          code: 'provider-unavailable',
+          message: 'retry flag must stay boolean',
+          retryable: 'yes',
+        },
+      };
+    },
+  });
+
+  const result = pumpTelegramDeliveryRequest({ request, sink });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'dependency-failed');
+  assert.match(result.error.message, /retryable must be a boolean/u);
   assertNoRawProviderFields(result);
 });
