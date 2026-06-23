@@ -113,7 +113,26 @@ function isUnsafeDurableTopicBindingFieldName(fieldName: string): boolean {
   );
 }
 
+function isUnsafeDurableTopicBindingStringValue(value: string): boolean {
+  const normalizedValue = normalizeFieldName(value);
+
+  return (
+    Array.from(UNSAFE_DURABLE_TOPIC_BINDING_FIELD_NAMES).some((unsafeFieldName) =>
+      normalizedValue.includes(unsafeFieldName),
+    ) ||
+    UNSAFE_DURABLE_TOPIC_BINDING_FIELD_NAME_PARTS.some((parts) => normalizedValue.includes(parts.join('')))
+  );
+}
+
 function rejectUnsafeDurableTopicBindingFields(input: unknown, label: string, seen = new Set<object>()): void {
+  if (typeof input === 'string') {
+    if (isUnsafeDurableTopicBindingStringValue(input)) {
+      throw new TypeError(`${label} must not include protected raw or sensitive string values.`);
+    }
+
+    return;
+  }
+
   if (typeof input !== 'object' || input === null) {
     return;
   }
