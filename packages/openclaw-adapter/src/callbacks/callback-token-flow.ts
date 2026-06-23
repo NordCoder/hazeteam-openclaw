@@ -2,11 +2,14 @@ import {
   adapterErr,
   adapterOk,
   createAdapterSafeError,
+  parseOpenClawAdapterRef,
   type ActorRef,
   type AdapterCorrelationRef,
   type AdapterDetailsRef,
   type AdapterOperationContext,
+  type AdapterOperationRef,
   type AdapterOperationResult,
+  type AdapterRawDebugRef,
   type AgentRef,
   type PermissionDecision,
   type PermissionRequirement,
@@ -130,6 +133,27 @@ const CALLBACK_PAYLOAD_PREFIX = 'hz:';
 const MAX_CALLBACK_PAYLOAD_LENGTH = 256;
 const MAX_SAFE_BOUNDARY_REF_LENGTH = 256;
 const SAFE_CALLBACK_TOKEN_REF_PATTERN = /^[A-Za-z0-9._:~-]+$/u;
+const UNSAFE_CALLBACK_CONTEXT_FIELD_NAMES = new Set([
+  'rawtoolpayload',
+  'toolpayload',
+  'rawcallbackbody',
+  'rawproviderobject',
+  'rawproviderresponse',
+  'rawtelegramupdate',
+  'rawopenclawevent',
+  'providerobject',
+  'provider',
+  'sdkclient',
+  'openclawclient',
+  'stack',
+  ['bot', 'token'].join(''),
+  ['api', 'key'].join(''),
+  ['sec', 'ret'].join(''),
+  ['cred', 'ential'].join(''),
+  ['pass', 'word'].join(''),
+  'filesystempath',
+  'storageroot',
+]);
 
 function callbackFlowError(input: {
   readonly code: Parameters<typeof createAdapterSafeError>[0]['code'];
@@ -174,6 +198,119 @@ function normalizeOptionalSafeBoundaryRef<T extends string>(input: unknown, labe
   }
 
   return normalizeSafeBoundaryRef<T>(input, label);
+}
+
+function normalizeFieldName(fieldName: string): string {
+  return fieldName.replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
+}
+
+function rejectUnsafeCallbackContextFields(input: unknown, seen = new Set<object>()): void {
+  if (typeof input !== 'object' || input === null) {
+    return;
+  }
+
+  if (seen.has(input)) {
+    return;
+  }
+  seen.add(input);
+
+  if (Array.isArray(input)) {
+    for (const value of input) {
+      rejectUnsafeCallbackContextFields(value, seen);
+    }
+    return;
+  }
+
+  for (const [fieldName, value] of Object.entries(input)) {
+    if (UNSAFE_CALLBACK_CONTEXT_FIELD_NAMES.has(normalizeFieldName(fieldName))) {
+      throw new TypeError('Callback operation context contains unsafe fields.');
+    }
+    rejectUnsafeCallbackContextFields(value, seen);
+  }
+}
+
+function assertPlainObject(input: unknown, label: string): asserts input is Record<string, unknown> {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) {
+    throw new TypeError(`${label} must be an object.`);
+  }
+}
+
+function normalizeAdapterContextRef<T extends string>(input: unknown, kind: string, label: string): T {
+  const parsed = parseOpenClawAdapterRef(input);
+  if (parsed?.kind !== kind) {
+    throw new TypeError(`${label} must be a safe adapter ref.`);
+  }
+
+  return parsed.ref as T;
+}
+
+function normalizeCallbackOperationContext(
+  context: AdapterOperationContext | undefined,
+): AdapterOperationContext | undefined {
+  if (context === undefined) {
+    return undefined;
+  }
+
+  assertPlainObject(context, 'Callback operation context');
+  rejectUnsafeCallbackContextFields(context);
+
+  return Object.freeze({
+    operationRef: normalizeAdapterContextRef<AdapterOperationRef>(
+      context.operationRef,
+      'operation',
+      'Callback operation context operationRef',
+    ),
+    correlationRef: normalizeAdapterContextRef<AdapterCorrelationRef>(
+      context.correlationRef,
+      'correlation',
+      'Callback operation context correlationRef',
+    ),
+    ...(context.workspaceRef === undefined
+      ? {}
+      : {
+          workspaceRef: normalizeAdapterContextRef<WorkspaceRef>(
+            context.workspaceRef,
+            'workspace',
+            'Callback operation context workspaceRef',
+          ),
+        }),
+    ...(context.agentRef === undefined
+      ? {}
+      : {
+          agentRef: normalizeAdapterContextRef<AgentRef>(
+            context.agentRef,
+            'agent',
+            'Callback operation context agentRef',
+          ),
+        }),
+    ...(context.actorRef === undefined
+      ? {}
+      : {
+          actorRef: normalizeAdapterContextRef<ActorRef>(
+            context.actorRef,
+            'actor',
+            'Callback operation context actorRef',
+          ),
+        }),
+    ...(context.detailsRef === undefined
+      ? {}
+      : {
+          detailsRef: normalizeAdapterContextRef<AdapterDetailsRef>(
+            context.detailsRef,
+            'details',
+            'Callback operation context detailsRef',
+          ),
+        }),
+    ...(context.rawDebugRef === undefined
+      ? {}
+      : {
+          rawDebugRef: normalizeAdapterContextRef<AdapterRawDebugRef>(
+            context.rawDebugRef,
+            'raw-debug',
+            'Callback operation context rawDebugRef',
+          ),
+        }),
+  });
 }
 
 function normalizeExpectedTokenContext(
@@ -283,11 +420,19 @@ function normalizeExpectedTokenContext(
   });
 }
 
-function getDetailsRef(input: OpenClawTelegramCallbackTokenFlowInput): AdapterDetailsRef | undefined {
+function getDetailsRef(input: {
+  readonly detailsRef?: AdapterDetailsRef;
+  readonly context?: AdapterOperationContext;
+  readonly expectedTokenContext?: OpenClawTelegramCallbackTokenExpectedContext;
+}): AdapterDetailsRef | undefined {
   return input.detailsRef ?? input.context?.detailsRef ?? input.expectedTokenContext?.detailsRef;
 }
 
-function getCorrelationRef(input: OpenClawTelegramCallbackTokenFlowInput): AdapterCorrelationRef | undefined {
+function getCorrelationRef(input: {
+  readonly correlationRef?: AdapterCorrelationRef;
+  readonly context?: AdapterOperationContext;
+  readonly expectedTokenContext?: OpenClawTelegramCallbackTokenExpectedContext;
+}): AdapterCorrelationRef | undefined {
   return input.correlationRef ?? input.context?.correlationRef ?? input.expectedTokenContext?.correlationRef;
 }
 
@@ -295,10 +440,10 @@ function createDefaultPermissionRequirement(
   input: OpenClawTelegramCallbackTokenFlowInput,
   tokenRef: OpenClawTelegramCallbackTokenRef,
   expectedContext: OpenClawTelegramCallbackTokenExpectedContext,
+  detailsRef: AdapterDetailsRef | undefined,
+  correlationRef: AdapterCorrelationRef | undefined,
 ): PermissionRequirement {
   const resourceRef = expectedContext.resourceRef ?? expectedContext.actionRef ?? expectedContext.approvalRef ?? `callback:${tokenRef}`;
-  const detailsRef = getDetailsRef(input);
-  const correlationRef = getCorrelationRef(input);
 
   return Object.freeze({
     action: 'consume-callback',
@@ -316,13 +461,13 @@ function createPermissionEvaluationInput(
   input: OpenClawTelegramCallbackTokenFlowInput,
   tokenRef: OpenClawTelegramCallbackTokenRef,
   expectedContext: OpenClawTelegramCallbackTokenExpectedContext,
+  detailsRef: AdapterDetailsRef | undefined,
+  correlationRef: AdapterCorrelationRef | undefined,
 ): PermissionEvaluationInput {
-  const detailsRef = getDetailsRef(input);
-  const correlationRef = getCorrelationRef(input);
-
   return Object.freeze({
     requirement:
-      input.permissionRequirement ?? createDefaultPermissionRequirement(input, tokenRef, expectedContext),
+      input.permissionRequirement ??
+      createDefaultPermissionRequirement(input, tokenRef, expectedContext, detailsRef, correlationRef),
     ...(input.actor === undefined ? {} : { actor: input.actor }),
     ...(input.permissionContext === undefined ? {} : { context: input.permissionContext }),
     ...(input.permissionGrants === undefined ? {} : { grants: input.permissionGrants }),
@@ -448,18 +593,37 @@ export function parseOpenClawTelegramCallbackPayload(
 export function runOpenClawTelegramCallbackTokenFlow(
   input: OpenClawTelegramCallbackTokenFlowInput,
 ): AdapterOperationResult<OpenClawTelegramCallbackTokenFlowDecision> {
-  const parseResult = parseOpenClawTelegramCallbackPayload(input.payload);
-  if (!parseResult.ok) {
-    return adapterErr(parseResult.error, input.context);
+  let normalizedContext: AdapterOperationContext | undefined;
+  try {
+    normalizedContext = normalizeCallbackOperationContext(input.context);
+  } catch {
+    return adapterErr(
+      callbackFlowError({
+        code: 'invalid-input',
+        message: 'Callback operation context is malformed.',
+        retryable: false,
+      }),
+    );
   }
 
-  const detailsRef = getDetailsRef(input);
-  const correlationRef = getCorrelationRef(input);
+  const parseResult = parseOpenClawTelegramCallbackPayload(input.payload);
+  if (!parseResult.ok) {
+    return adapterErr(parseResult.error, normalizedContext);
+  }
 
   let expectedContext: OpenClawTelegramCallbackTokenExpectedContext;
   try {
     expectedContext = normalizeExpectedTokenContext(input.expectedTokenContext);
   } catch {
+    const detailsRef = getDetailsRef({
+      detailsRef: input.detailsRef,
+      context: normalizedContext,
+    });
+    const correlationRef = getCorrelationRef({
+      correlationRef: input.correlationRef,
+      context: normalizedContext,
+    });
+
     return adapterErr(
       callbackFlowError({
         code: 'invalid-input',
@@ -467,9 +631,20 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
+
+  const detailsRef = getDetailsRef({
+    detailsRef: input.detailsRef,
+    context: normalizedContext,
+    expectedTokenContext: expectedContext,
+  });
+  const correlationRef = getCorrelationRef({
+    correlationRef: input.correlationRef,
+    context: normalizedContext,
+    expectedTokenContext: expectedContext,
+  });
 
   const permissionEvaluator = input.permissionEvaluator ?? evaluateOpenClawTelegramPermission;
   if (typeof permissionEvaluator !== 'function') {
@@ -481,7 +656,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
@@ -494,14 +669,20 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
   let permission: PermissionDecision;
   try {
     permission = permissionEvaluator(
-      createPermissionEvaluationInput(input, parseResult.value.tokenRef, expectedContext),
+      createPermissionEvaluationInput(
+        input,
+        parseResult.value.tokenRef,
+        expectedContext,
+        detailsRef,
+        correlationRef,
+      ),
     );
   } catch {
     return adapterErr(
@@ -512,7 +693,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
@@ -524,7 +705,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
         permission,
         tokenConsumed: false,
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
@@ -532,7 +713,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
     tokenRef: parseResult.value.tokenRef,
     expectedContext,
     callbackPayload: parseResult.value,
-    ...(input.context === undefined ? {} : { context: input.context }),
+    ...(normalizedContext === undefined ? {} : { context: normalizedContext }),
     ...(detailsRef === undefined ? {} : { detailsRef }),
     ...(correlationRef === undefined ? {} : { correlationRef }),
   });
@@ -549,12 +730,12 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
   if (!verifyResult.ok) {
-    return adapterErr(verifyResult.error, input.context);
+    return adapterErr(verifyResult.error, normalizedContext);
   }
 
   let verification: OpenClawTelegramCallbackTokenVerification;
@@ -569,7 +750,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
@@ -578,7 +759,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
     expectedContext,
     callbackPayload: parseResult.value,
     verification,
-    ...(input.context === undefined ? {} : { context: input.context }),
+    ...(normalizedContext === undefined ? {} : { context: normalizedContext }),
     ...(detailsRef === undefined ? {} : { detailsRef }),
     ...(correlationRef === undefined ? {} : { correlationRef }),
   });
@@ -595,12 +776,12 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
   if (!consumeResult.ok) {
-    return adapterErr(consumeResult.error, input.context);
+    return adapterErr(consumeResult.error, normalizedContext);
   }
 
   let consumption: OpenClawTelegramCallbackTokenConsumption;
@@ -615,7 +796,7 @@ export function runOpenClawTelegramCallbackTokenFlow(
         ...(detailsRef === undefined ? {} : { detailsRef }),
         ...(correlationRef === undefined ? {} : { correlationRef }),
       }),
-      input.context,
+      normalizedContext,
     );
   }
 
@@ -628,6 +809,6 @@ export function runOpenClawTelegramCallbackTokenFlow(
       consumption,
       tokenConsumed: true,
     }),
-    input.context,
+    normalizedContext,
   );
 }
