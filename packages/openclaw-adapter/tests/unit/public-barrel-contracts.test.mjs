@@ -85,7 +85,10 @@ test('root dist index exports shared, event, delivery, support, binding, and des
   assert.equal(root.isTelegramActionButtonPayload('hz:token:approve'), true);
   assert.equal(root.summarizeAdapterReadiness({ checks: [] }).status, 'unknown');
   assert.equal(root.createAdapterIdempotencyKey('callback', ['safe']), 'callback:safe');
-  assert.equal(root.isPermissionAllowed(root.allowPermission({ action: 'send-message', resourceKind: 'topic' })), true);
+  assert.equal(
+    root.isPermissionAllowed(root.allowPermission({ action: 'send-message', resourceKind: 'topic' })),
+    true,
+  );
 });
 
 test('dist contracts barrel exports shared, event, delivery, and support contract helpers', () => {
@@ -100,8 +103,19 @@ test('dist contracts barrel exports shared, event, delivery, and support contrac
     contracts.createTelegramDeliverySafeError({ code: 'timeout', message: 'timed out' }).code,
     'timeout',
   );
-  assert.equal(contracts.createInboundMessageIdempotencyKey({ channelId: 'ch', chatId: '1', messageId: '2' }), 'inbound-message:ch:1:thread-none:2');
-  assert.equal(contracts.isPermissionDenied(contracts.denyPermission({ requirement: { action: 'consume-callback', resourceKind: 'callback' }, reason: 'no' })), true);
+  assert.equal(
+    contracts.createInboundMessageIdempotencyKey({ channelId: 'ch', chatId: '1', messageId: '2' }),
+    'inbound-message:ch:1:thread-none:2',
+  );
+  assert.equal(
+    contracts.isPermissionDenied(
+      contracts.denyPermission({
+        requirement: { action: 'consume-callback', resourceKind: 'callback' },
+        reason: 'no',
+      }),
+    ),
+    true,
+  );
 });
 
 test('dist binding barrel and root export topic binding helpers', () => {
@@ -127,7 +141,10 @@ test('dist binding barrel and root export topic binding helpers', () => {
   store.upsert(snapshot);
 
   assert.equal(root.isTopicBindingStatus(snapshot.status), true);
-  assert.equal(root.serializeTopicBindingKey(snapshot.key), 'topic-binding:workspace=workspace-alpha:channel=channel-alpha:topic=topic-alpha');
+  assert.equal(
+    root.serializeTopicBindingKey(snapshot.key),
+    'topic-binding:workspace=workspace-alpha:channel=channel-alpha:topic=topic-alpha',
+  );
   assert.deepEqual(store.get(root.createTopicBindingKey(snapshot.key)), snapshot);
 });
 
@@ -158,10 +175,11 @@ test('dist commands barrel and root export command and Telegram UI descriptor he
     body: [textBlock],
     buttonGroups: [commands.createTelegramButtonGroupDescriptor({ buttons: [button] })],
   });
+  const foundCommand = root.findCommandDescriptor(commandSet, '/begin');
 
   assert.equal(command.name, 'start');
   assert.equal(root.isCommandDescriptor(command), true);
-  assert.equal(root.findCommandDescriptor(commandSet, '/begin'), command);
+  assert.equal(foundCommand?.name, command.name);
   assert.equal(button.payload, 'hz:token:approve');
   assert.equal(root.isTelegramCardDescriptor(card), true);
 });
