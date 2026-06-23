@@ -239,13 +239,45 @@ test('runtime bridge normalizes readiness into safe bounded adapter DTOs', () =>
     },
   });
 
-  const readiness = summarizeOpenClawRuntimeBridgeReadiness({ runtime });
+  const readiness = summarizeOpenClawRuntimeBridgeReadiness({
+    runtime,
+    detailsRef: 'details:runtime-readiness-details-1',
+    correlationRef: 'correlation:runtime-readiness-correlation-1',
+  });
 
   assert.equal(readiness.status, 'ready');
+  assert.equal(readiness.detailsRef, 'details:runtime-readiness-details-1');
+  assert.equal(readiness.correlationRef, 'correlation:runtime-readiness-correlation-1');
+  assert.equal(readiness.checks[0].detailsRef, 'details:runtime-readiness-details-1');
+  assert.equal(readiness.checks[0].correlationRef, 'correlation:runtime-readiness-correlation-1');
   assert.equal(readiness.checks[0].status, 'pass');
   assert.equal(readiness.checks[0].message, 'Ready with [redacted] at [redacted]');
   assertNoForbiddenPublicFields(readiness);
   assertNoForbiddenText(readiness);
+});
+
+test('runtime bridge rejects unsafe readiness refs before exposing readiness DTOs', () => {
+  const runtime = Object.freeze({
+    dispatch() {
+      throw new Error('not used');
+    },
+    getReadiness() {
+      return { status: 'ready', message: 'Runtime ready' };
+    },
+  });
+
+  const readiness = summarizeOpenClawRuntimeBridgeReadiness({
+    runtime,
+    detailsRef: 'details:unsafe/path',
+    correlationRef: 'correlation:runtime-readiness-correlation-1',
+  });
+
+  assert.equal(readiness.status, 'not-ready');
+  assert.equal(readiness.checks[0].status, 'fail');
+  assert.equal(readiness.checks[0].message, 'Runtime readiness refs are invalid.');
+  assert.equal('detailsRef' in readiness, false);
+  assert.equal('correlationRef' in readiness, false);
+  assertNoForbiddenPublicFields(readiness);
 });
 
 test('runtime bridge rejects unsafe requests before calling the runtime boundary', () => {
