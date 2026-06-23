@@ -130,9 +130,11 @@ export type OpenClawTelegramCallbackTokenFlowDecision =
   | OpenClawTelegramCallbackTokenConsumedDecision;
 
 const CALLBACK_PAYLOAD_PREFIX = 'hz:';
+const CALLBACK_TOKEN_REF_PREFIX = 'token:';
 const MAX_CALLBACK_PAYLOAD_LENGTH = 256;
 const MAX_SAFE_BOUNDARY_REF_LENGTH = 256;
 const SAFE_CALLBACK_TOKEN_REF_PATTERN = /^[A-Za-z0-9._:~-]+$/u;
+const SAFE_CALLBACK_TOKEN_REF_VALUE_PATTERN = /^[A-Za-z0-9._~-]+$/u;
 const UNSAFE_CALLBACK_CONTEXT_FIELD_NAMES = new Set([
   'rawtoolpayload',
   'toolpayload',
@@ -180,8 +182,16 @@ function isSafeBoundaryRef(candidate: string): boolean {
 }
 
 function isSafeCallbackTokenRef(candidate: string): boolean {
-  const parsed = parseOpenClawAdapterRef(candidate);
-  return parsed?.kind === 'token' && parsed.ref === candidate && isSafeBoundaryRef(candidate);
+  if (!candidate.startsWith(CALLBACK_TOKEN_REF_PREFIX)) {
+    return false;
+  }
+
+  const tokenValue = candidate.slice(CALLBACK_TOKEN_REF_PREFIX.length);
+  return (
+    tokenValue.length > 0 &&
+    candidate.length <= MAX_SAFE_BOUNDARY_REF_LENGTH &&
+    SAFE_CALLBACK_TOKEN_REF_VALUE_PATTERN.test(tokenValue)
+  );
 }
 
 function normalizeSafeBoundaryRef<T extends string>(input: unknown, label: string): T {
@@ -502,10 +512,7 @@ function normalizeTokenVerification(
     throw new TypeError('Callback token verification status must be verified.');
   }
 
-  const tokenRef = normalizeCallbackTokenRef(
-    input.tokenRef,
-    'Callback token verification tokenRef',
-  );
+  const tokenRef = normalizeCallbackTokenRef(input.tokenRef, 'Callback token verification tokenRef');
   if (tokenRef !== expectedTokenRef) {
     throw new TypeError('Callback token verification tokenRef must match parsed callback tokenRef.');
   }
@@ -542,10 +549,7 @@ function normalizeTokenConsumption(
     throw new TypeError('Callback token consumption status must be consumed.');
   }
 
-  const tokenRef = normalizeCallbackTokenRef(
-    input.tokenRef,
-    'Callback token consumption tokenRef',
-  );
+  const tokenRef = normalizeCallbackTokenRef(input.tokenRef, 'Callback token consumption tokenRef');
   if (tokenRef !== expectedTokenRef) {
     throw new TypeError('Callback token consumption tokenRef must match parsed callback tokenRef.');
   }
