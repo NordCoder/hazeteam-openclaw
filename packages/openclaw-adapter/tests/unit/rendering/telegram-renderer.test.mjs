@@ -220,6 +220,14 @@ test('renderer accepts already-rendered plain fragments and revalidates callback
       }),
     TypeError,
   );
+  assert.throws(
+    () =>
+      createTelegramRenderFragment({
+        format: 'plain',
+        text: 123,
+      }),
+    TypeError,
+  );
 });
 
 test('renderer rejects raw provider, sensitive, storage, and delivery attempt fields', () => {
@@ -287,8 +295,8 @@ test('renderer redacts sensitive text assignments without parsing callback paylo
   const fragment = renderSafePresentationLike({
     title: 'Safe summary',
     body: [
-      { text: `${['api', 'key'].join('')}=abc123 remains hidden` },
-      { text: `${['bot', 'token'].join('')}:abc123 remains hidden` },
+      { text: `${['api', 'key'].join('_')}=abc123 remains hidden` },
+      { text: `${['bot', 'token'].join('-')}:abc123 remains hidden` },
     ],
     buttonGroups: [
       {
