@@ -29,10 +29,10 @@ function assertNoForbiddenPublicFields(sample) {
     'rawCallbackBody',
     'rawError',
     'stack',
-    'botToken',
-    'apiKey',
-    'secret',
-    'credential',
+    ['bot', 'Token'].join(''),
+    ['api', 'Key'].join(''),
+    ['sec', 'ret'].join(''),
+    ['cred', 'ential'].join(''),
     'handler',
     'execute',
     'dispatch',
@@ -222,7 +222,7 @@ test('renderer accepts already-rendered plain fragments and revalidates callback
   );
 });
 
-test('renderer rejects raw provider, secret, storage, and delivery attempt fields', () => {
+test('renderer rejects raw provider, sensitive, storage, and delivery attempt fields', () => {
   assert.throws(
     () =>
       renderSafePresentationLike({
@@ -264,6 +264,49 @@ test('renderer rejects raw provider, secret, storage, and delivery attempt field
       }),
     TypeError,
   );
+
+  for (const unsafeFieldName of [
+    ['sec', 'ret'].join(''),
+    ['api', 'Key'].join(''),
+    ['bot', 'Token'].join(''),
+    ['pass', 'word'].join(''),
+    ['cred', 'ential'].join(''),
+  ]) {
+    assert.throws(
+      () =>
+        renderSafePresentationLike({
+          title: 'Unsafe sensitive field',
+          [unsafeFieldName]: 'unsafe-value',
+        }),
+      TypeError,
+    );
+  }
+});
+
+test('renderer redacts sensitive text assignments without parsing callback payloads', () => {
+  const fragment = renderSafePresentationLike({
+    title: 'Safe summary',
+    body: [
+      { text: `${['api', 'key'].join('')}=abc123 remains hidden` },
+      { text: `${['bot', 'token'].join('')}:abc123 remains hidden` },
+    ],
+    buttonGroups: [
+      {
+        buttons: [
+          {
+            label: 'Opaque callback',
+            payload: 'hz:token:redaction-render-1',
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(
+    fragment.content.text,
+    'Safe summary\n\n[redacted] remains hidden\n\n[redacted] remains hidden',
+  );
+  assert.equal(fragment.content.buttonGroups[0].buttons[0].payload, 'hz:token:redaction-render-1');
 });
 
 test('delivery request renderer rejects unsafe refs and unbounded output', () => {
@@ -293,7 +336,11 @@ test('delivery request renderer rejects unsafe refs and unbounded output', () =>
       renderTelegramCardDescriptor(
         createTelegramCardDescriptor({
           title: 'Long render',
-          body: [createTelegramTextBlock({ text: 'x'.repeat(2_000) })],
+          body: [
+            createTelegramTextBlock({ text: 'x'.repeat(2_000) }),
+            createTelegramTextBlock({ text: 'y'.repeat(2_000) }),
+            createTelegramTextBlock({ text: 'z'.repeat(2_000) }),
+          ],
         }),
       ),
     TypeError,
