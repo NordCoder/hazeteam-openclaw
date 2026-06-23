@@ -289,6 +289,44 @@ function rejectForbiddenSerializedFields(input: unknown, label: string, seen = n
   }
 }
 
+function resetPattern(pattern: RegExp): void {
+  pattern.lastIndex = 0;
+}
+
+function rejectForbiddenSerializedStringValues(
+  input: unknown,
+  label: string,
+  seen = new Set<object>(),
+): void {
+  if (typeof input === 'string') {
+    resetPattern(FORBIDDEN_TERM_PATTERN);
+    if (FORBIDDEN_TERM_PATTERN.test(input)) {
+      throw new TypeError(`${label} must not include raw provider, raw payload, stack, or sensitive string values.`);
+    }
+    return;
+  }
+
+  if (typeof input !== 'object' || input === null) {
+    return;
+  }
+
+  if (seen.has(input)) {
+    return;
+  }
+  seen.add(input);
+
+  if (Array.isArray(input)) {
+    for (const value of input) {
+      rejectForbiddenSerializedStringValues(value, label, seen);
+    }
+    return;
+  }
+
+  for (const value of Object.values(input)) {
+    rejectForbiddenSerializedStringValues(value, label, seen);
+  }
+}
+
 function sanitizeSafeText(input: unknown): string {
   if (typeof input !== 'string') {
     return 'Telegram delivery failed';
@@ -371,7 +409,7 @@ function normalizeAttemptNumber(input: unknown): number | undefined {
     return undefined;
   }
 
-  if (!Number.isSafeInteger(input) || input < 1) {
+  if (typeof input !== 'number' || !Number.isSafeInteger(input) || input < 1) {
     throw new TypeError('Delivery store attemptNumber must be a positive safe integer.');
   }
 
@@ -435,6 +473,7 @@ function normalizeOperationContext(input: AdapterOperationContext): AdapterOpera
 
 function cloneSafeJson<T>(input: T, label: string): T {
   rejectForbiddenSerializedFields(input, label);
+  rejectForbiddenSerializedStringValues(input, label);
 
   let serialized: string;
   try {
@@ -450,6 +489,7 @@ function cloneSafeJson<T>(input: T, label: string): T {
 
   const parsed = JSON.parse(serialized) as T;
   rejectForbiddenSerializedFields(parsed, label);
+  rejectForbiddenSerializedStringValues(parsed, label);
   return parsed;
 }
 

@@ -41,14 +41,19 @@ function cloneJson(value) {
 
 function createFakeBoundary() {
   const records = new Map();
+  let writeCount = 0;
 
   return {
     records,
+    getWriteCount() {
+      return writeCount;
+    },
     boundary: Object.freeze({
       read(key) {
         return records.has(key) ? cloneJson(records.get(key)) : undefined;
       },
       write(key, record) {
+        writeCount += 1;
         records.set(key, cloneJson(record));
       },
       list(prefix) {
@@ -379,4 +384,41 @@ test('durable delivery store rejects raw/sensitive fields and redacts sensitive 
 
   assert.equal(failure.error.message, '[redacted] [redacted] [redacted] [redacted]');
   assertNoForbiddenSerializedTerms(failure);
+});
+
+test('durable delivery store rejects forbidden string values before persistence and still accepts safe attempts', async () => {
+  const { boundary, records, getWriteCount } = createFakeBoundary();
+  const store = createDurableDeliveryStore({ boundary });
+  const forbiddenText = `Contains ${['raw', 'Provider', 'Response'].join('')} in content text.`;
+
+  await assert.rejects(
+    () =>
+      store.registerAttempt({
+        request: {
+          ...makeRequest('operation:delivery-store-unsafe-content'),
+          content: {
+            format: 'plain',
+            text: forbiddenText,
+          },
+        },
+        idempotencyKey: makeIdempotencyKey('unsafe-content'),
+        createdAtIso,
+      }),
+    /must not include raw provider, raw payload, stack, or sensitive string values/u,
+  );
+
+  assert.equal(getWriteCount(), 0);
+  assert.equal(records.size, 0);
+
+  const safeRegistration = await store.registerAttempt({
+    request: makeRequest('operation:delivery-store-safe-after-reject'),
+    idempotencyKey: makeIdempotencyKey('safe-after-reject'),
+    createdAtIso,
+  });
+
+  assert.equal(safeRegistration.status, 'created');
+  assert.equal(safeRegistration.record.content.text, 'Ready for durable delivery persistence.');
+  assert.equal(getWriteCount(), 2);
+  assert.equal(records.size, 2);
+  assertNoForbiddenSerializedTerms(safeRegistration.record);
 });
