@@ -322,6 +322,11 @@ test('OpenClaw runtime bridge output is deterministic and performs no source-lev
   assert.equal(source.includes('setTimeout'), false);
   assert.equal(source.includes('setInterval'), false);
   assert.equal(source.includes('fetch('), false);
+  assert.equal(source.includes('readFile'), false);
+  assert.equal(source.includes('writeFile'), false);
+  assert.equal(source.includes('openSync'), false);
+  assert.equal(source.includes('createConnection'), false);
+  assert.equal(source.includes('connect('), false);
   assert.equal(source.includes('node:fs'), false);
   assert.equal(source.includes('node:net'), false);
   assert.equal(source.includes('node:http'), false);
