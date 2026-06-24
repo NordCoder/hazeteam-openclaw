@@ -2,7 +2,7 @@
 
 ## Current limitations
 
-The OpenClaw adapter foundation after W9A is intentionally limited. It is a safe foundation for adapter contracts, fake composition, durable store shells, OpenClaw integration shells, and secret-gated smoke posture. It is not a complete production adapter or product runtime.
+The OpenClaw adapter foundation after W11 test/docs/status consistency cleanup is intentionally limited. It is a safe foundation for adapter contracts, fake composition, durable store shells, OpenClaw integration shells, and secret-gated smoke posture. It is not a complete production adapter or product runtime.
 
 Current limitations:
 
@@ -30,13 +30,13 @@ Future product layers must be scoped as separate product branches or explicit im
 
 The following work is future work, not current release support:
 
+- W12 core integration proof against pinned `hazeteam-core` public exports;
 - real OpenClaw SDK/client wiring behind explicit adapter-owned ports;
 - real Telegram/OpenClaw listener, delivery, callback, runtime, and approval network execution;
 - real secret-gated smoke execution with explicit network opt-in, cleanup behavior, and no-leak assertions;
 - production credential loading and rotation strategy;
 - production HTTP health/readiness endpoint, if a deployment layer requires one;
 - packaged migration, backup, restore, replay, and recovery tooling;
-- deployment docs fan-in and release documentation index wiring;
 - OCA, Codex, LifeOS, or other product-layer branches.
 
 Future work must preserve the current boundary discipline: raw provider payloads and secrets stay outside public DTOs; core receives safe refs and envelopes only; real infrastructure behavior is introduced only by explicitly approved slices.
