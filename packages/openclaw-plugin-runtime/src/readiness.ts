@@ -78,7 +78,7 @@ export interface AggregatePluginReadinessInput {
   readonly components?: readonly PluginReadinessComponentInput[];
   readonly requiredKinds?: readonly PluginReadinessComponentKind[];
   readonly disabled?: boolean;
-  readonly realNetworkEnabled?: boolean;
+  readonly externalConnectivityEnabled?: boolean;
   readonly willCallRemote?: boolean;
   readonly correlationRef?: string;
   readonly detailsRef?: string;
@@ -94,7 +94,7 @@ export interface PluginReadinessAggregateResult {
   readonly degradedOptional: readonly string[];
   readonly disabledOptional: readonly string[];
   readonly willCallRemote: boolean;
-  readonly realNetworkEnabled: boolean;
+  readonly externalConnectivityEnabled: boolean;
   readonly detailsRef?: string;
   readonly correlationRef?: string;
 }
@@ -108,7 +108,7 @@ export interface PluginReadinessSummaryProjection {
   readonly degradedOptional: readonly string[];
   readonly disabledOptional: readonly string[];
   readonly willCallRemote: boolean;
-  readonly realNetworkEnabled: boolean;
+  readonly externalConnectivityEnabled: boolean;
   readonly componentCount: number;
   readonly detailsRef?: string;
   readonly correlationRef?: string;
@@ -466,28 +466,28 @@ function aggregateStatus(
 
 function safeRemoteFlags(
   profile: PluginReadinessProfile,
-  realNetworkEnabled: boolean | undefined,
+  externalConnectivityEnabled: boolean | undefined,
   willCallRemote: boolean | undefined,
-): { readonly realNetworkEnabled: boolean; readonly willCallRemote: boolean } {
+): { readonly externalConnectivityEnabled: boolean; readonly willCallRemote: boolean } {
   if (profile === 'test' || profile === 'dry-run') {
     return Object.freeze({
-      realNetworkEnabled: false,
+      externalConnectivityEnabled: false,
       willCallRemote: false,
     });
   }
 
   if (profile === 'real-smoke') {
     return Object.freeze({
-      realNetworkEnabled: realNetworkEnabled === true,
+      externalConnectivityEnabled: externalConnectivityEnabled === true,
       willCallRemote: false,
     });
   }
 
-  const safeRealNetworkEnabled = realNetworkEnabled === true;
+  const safeExternalConnectivityEnabled = externalConnectivityEnabled === true;
 
   return Object.freeze({
-    realNetworkEnabled: safeRealNetworkEnabled,
-    willCallRemote: safeRealNetworkEnabled && willCallRemote === true,
+    externalConnectivityEnabled: safeExternalConnectivityEnabled,
+    willCallRemote: safeExternalConnectivityEnabled && willCallRemote === true,
   });
 }
 
@@ -509,7 +509,7 @@ export function aggregatePluginReadiness(input: AggregatePluginReadinessInput): 
   const disabledOptional = Object.freeze(
     reports.filter(isOptionalDisabled).map((report) => report.componentRef),
   );
-  const remoteFlags = safeRemoteFlags(profile, input.realNetworkEnabled, input.willCallRemote);
+  const remoteFlags = safeRemoteFlags(profile, input.externalConnectivityEnabled, input.willCallRemote);
   const detailsRef = input.detailsRef === undefined ? undefined : sanitizeReadinessRef(input.detailsRef);
   const correlationRef = input.correlationRef === undefined ? undefined : sanitizeReadinessRef(input.correlationRef);
 
@@ -522,7 +522,7 @@ export function aggregatePluginReadiness(input: AggregatePluginReadinessInput): 
     missingRequired,
     degradedOptional,
     disabledOptional,
-    realNetworkEnabled: remoteFlags.realNetworkEnabled,
+    externalConnectivityEnabled: remoteFlags.externalConnectivityEnabled,
     willCallRemote: remoteFlags.willCallRemote,
     ...(detailsRef === undefined ? {} : { detailsRef }),
     ...(correlationRef === undefined ? {} : { correlationRef }),
@@ -541,7 +541,7 @@ export function projectPluginReadinessSummary(
     degradedOptional: Object.freeze([...result.degradedOptional]),
     disabledOptional: Object.freeze([...result.disabledOptional]),
     willCallRemote: result.willCallRemote,
-    realNetworkEnabled: result.realNetworkEnabled,
+    externalConnectivityEnabled: result.externalConnectivityEnabled,
     componentCount: result.components.length,
     ...(result.detailsRef === undefined ? {} : { detailsRef: result.detailsRef }),
     ...(result.correlationRef === undefined ? {} : { correlationRef: result.correlationRef }),
