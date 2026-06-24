@@ -118,13 +118,21 @@ W12C adds `tests/integration/w12c-adapter-real-core-fake-telegram-e2e.test.mjs` 
 
 The test maps a deterministic fake Telegram/OpenClaw inbound message through the existing adapter mapper into safe core-facing refs, submits a bounded host action through `submitHostAction`, verifies the public core envelope is JSON-serializable and no-leak safe, then optionally renders and delivers the safe response through existing fake adapter rendering and delivery shells.
 
-This W12C target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, does not add callback token verify/consume proof, and is intentionally not wired into package scripts or CI in this slice. W12D and W12E remain future phases.
+This W12C target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, does not add callback token verify/consume proof, and is intentionally not wired into package scripts or CI in this slice. W12D adds the callback-token execution proof target described below. W12E remains future.
+
+## Current W12D status
+
+W12D adds `tests/integration/w12d-callback-token-real-core-lifecycle.test.mjs` as a fake OpenClaw/Telegram callback proof through the real public core host facade.
+
+The test constructs the real public `createCoreInteractionHost` facade through `hazeteam-core/host`, issues an action token through `issueActionToken`, maps a fake external callback carrying only an opaque `hz:<tokenRef>` payload into safe verification and consume inputs, checks permission-before-consume ordering at the test boundary, verifies and consumes the token through real core methods, and asserts replay verification/reconsume terminal behavior plus JSON-serializable no-leak public outputs.
+
+This W12D target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, callback HTTP endpoint, polling/webhook/runtime behavior, production durable storage, or release-gate wiring. W12E remains future.
 
 ## Future W12 test expectations
 
 - W12B should create a real core host fake-port composition test through public `hazeteam-core` exports.
 - W12C should prove a fake Telegram/OpenClaw adapter flow through real core semantics and fake delivery/presentation surfaces.
-- W12D should prove callback token issue, verify, consume, and replay behavior through real core public semantics.
+- W12D adds callback token issue, verify, consume, and replay behavior through real core public semantics.
 - W12E should fan in cross-repo CI/release status only after the execution proof exists and must keep release claims honest.
 
 ## No production runtime claim

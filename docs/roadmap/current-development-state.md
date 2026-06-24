@@ -82,7 +82,7 @@ W12A establishes the core ref/import policy and static boundary foundation in `d
 
 This setup records the pinned `NordCoder/hazeteam-core` ref, public export inventory, local pack/install strategy, and no-private-core-import guard. It does not complete the W12 execution proof by itself.
 
-W12B adds the real public core host composition proof target. W12C adds the fake Telegram/OpenClaw inbound adapter flow through the real public core host facade and fake delivery/presentation surfaces. W12D callback-token execution proof and W12E cross-repo CI fan-in remain future or pending phases until their branches add and prove the corresponding behavior.
+W12B adds the real public core host composition proof target. W12C adds the fake Telegram/OpenClaw inbound adapter flow through the real public core host facade and fake delivery/presentation surfaces. W12D adds the fake callback token issue, verify, consume, and replay proof target through the real public core host facade. W12E cross-repo CI fan-in remains future or pending until its branch wires and proves the corresponding release gate.
 
 ## Next major implementation proof
 
