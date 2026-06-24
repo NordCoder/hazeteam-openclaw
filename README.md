@@ -2,7 +2,7 @@
 
 `hazeteam-openclaw` is an external OpenClaw/Telegram adapter and product repository built over `hazeteam-core`.
 
-`hazeteam-core` stays transport-neutral and domain-neutral. This repository owns the OpenClaw/Telegram adapter boundary: adapter contracts, normalized events, testkit fakes, topic binding, command/UI descriptors, future event mapping, rendering, delivery, callbacks, runtime and approval bridges, durable adapter stores, real OpenClaw wiring, and later product layers.
+`hazeteam-core` stays transport-neutral and domain-neutral. This repository owns the OpenClaw/Telegram adapter boundary: adapter contracts, normalized events, testkit fakes, topic binding, command/UI descriptors, future event mapping, rendering, delivery, callbacks, runtime and approval bridges, durable adapter stores, future real OpenClaw wiring, and later product layers.
 
 Current status: workspace/package foundation, shared adapter contracts, channel/delivery/readiness/idempotency/permission contracts, Wave 3 testkit fakes, topic binding, and UI/command descriptor primitives are present. The next expected engineering step is fan-in/export consolidation for the already-merged Wave 3 leaves.
 
