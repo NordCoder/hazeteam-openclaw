@@ -4,7 +4,7 @@
 
 `hazeteam-openclaw` is an external OpenClaw/Telegram adapter foundation over stable `hazeteam-core`. The current foundation documents safe adapter contracts, fake-first composition, injected boundary shells, durable adapter-owned store shells, OpenClaw-facing integration shells, and the W9 secret-gated smoke posture.
 
-This index is a navigation fan-in for the W10 release-hardening documents. It does not certify a production OpenClaw/Telegram product runtime.
+This index is a navigation fan-in for the W10 release-hardening documents and W11 consistency cleanup state. It does not certify a production OpenClaw/Telegram product runtime.
 
 ## Release-hardening map
 
