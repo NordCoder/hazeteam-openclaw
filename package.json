@@ -12,7 +12,7 @@
     "clean": "node scripts/clean.mjs",
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
-    "test:static": "node --test tests/static/s02-contract-fanin-boundary.test.mjs tests/static/w3-fanin-boundary.test.mjs tests/static/w4-fanin-boundary.test.mjs tests/static/w5-fanin-boundary.test.mjs tests/static/w7-durable-storage-fanin-boundary.test.mjs tests/static/w8-openclaw-fanin-boundary.test.mjs tests/static/w12-core-public-import-boundary.test.mjs",
+    "test:static": "node --test tests/static/*.test.mjs",
     "test:unit": "npm run build && npm run test:unit --workspaces",
     "test:acceptance": "npm run build && node --test tests/acceptance/*.test.mjs",
     "test:core-integration": "npm run build && node --test tests/integration/w12b-real-core-host-composition.test.mjs tests/integration/w12c-adapter-real-core-fake-telegram-e2e.test.mjs tests/integration/w12d-callback-token-real-core-lifecycle.test.mjs",
