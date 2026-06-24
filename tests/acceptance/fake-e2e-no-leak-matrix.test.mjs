@@ -62,9 +62,9 @@ const refs = Object.freeze({
 });
 
 const telegramTopic = Object.freeze({
-  channelId: 'telegram-channel:workspace-alpha',
-  chatId: 'telegram-chat:chat-alpha',
-  messageThreadId: 'telegram-thread:topic-alpha',
+  channelId: 'telegram-channel-workspace-alpha',
+  chatId: 'telegram-chat-chat-alpha',
+  messageThreadId: 'telegram-thread-topic-alpha',
   topicName: 'Fake E2E Topic',
 });
 
@@ -72,7 +72,7 @@ const externalMessageRef = Object.freeze({
   channelId: telegramTopic.channelId,
   chatId: telegramTopic.chatId,
   messageThreadId: telegramTopic.messageThreadId,
-  messageId: 'telegram-message:inbound-1',
+  messageId: 'telegram-message-inbound-1',
 });
 
 function normalizeForLeakScan(value) {
