@@ -2,15 +2,20 @@
 
 ## Status
 
-`hazeteam-openclaw` is an external adapter/product repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, and LifeOS behavior must not be treated as generic core semantics.
+`hazeteam-openclaw` is an external OpenClaw-native adapter, plugin, and product integration repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, Codex, and LifeOS behavior must not be treated as generic core semantics.
 
-Current repository status: workspace, docs foundation, adapter contracts, channel event contracts, delivery contracts, readiness/idempotency/permission contracts, Wave 3 testkit fakes, topic binding, and UI/command descriptor primitives are present.
+Current repository status: the W10 release-hardened adapter foundation is present. It includes safe adapter contracts, DTO boundaries, deterministic testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable adapter store shells, OpenClaw integration shells, W9 secret-gated smoke posture, and W10 release-hardening docs.
 
-Further implementation must follow the conflict-aware parallel roadmap: implementation leaves use disjoint files, and shared barrels/static/export snapshots are handled by fan-in slices.
+The current cleanup gate is W11 test/docs/status consistency. The next major implementation proof after W11 is W12 core integration proof, where `hazeteam-openclaw` must consume pinned `hazeteam-core` public exports without copying core code or importing private paths.
+
+No current docs should imply production readiness. There is still no real OpenClaw SDK wiring, Telegram listener/webhook/callback endpoint, OCA implementation, Codex/LifeOS product implementation, production credential loader, production durable backend, or production runtime deployment.
+
+Further implementation must follow the contract pack and conflict-aware parallel roadmap: implementation leaves use disjoint files, sibling branches stay isolated, and shared barrels/static/export snapshots are handled by explicit fan-in slices.
 
 ## Documentation index
 
-- [Current development state](roadmap/current-development-state.md) — short handoff for continuing from current `main`; identifies completed foundations and the next W3E fan-in gate.
+- [Documentation index](index.md) — W10 release-hardening map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
+- [Current development state](roadmap/current-development-state.md) — short W10/W11/W12-oriented handoff for continuing from current `main`; identifies the completed foundation, current consistency cleanup gate, next core integration proof, and preserved limitations.
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
 - [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md) — target OpenClaw Telegram flow, topic model, callback model, and fake-first rule.
@@ -27,31 +32,34 @@ Further implementation must follow the conflict-aware parallel roadmap: implemen
 
 ## Reading order for workers
 
-1. [Current development state](roadmap/current-development-state.md)
-2. [Core context digest](core-context.md)
-3. [Adapter authoring guide](adapter-authoring/README.md)
-4. [Core boundary](architecture/core-boundary.md)
-5. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
-6. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
-7. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
-8. [Implementation waves](roadmap/implementation-waves.md)
-9. [File ownership matrix](roadmap/file-ownership-matrix.md)
-10. Source and tests in the assigned allowed area.
+1. Assigned phase prompt and Hazeteam OpenClaw Workflow Manifest.
+2. Required contract docs from `hazeteam-openclaw-contract-pack-cd10.zip`.
+3. [Documentation index](index.md)
+4. [Current development state](roadmap/current-development-state.md)
+5. [Core context digest](core-context.md)
+6. [Adapter authoring guide](adapter-authoring/README.md)
+7. [Core boundary](architecture/core-boundary.md)
+8. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
+9. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
+10. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
+11. [Implementation waves](roadmap/implementation-waves.md)
+12. [File ownership matrix](roadmap/file-ownership-matrix.md)
+13. Source and tests in the assigned allowed area.
 
 ## Relationship to `hazeteam-core` docs
 
-The authoritative adapter/core contract lives in `NordCoder/hazeteam-core` on `main`, especially under `docs/adapter-authoring/**`, `docs/public-api-map.md`, `docs/adapter-readiness.md`, `docs/release/adapter-handoff.md`, and `docs/host/core-interaction-facade.md`.
+The authoritative adapter/core contract lives in `NordCoder/hazeteam-core` on the assigned or pinned core ref, especially under `docs/adapter-authoring/**`, `docs/public-api-map.md`, `docs/adapter-readiness.md`, `docs/release/adapter-handoff.md`, and `docs/host/core-interaction-facade.md`.
 
-This repository keeps a local digest in [core-context.md](core-context.md) so implementation workers can work from explicit, versioned repo-local context instead of hidden chat context. The digest is not a replacement for the core docs. When behavior is unclear, inspect `hazeteam-core` docs, public barrels, source, and tests as reference.
+This repository keeps a local digest in [core-context.md](core-context.md) so implementation workers can work from explicit, versioned repo-local context instead of hidden chat context. The digest is not a replacement for the current contract pack or core docs. When behavior is unclear, inspect the assigned contract docs and the relevant `hazeteam-core` docs, public barrels, source, and tests as reference.
 
 The directly imported adapter authoring references needed by this repository are mirrored locally under `docs/adapter-authoring/`, plus the linked supporting docs under `docs/host/`, `docs/release/`, and `docs/testing/`.
 
 ## Core import rule
 
-Implementation in this repository must import `hazeteam-core` only through the package root or declared public subpaths. Core source internals, core build output internals, relative imports into a checked-out core repository, and core test code are not production adapter import targets.
+Implementation in this repository must import `hazeteam-core` only through the package root or declared public subpaths. Core source internals, core build output internals, relative imports into a checked-out core repository, copied core source, and core test code are not production adapter import targets.
 
 If a required symbol is not publicly exported, treat it as a core API gap. Do not work around the gap with non-public imports.
 
 ## Repo role
 
-This repository may own OpenClaw/Telegram adapter contracts, fakes, topic binding, event mapping, renderer, delivery, callbacks, runtime bridge, approval bridge, durable adapter stores, real OpenClaw wiring, deployment docs, and future product layers. It must not move OpenClaw or Telegram semantics into `hazeteam-core`.
+This repository may own OpenClaw/Telegram adapter contracts, fakes, topic binding, event mapping, renderer, delivery, callbacks, runtime bridge, approval bridge, durable adapter stores, future real OpenClaw wiring, deployment docs, and future product layers. It must not move OpenClaw, Telegram, OCA, Codex, LifeOS, deployment, or credential semantics into `hazeteam-core`.
