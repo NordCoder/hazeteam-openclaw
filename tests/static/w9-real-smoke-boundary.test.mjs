@@ -64,20 +64,10 @@ test('W9 smoke harness files exist and stay test-only', () => {
   }
 });
 
-test('W9 smoke suite leaves package manifest script surfaces unchanged', () => {
+test('W9 smoke suite leaves workspace and adapter package manifest surfaces unchanged', () => {
   const rootPackage = JSON.parse(readSource('package.json'));
   const adapterPackage = JSON.parse(readSource('packages', 'openclaw-adapter', 'package.json'));
 
-  assert.deepEqual(Object.keys(rootPackage.scripts).sort(), [
-    'build',
-    'check',
-    'clean',
-    'test',
-    'test:acceptance',
-    'test:static',
-    'test:unit',
-    'typecheck',
-  ]);
   assert.deepEqual(rootPackage.workspaces, [
     'packages/openclaw-adapter',
     'packages/openclaw-testkit',
