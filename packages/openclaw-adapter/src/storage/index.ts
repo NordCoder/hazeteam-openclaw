@@ -1,5 +1,6 @@
 // W7 durable storage public barrel.
 export * from './topic-binding/index.js';
+export { createDurableIdempotencyStore } from './idempotency/index.js';
 export { createDurableCallbackTokenStore } from './callbacks/index.js';
 export { createDurableDeliveryStore } from './delivery/index.js';
 export {
