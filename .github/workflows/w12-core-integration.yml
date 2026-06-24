@@ -33,12 +33,22 @@ jobs:
         with:
           path: hazeteam-openclaw
 
+      - name: Verify hazeteam-core checkout token
+        run: |
+          if [ "${{ secrets.HAZETEAM_CORE_READ_TOKEN == '' }}" = "true" ]; then
+            echo "::error::W12 core integration requires HAZETEAM_CORE_READ_TOKEN with read-only contents access to NordCoder/hazeteam-core."
+            exit 1
+          fi
+          echo "W12 core integration private core checkout token is configured."
+
       - name: Checkout pinned hazeteam-core
         uses: actions/checkout@v4
         with:
           repository: NordCoder/hazeteam-core
           ref: ${{ env.HAZETEAM_CORE_PINNED_SHA }}
           path: hazeteam-core
+          token: ${{ secrets.HAZETEAM_CORE_READ_TOKEN }}
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
