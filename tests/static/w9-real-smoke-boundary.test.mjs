@@ -73,6 +73,7 @@ test('W9 smoke suite leaves package manifest script surfaces unchanged', () => {
     'check',
     'clean',
     'test',
+    'test:acceptance',
     'test:static',
     'test:unit',
     'typecheck',
