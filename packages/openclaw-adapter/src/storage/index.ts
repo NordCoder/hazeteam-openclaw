@@ -5,6 +5,12 @@ export { createDurableCallbackTokenStore } from './callbacks/index.js';
 export { createDurableDeliveryStore } from './delivery/index.js';
 export {
   DURABLE_CORE_STORE_ADAPTER_NAMES,
+  createDurableCorePresentationActionTokenStoreAdapter,
+  createDurableCorePresentationOutboxStoreAdapter,
+  createDurableCoreSessionBindingStoreAdapter,
   createDurableCoreStoreAdapterBundle,
+  normalizeDurableCoreActionTokenRecord,
+  normalizeDurableCorePresentationOutboxRecord,
+  normalizeDurableCoreSessionBindingRecord,
   summarizeDurableCoreStoreReadiness,
 } from './core/index.js';
