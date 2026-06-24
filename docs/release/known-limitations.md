@@ -2,7 +2,7 @@
 
 ## Current limitations
 
-The OpenClaw adapter foundation after W11 test/docs/status consistency cleanup is intentionally limited. It is a safe foundation for adapter contracts, fake composition, durable store shells, OpenClaw integration shells, and secret-gated smoke posture. It is not a complete production adapter or product runtime.
+The OpenClaw adapter foundation after W12 core integration fan-in is intentionally limited. It is a safe foundation for adapter contracts, fake composition, durable store shells, OpenClaw integration shells, secret-gated smoke posture, and W12 integration proof against pinned `hazeteam-core` public APIs with fake adapter edges. It is not a complete production adapter or product runtime.
 
 Current limitations:
 
@@ -14,29 +14,53 @@ Current limitations:
 - No packaged migration, backup, restore, replay, or recovery CLI is shipped.
 - No production database, cache, queue, scheduler, process supervisor, or deployment worker is shipped.
 - No OCA, Codex, LifeOS, or other product-layer implementation is shipped in the generic adapter foundation.
+- No remote sidecar support is shipped.
 - W9 real smoke remains dry-run or blocked by design. The current smoke harness composes safe shells with fake ports and cleanup planning only, and it does not call remote services.
 
 These limitations must remain visible in release documentation until current source, tests, and an explicit implementation slice prove otherwise.
+
+## W12 integration-proof boundary
+
+W12 proves only that `hazeteam-openclaw` can use pinned `hazeteam-core` public package exports with fake adapter edges when the local packed-core install and W12 integration tests pass.
+
+The W12 proof covers:
+
+- public core package imports from the pinned ref;
+- real public core host composition through `hazeteam-core/host`;
+- fake Telegram/OpenClaw inbound flow through a real core host facade;
+- fake callback action-token issue, verify, consume, and replay behavior through a real core host facade;
+- static no-private-core-import protection.
+
+The W12 proof does not cover:
+
+- real OpenClaw SDK/client behavior;
+- real Telegram listener, webhook, polling, callback endpoint, or network delivery;
+- OCA, Codex, LifeOS, or product runtime behavior;
+- production credential loading;
+- production durable backend implementation;
+- sidecar support.
 
 ## Boundaries and non-goals
 
 `hazeteam-core` remains transport-neutral. It must not import OpenClaw, Telegram, deployment, SDK, storage-driver, credential, or product-layer concerns.
 
-The `hazeteam-openclaw` repository owns OpenClaw/Telegram adapter-specific concerns. Inside this repository, the generic adapter foundation must stay separate from future product layers. Generic foundation slices may define safe DTOs, adapter shells, fake test coverage, durable store boundaries, and redacted smoke posture, but they must not silently implement OCA, Codex, LifeOS, or operational product workflows.
+The `hazeteam-openclaw` repository owns OpenClaw/Telegram adapter-specific concerns. Inside this repository, the generic adapter foundation must stay separate from future product layers. Generic foundation slices may define safe DTOs, adapter shells, fake test coverage, durable store boundaries, redacted smoke posture, and W12 fake-edge core integration proof, but they must not silently implement OCA, Codex, LifeOS, or operational product workflows.
 
-Future product layers must be scoped as separate product branches or explicit implementation slices. They must not be smuggled into release-hardening, documentation-only, fan-in, static-boundary, or generic foundation work.
+Future product layers must be scoped as separate product branches or explicit implementation slices. They must not be smuggled into release-hardening, documentation-only, fan-in, static-boundary, core-integration fan-in, or generic foundation work.
 
 ## Future work
 
 The following work is future work, not current release support:
 
-- W12 core integration proof against pinned `hazeteam-core` public exports;
+- real OpenClaw plugin runtime lifecycle and tool registration beyond the current foundation shells;
 - real OpenClaw SDK/client wiring behind explicit adapter-owned ports;
 - real Telegram/OpenClaw listener, delivery, callback, runtime, and approval network execution;
 - real secret-gated smoke execution with explicit network opt-in, cleanup behavior, and no-leak assertions;
 - production credential loading and rotation strategy;
 - production HTTP health/readiness endpoint, if a deployment layer requires one;
+- production durable backend implementation;
 - packaged migration, backup, restore, replay, and recovery tooling;
+- sidecar client support, if explicitly implemented later;
 - OCA, Codex, LifeOS, or other product-layer branches.
 
 Future work must preserve the current boundary discipline: raw provider payloads and secrets stay outside public DTOs; core receives safe refs and envelopes only; real infrastructure behavior is introduced only by explicitly approved slices.
