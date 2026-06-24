@@ -1,1 +1,1 @@
-export { createDurableIdempotencyStore } from './durable-idempotency-store.js';
+export * from './durable-idempotency-store.js';
