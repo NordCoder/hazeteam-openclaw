@@ -9,6 +9,11 @@ import * as contracts from '../../dist/contracts/index.js';
 import * as delivery from '../../dist/delivery/index.js';
 import * as host from '../../dist/host/index.js';
 import * as mapping from '../../dist/mapping/index.js';
+import * as openclaw from '../../dist/openclaw/index.js';
+import * as openclawApproval from '../../dist/openclaw/approval/index.js';
+import * as openclawChannel from '../../dist/openclaw/channel/index.js';
+import * as openclawDelivery from '../../dist/openclaw/delivery/index.js';
+import * as openclawRuntime from '../../dist/openclaw/runtime/index.js';
 import * as permissions from '../../dist/permissions/index.js';
 import * as rendering from '../../dist/rendering/index.js';
 import * as root from '../../dist/index.js';
@@ -161,6 +166,20 @@ const expectedStorageRuntimeExports = [
   'normalizeDurableCoreSessionBindingRecord',
   'normalizeDurableTopicBindingRecord',
   'summarizeDurableCoreStoreReadiness',
+];
+
+const expectedOpenClawRuntimeExports = [
+  'adaptOpenClawChannelEventEnvelope',
+  'createOpenClawDeliveryAdapter',
+  'createOpenClawDeliveryPortRequest',
+  'sendOpenClawDeliveryRequest',
+  'createOpenClawRuntimePortBridge',
+  'dispatchOpenClawRuntimePort',
+  'summarizeOpenClawRuntimePortReadiness',
+  'createOpenClawApprovalBridge',
+  'submitOpenClawApprovalBridgeRequest',
+  'resolveOpenClawApprovalBridgeDecision',
+  'summarizeOpenClawApprovalBridgeReadiness',
 ];
 
 const expectedRootRuntimeExports = [
@@ -559,4 +578,166 @@ test('dist storage barrels and root export Wave 7 durable storage helpers', asyn
   });
   assert.equal(bundle.ok, true);
   assert.equal(bundle.value.readiness.status, 'ready');
+});
+
+test('Wave 8 OpenClaw barrels stay additive and expose safe root smoke helpers', async () => {
+  assertExports(openclaw, expectedOpenClawRuntimeExports, 'openclaw');
+  assertExports(openclawChannel, ['adaptOpenClawChannelEventEnvelope'], 'openclaw/channel');
+  assertExports(
+    openclawDelivery,
+    ['createOpenClawDeliveryAdapter', 'createOpenClawDeliveryPortRequest', 'sendOpenClawDeliveryRequest'],
+    'openclaw/delivery',
+  );
+  assertExports(
+    openclawRuntime,
+    ['createOpenClawRuntimePortBridge', 'dispatchOpenClawRuntimePort', 'summarizeOpenClawRuntimePortReadiness'],
+    'openclaw/runtime',
+  );
+  assertExports(
+    openclawApproval,
+    [
+      'createOpenClawApprovalBridge',
+      'submitOpenClawApprovalBridgeRequest',
+      'resolveOpenClawApprovalBridgeDecision',
+      'summarizeOpenClawApprovalBridgeReadiness',
+    ],
+    'openclaw/approval',
+  );
+  assertExports(root, expectedOpenClawRuntimeExports, 'root Wave 8');
+
+  const adaptedEvent = openclaw.adaptOpenClawChannelEventEnvelope({
+    kind: 'message',
+    operationId: 'w8e-op-1',
+    correlationId: 'w8e-corr-1',
+    channel: { id: 'channel-openclaw' },
+    chat: { id: 'chat-openclaw' },
+    thread: { id: 'thread-openclaw', title: '  Wave 8   Topic ' },
+    actor: { id: 'actor-openclaw', displayName: '  Open Claw ' },
+    occurredAt: '2026-06-24T08:00:00.000Z',
+    message: { id: 'message-openclaw', text: '  hello OpenClaw  ' },
+  });
+  assert.equal(adaptedEvent.ok, true);
+  assert.equal(adaptedEvent.value.event.eventKind, 'message');
+  assert.equal(adaptedEvent.value.event.text, 'hello OpenClaw');
+  assert.equal(adaptedEvent.value.mappingInput.event, adaptedEvent.value.event);
+
+  const deliveryPort = Object.freeze({
+    sendMessage(request) {
+      return Object.freeze({ ok: true, messageId: `telegram-message:${request.deliveryRef}` });
+    },
+  });
+  const deliveryRequest = root.createTelegramDeliveryPumpRequest({
+    deliveryRef: 'operation:w8e-delivery-1',
+    target: telegramDeliveryTarget,
+    content: { format: 'plain', text: 'Wave 8 delivery smoke' },
+    correlationRef: 'correlation:w8e-delivery-1',
+  });
+  const deliveryAdapter = openclaw.createOpenClawDeliveryAdapter({ port: deliveryPort });
+  const deliveryResult = await deliveryAdapter.send(deliveryRequest);
+  assert.equal(openclaw.createOpenClawDeliveryPortRequest(deliveryRequest).text, 'Wave 8 delivery smoke');
+  assert.equal(deliveryResult.ok, true);
+  assert.equal(deliveryResult.value.ok, true);
+  assert.equal(deliveryResult.value.externalMessageRef.messageId, 'telegram-message:operation:w8e-delivery-1');
+
+  const runtimeMissing = openclaw.summarizeOpenClawRuntimePortReadiness();
+  const runtimePort = Object.freeze({
+    dispatch(request) {
+      return Object.freeze({
+        ok: true,
+        dispatchRef: request.dispatchRef,
+        output: Object.freeze({
+          outputRef: 'runtime-output:w8e-smoke',
+          message: 'Wave 8 runtime smoke',
+        }),
+      });
+    },
+    getReadiness() {
+      return Object.freeze({ status: 'ready', message: 'Wave 8 runtime port ready' });
+    },
+  });
+  const runtimeBridge = openclaw.createOpenClawRuntimePortBridge({ runtimePort });
+  const runtimeDispatch = runtimeBridge.dispatch(
+    Object.freeze({
+      dispatchRef: 'operation:w8e-runtime-1',
+      intent: Object.freeze({
+        kind: 'run-command',
+        text: 'Wave 8 runtime smoke',
+        resourceRef: 'runtime-resource:w8e-smoke',
+      }),
+      workspaceRef: 'workspace:w8e',
+      agentRef: 'agent:w8e',
+      actorRef: 'actor:w8e',
+      correlationRef: 'correlation:w8e-runtime-1',
+      detailsRef: 'details:w8e-runtime-1',
+    }),
+  );
+  assert.equal(runtimeMissing.status, 'not-ready');
+  assert.equal(runtimeBridge.getReadiness().status, 'ready');
+  assert.equal(runtimeDispatch.ok, true);
+  assert.equal(runtimeDispatch.value.output.outputRef, 'runtime-output:w8e-smoke');
+
+  const approvalMissing = openclaw.summarizeOpenClawApprovalBridgeReadiness();
+  const approvalPort = Object.freeze({
+    submitApproval(request) {
+      return Object.freeze({
+        ok: true,
+        state: Object.freeze({
+          approvalRef: request.approvalRef,
+          status: 'submitted',
+          detailsRef: request.detailsRef,
+          correlationRef: request.correlationRef,
+        }),
+      });
+    },
+    resolveApproval(decision) {
+      return Object.freeze({
+        ok: true,
+        state: Object.freeze({
+          approvalRef: decision.approvalRef,
+          status: decision.status,
+          detailsRef: decision.detailsRef,
+          correlationRef: decision.correlationRef,
+        }),
+      });
+    },
+  });
+  const approvalBridge = openclaw.createOpenClawApprovalBridge({ approvalPort });
+  const approvalRequest = Object.freeze({
+    approvalRef: 'approval:w8e-1',
+    title: 'Approve Wave 8 smoke',
+    message: 'safe approval smoke',
+    approveTokenRef: 'token:w8e-approve',
+    rejectTokenRef: 'token:w8e-reject',
+    workspaceRef: 'workspace:w8e',
+    agentRef: 'agent:w8e',
+    actorRef: 'actor:w8e',
+    detailsRef: 'details:w8e-approval-1',
+    correlationRef: 'correlation:w8e-approval-1',
+  });
+  const approvalDecision = Object.freeze({
+    approvalRef: 'approval:w8e-1',
+    status: 'approved',
+    actorRef: 'actor:w8e',
+    reason: 'approved safely',
+    detailsRef: 'details:w8e-approval-1',
+    correlationRef: 'correlation:w8e-approval-1',
+  });
+  const permissionDecision = root.allowPermission(
+    root.createApprovalBridgePermissionRequirement({
+      approvalRef: 'approval:w8e-1',
+      actorRef: 'actor:w8e',
+      workspaceRef: 'workspace:w8e',
+      agentRef: 'agent:w8e',
+      detailsRef: 'details:w8e-approval-1',
+      correlationRef: 'correlation:w8e-approval-1',
+    }),
+  );
+  const submitted = approvalBridge.submit(approvalRequest);
+  const resolved = approvalBridge.resolve(approvalDecision, permissionDecision);
+  assert.equal(approvalMissing.status, 'not-ready');
+  assert.equal(approvalBridge.getReadiness().status, 'ready');
+  assert.equal(submitted.ok, true);
+  assert.equal(submitted.value.state.status, 'submitted');
+  assert.equal(resolved.ok, true);
+  assert.equal(resolved.value.state.status, 'approved');
 });
