@@ -12,11 +12,16 @@ function fromCodes(codes) {
 
 const forbiddenOutputTerms = [
   'rawUpdate',
+  'telegramUpdate',
+  'rawTelegramUpdate',
   'rawOpenClawEvent',
   'rawProviderResponse',
   'rawRuntimePayload',
   'rawToolPayload',
+  'toolPayload',
   'approvalPayload',
+  'rawApprovalPayload',
+  'rawCoreResult',
   'rawError',
   'stack',
   fromCodes([98, 111, 116, 84, 111, 107, 101, 110]),
@@ -182,7 +187,7 @@ test('returns deterministic output for identical input', () => {
   assert.deepEqual(first, second);
 });
 
-test('implementation avoids network, filesystem, timer, and random primitives', () => {
+test('implementation avoids network, filesystem, timer, random, and private core primitives', () => {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
   const sourcePath = path.resolve(
     currentDir,
@@ -195,8 +200,15 @@ test('implementation avoids network, filesystem, timer, and random primitives', 
     /\bMath\.random\s*\(/u,
     /\bsetTimeout\s*\(/u,
     /\bsetInterval\s*\(/u,
+    /\breadFile(?:Sync)?\s*\(/u,
+    /\bwriteFile(?:Sync)?\s*\(/u,
+    /\bopenSync\s*\(/u,
+    /\bcreateConnection\s*\(/u,
+    /\bconnect\s*\(/u,
     /from\s+['"]node:(?:fs|net|http|https|timers)/u,
     /\bfetch\s*\(/u,
+    /hazeteam-core\/src(?:\/|['"])/u,
+    /hazeteam-core\/dist(?:\/|['"])/u,
   ]) {
     assert.doesNotMatch(source, forbiddenPattern);
   }
