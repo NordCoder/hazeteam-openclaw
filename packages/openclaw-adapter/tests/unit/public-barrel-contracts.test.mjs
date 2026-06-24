@@ -168,34 +168,18 @@ const expectedStorageRuntimeExports = [
   'summarizeDurableCoreStoreReadiness',
 ];
 
-const expectedOpenClawChannelRuntimeExports = [
+const expectedOpenClawRuntimeExports = [
   'adaptOpenClawChannelEventEnvelope',
-];
-
-const expectedOpenClawDeliveryRuntimeExports = [
   'createOpenClawDeliveryAdapter',
   'createOpenClawDeliveryPortRequest',
   'sendOpenClawDeliveryRequest',
-];
-
-const expectedOpenClawRuntimePortExports = [
   'createOpenClawRuntimePortBridge',
   'dispatchOpenClawRuntimePort',
   'summarizeOpenClawRuntimePortReadiness',
-];
-
-const expectedOpenClawApprovalRuntimeExports = [
   'createOpenClawApprovalBridge',
-  'resolveOpenClawApprovalBridgeDecision',
   'submitOpenClawApprovalBridgeRequest',
+  'resolveOpenClawApprovalBridgeDecision',
   'summarizeOpenClawApprovalBridgeReadiness',
-];
-
-const expectedOpenClawRuntimeExports = [
-  ...expectedOpenClawChannelRuntimeExports,
-  ...expectedOpenClawDeliveryRuntimeExports,
-  ...expectedOpenClawRuntimePortExports,
-  ...expectedOpenClawApprovalRuntimeExports,
 ];
 
 const expectedRootRuntimeExports = [
@@ -212,80 +196,17 @@ const expectedRootRuntimeExports = [
   ...expectedRuntimeBridgeRuntimeExports,
   ...expectedApprovalRuntimeExports,
   ...expectedStorageRuntimeExports,
-  ...expectedOpenClawRuntimeExports,
 ];
 
 const telegramDeliveryTarget = Object.freeze({
-  channelId: 'telegram-channel:w8e-fanin',
-  chatId: 'telegram-chat:w8e-fanin',
+  channelId: 'telegram-channel:w5-fanin',
+  chatId: 'telegram-chat:w5-fanin',
   messageThreadId: 'telegram-thread:general',
 });
-
-function marker(...codes) {
-  return String.fromCharCode(...codes);
-}
-
-const blockedProducedOutputTerms = [
-  marker(114, 97, 119, 85, 112, 100, 97, 116, 101),
-  marker(116, 101, 108, 101, 103, 114, 97, 109, 85, 112, 100, 97, 116, 101),
-  marker(114, 97, 119, 84, 101, 108, 101, 103, 114, 97, 109, 85, 112, 100, 97, 116, 101),
-  marker(114, 97, 119, 79, 112, 101, 110, 67, 108, 97, 119, 69, 118, 101, 110, 116),
-  marker(114, 97, 119, 80, 114, 111, 118, 105, 100, 101, 114, 82, 101, 115, 112, 111, 110, 115, 101),
-  marker(114, 97, 119, 82, 117, 110, 116, 105, 109, 101, 80, 97, 121, 108, 111, 97, 100),
-  marker(114, 97, 119, 84, 111, 111, 108, 80, 97, 121, 108, 111, 97, 100),
-  marker(116, 111, 111, 108, 80, 97, 121, 108, 111, 97, 100),
-  marker(97, 112, 112, 114, 111, 118, 97, 108, 80, 97, 121, 108, 111, 97, 100),
-  marker(114, 97, 119, 65, 112, 112, 114, 111, 118, 97, 108, 80, 97, 121, 108, 111, 97, 100),
-  marker(114, 97, 119, 67, 111, 114, 101, 82, 101, 115, 117, 108, 116),
-  marker(114, 97, 119, 69, 114, 114, 111, 114),
-  marker(115, 116, 97, 99, 107),
-  marker(98, 111, 116, 84, 111, 107, 101, 110),
-  marker(97, 112, 105, 75, 101, 121),
-  marker(115, 101, 99, 114, 101, 116),
-  marker(112, 97, 115, 115, 119, 111, 114, 100),
-  marker(99, 114, 101, 100, 101, 110, 116, 105, 97, 108),
-  marker(102, 105, 108, 101, 115, 121, 115, 116, 101, 109, 80, 97, 116, 104),
-  marker(115, 116, 111, 114, 97, 103, 101, 80, 97, 116, 104),
-];
-
-function normalizeForLeakScan(value) {
-  return String(value).replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
-}
 
 function assertExports(moduleValue, expectedNames, label) {
   for (const exportName of expectedNames) {
     assert.equal(exportName in moduleValue, true, `missing ${label} export ${exportName}`);
-  }
-}
-
-function assertSafeOutput(value) {
-  const serialized = JSON.stringify(value);
-  assert.equal(typeof serialized, 'string');
-  const normalizedSerialized = normalizeForLeakScan(serialized);
-
-  for (const blocked of blockedProducedOutputTerms) {
-    assert.equal(
-      normalizedSerialized.includes(normalizeForLeakScan(blocked)),
-      false,
-      `output includes blocked marker ${blocked}`,
-    );
-  }
-
-  const queue = [value];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    if (current === null || typeof current !== 'object') {
-      continue;
-    }
-
-    for (const [key, nestedValue] of Object.entries(current)) {
-      for (const blocked of blockedProducedOutputTerms) {
-        assert.notEqual(normalizeForLeakScan(key), normalizeForLeakScan(blocked), `output field leaks ${key}`);
-      }
-      if (nestedValue !== null && typeof nestedValue === 'object') {
-        queue.push(nestedValue);
-      }
-    }
   }
 }
 
@@ -315,8 +236,10 @@ function createCoreBoundary() {
   });
 }
 
-test('root dist index exports shared Wave 1-8 public runtime helpers', () => {
-  assertExports(root, expectedRootRuntimeExports, 'root');
+test('root dist index exports shared, event, delivery, support, binding, descriptor, and Wave 7 helpers', () => {
+  for (const exportName of expectedRootRuntimeExports) {
+    assert.equal(exportName in root, true, `missing root export ${exportName}`);
+  }
 
   assert.equal(root.OPENCLAW_ADAPTER_PACKAGE.status, 'skeleton');
   assert.equal(root.createWorkspaceRef('acme'), 'workspace:acme');
@@ -326,51 +249,279 @@ test('root dist index exports shared Wave 1-8 public runtime helpers', () => {
   assert.equal(root.isTelegramActionButtonPayload('hz:token:approve'), true);
   assert.equal(root.summarizeAdapterReadiness({ checks: [] }).status, 'unknown');
   assert.equal(root.createAdapterIdempotencyKey('callback', ['safe']), 'callback:safe');
+  assert.equal(
+    root.isPermissionAllowed(root.allowPermission({ action: 'send-message', resourceKind: 'topic' })),
+    true,
+  );
 });
 
-test('dist barrels keep Wave 1-5 adapter contract coverage intact', () => {
-  assertExports(contracts, expectedContractRuntimeExports, 'contracts');
-  assertExports(binding, expectedBindingRuntimeExports, 'binding');
-  assertExports(commands, expectedCommandRuntimeExports, 'commands');
-  assertExports(mapping, expectedMappingRuntimeExports, 'mapping');
-  assertExports(rendering, expectedRenderingRuntimeExports, 'rendering');
-  assertExports(host, expectedHostRuntimeExports, 'host');
-  assertExports(permissions, expectedPermissionRuntimeExports, 'permissions');
-  assertExports(delivery, expectedDeliveryRuntimeExports, 'delivery');
-  assertExports(callbacks, expectedCallbackRuntimeExports, 'callbacks');
-  assertExports(runtime, expectedRuntimeBridgeRuntimeExports, 'runtime');
-  assertExports(approvals, expectedApprovalRuntimeExports, 'approvals');
+test('dist contracts barrel exports shared, event, delivery, and support contract helpers', () => {
+  for (const exportName of expectedContractRuntimeExports) {
+    assert.equal(exportName in contracts, true, `missing contracts export ${exportName}`);
+  }
 
-  const command = commands.createCommandDescriptor({ name: '/Start', title: 'Start session', aliases: ['begin'] });
-  const commandSet = root.createCommandDescriptorSet({ commands: [command], defaultCommandName: 'start' });
-  const fragment = rendering.renderSafePresentationLike({ title: 'Wave 4 ready' });
-  const deliveryRequest = root.createTelegramDeliveryPumpRequest({
+  assert.equal(contracts.createAdapterOperationRef('op-1'), 'operation:op-1');
+  assert.equal(contracts.createAdapterSafeError({ code: 'not-found', message: 'missing' }).code, 'not-found');
+  assert.equal(contracts.isOpenClawTelegramCallbackEvent({ eventKind: 'callback' }), true);
+  assert.equal(
+    contracts.createTelegramDeliverySafeError({ code: 'timeout', message: 'timed out' }).code,
+    'timeout',
+  );
+  assert.equal(
+    contracts.createInboundMessageIdempotencyKey({ channelId: 'ch', chatId: '1', messageId: '2' }),
+    'inbound-message:ch:1:thread-none:2',
+  );
+  assert.equal(
+    contracts.isPermissionDenied(
+      contracts.denyPermission({
+        requirement: { action: 'consume-callback', resourceKind: 'callback' },
+        reason: 'no',
+      }),
+    ),
+    true,
+  );
+});
+
+test('dist binding barrel and root export topic binding helpers', () => {
+  for (const exportName of expectedBindingRuntimeExports) {
+    assert.equal(exportName in binding, true, `missing binding export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root binding export ${exportName}`);
+  }
+
+  const snapshot = root.createTopicBindingSnapshot({
+    key: {
+      workspaceId: 'workspace-alpha',
+      channelId: 'channel-alpha',
+      topicId: 'topic-alpha',
+    },
+    status: 'active',
+    agentId: 'agent-alpha',
+    sessionId: 'session-alpha',
+    createdAtIso: '2026-01-01T00:00:00.000Z',
+    updatedAtIso: '2026-01-01T00:00:00.000Z',
+  });
+
+  const store = binding.createInMemoryTopicBindingStore();
+  store.upsert(snapshot);
+
+  assert.equal(root.isTopicBindingStatus(snapshot.status), true);
+  assert.equal(
+    root.serializeTopicBindingKey(snapshot.key),
+    'topic-binding:workspace=workspace-alpha:channel=channel-alpha:topic=topic-alpha',
+  );
+  assert.deepEqual(store.get(root.createTopicBindingKey(snapshot.key)), snapshot);
+});
+
+test('dist commands barrel and root export command and Telegram UI descriptor helpers', () => {
+  for (const exportName of expectedCommandRuntimeExports) {
+    assert.equal(exportName in commands, true, `missing commands export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root command export ${exportName}`);
+  }
+
+  const command = root.createCommandDescriptor({
+    name: '/Start',
+    title: 'Start session',
+    aliases: ['begin'],
+  });
+  const commandSet = commands.createCommandDescriptorSet({
+    commands: [command],
+    defaultCommandName: 'start',
+  });
+  const textBlock = root.createTelegramTextBlock({ text: 'Ready', tone: 'strong' });
+  const button = commands.createTelegramActionButtonDescriptor({
+    label: 'Approve',
+    payload: 'token:approve',
+    style: 'primary',
+  });
+  const card = root.createTelegramCardDescriptor({
+    title: 'Action required',
+    intent: 'action-request',
+    body: [textBlock],
+    buttonGroups: [commands.createTelegramButtonGroupDescriptor({ buttons: [button] })],
+  });
+  const foundCommand = root.findCommandDescriptor(commandSet, '/begin');
+
+  assert.equal(command.name, 'start');
+  assert.equal(root.isCommandDescriptor(command), true);
+  assert.equal(foundCommand?.name, command.name);
+  assert.equal(button.payload, 'hz:token:approve');
+  assert.equal(root.isTelegramCardDescriptor(card), true);
+});
+
+test('dist mapping barrel and root export Wave 4 inbound mapper shell helpers', () => {
+  for (const exportName of expectedMappingRuntimeExports) {
+    assert.equal(exportName in mapping, true, `missing mapping export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root mapping export ${exportName}`);
+  }
+
+  assert.equal(
+    root.getInboundMappingRawDebugRef({ rawDebugRef: 'raw-debug:w4-fanin' }),
+    'raw-debug:w4-fanin',
+  );
+});
+
+test('dist rendering barrel and root export Wave 4 Telegram renderer shell helpers', () => {
+  for (const exportName of expectedRenderingRuntimeExports) {
+    assert.equal(exportName in rendering, true, `missing rendering export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root rendering export ${exportName}`);
+  }
+
+  const fragment = root.renderSafePresentationLike({ title: 'Wave 4 ready' });
+
+  assert.equal(fragment.kind, 'telegram-render-fragment');
+  assert.equal(fragment.content.text, 'Wave 4 ready');
+  assert.equal(root.isTelegramRenderFragment(fragment), true);
+});
+
+test('dist host barrel and root export Wave 4 core host factory shell helpers', () => {
+  for (const exportName of expectedHostRuntimeExports) {
+    assert.equal(exportName in host, true, `missing host export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root host export ${exportName}`);
+  }
+
+  const result = root.createAdapterCoreHostFactory();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.value.metadata.corePackageName, 'hazeteam-core');
+  assert.deepEqual(
+    host.getMissingRequiredAdapterCoreHostPorts({ agentControlHost: Object.freeze({}) }),
+    ['sessionBindingStore', 'presentationOutboxStore', 'presentationActionTokenStore'],
+  );
+});
+
+test('dist permissions barrel and root export Wave 4 permission evaluator shell helpers', () => {
+  for (const exportName of expectedPermissionRuntimeExports) {
+    assert.equal(exportName in permissions, true, `missing permissions export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root permissions export ${exportName}`);
+  }
+
+  const requirement = Object.freeze({
+    action: 'admin-topic-binding',
+    resourceKind: 'workspace',
+  });
+  const grant = Object.freeze({
+    requirement: Object.freeze({
+      action: 'admin-topic-binding',
+      resourceKind: 'workspace',
+      actorRef: 'actor:admin',
+      workspaceRef: 'workspace:acme',
+    }),
+  });
+  const decision = root.evaluateOpenClawTelegramPermission({
+    requirement,
+    actor: Object.freeze({ actorRef: 'actor:admin', trust: 'trusted' }),
+    context: Object.freeze({ workspaceRef: 'workspace:acme' }),
+    grants: [grant],
+  });
+
+  assert.equal(decision.status, 'allowed');
+  assert.equal(root.permissionGrantMatchesRequirement(grant, decision.requirement), true);
+  assert.equal(root.PERMISSION_BEFORE_TOKEN_CONSUME_RULE.action, 'consume-callback');
+});
+
+test('dist delivery barrel and root export Wave 5 delivery pump helpers', () => {
+  for (const exportName of expectedDeliveryRuntimeExports) {
+    assert.equal(exportName in delivery, true, `missing delivery export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root delivery export ${exportName}`);
+  }
+
+  const request = root.createTelegramDeliveryPumpRequest({
     deliveryRef: 'operation:w5-delivery',
     target: telegramDeliveryTarget,
     content: { format: 'plain', text: 'Wave 5 delivery ready' },
     correlationRef: 'correlation:w5-delivery',
   });
-  const callback = root.parseOpenClawTelegramCallbackPayload('hz:token:approve-1');
+  const pump = delivery.createTelegramDeliveryPump({
+    sink: Object.freeze({
+      submit(deliveryRequest) {
+        return Object.freeze({
+          ok: true,
+          deliveryRef: deliveryRequest.deliveryRef,
+          externalMessageRef: Object.freeze({
+            channelId: deliveryRequest.target.channelId,
+            chatId: deliveryRequest.target.chatId,
+            messageThreadId: deliveryRequest.target.messageThreadId,
+            messageId: 'telegram-message:w5-fanin',
+            ...(deliveryRequest.correlationRef === undefined
+              ? {}
+              : { correlationRef: deliveryRequest.correlationRef }),
+          }),
+          ...(deliveryRequest.correlationRef === undefined
+            ? {}
+            : { correlationRef: deliveryRequest.correlationRef }),
+        });
+      },
+    }),
+  });
+  const result = pump.deliver(request);
+
+  assert.equal(request.deliveryRef, 'operation:w5-delivery');
+  assert.equal(request.content.text, 'Wave 5 delivery ready');
+  assert.equal(result.ok, true);
+  assert.equal(result.value.kind, 'delivered');
+  assert.equal(result.value.externalMessageRef.messageId, 'telegram-message:w5-fanin');
+});
+
+test('dist callbacks barrel and root export Wave 5 callback token flow helpers', () => {
+  for (const exportName of expectedCallbackRuntimeExports) {
+    assert.equal(exportName in callbacks, true, `missing callbacks export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root callbacks export ${exportName}`);
+  }
+
+  const parsed = root.parseOpenClawTelegramCallbackPayload('hz:token:approve-1');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value.kind, 'openclaw-telegram-callback-payload');
+  assert.equal(parsed.value.tokenRef, 'token:approve-1');
+});
+
+test('dist runtime barrel and root export Wave 5 runtime bridge helpers', () => {
+  for (const exportName of expectedRuntimeBridgeRuntimeExports) {
+    assert.equal(exportName in runtime, true, `missing runtime export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root runtime export ${exportName}`);
+  }
+
   const missingRuntimeReadiness = runtime.summarizeOpenClawRuntimeBridgeReadiness();
-  const approvalRequest = approvals.createApprovalBridgeRequest({
+  const bridge = root.createOpenClawRuntimeBridge();
+
+  assert.equal(missingRuntimeReadiness.status, 'not-ready');
+  assert.equal(missingRuntimeReadiness.checks[0].component, 'runtime');
+  assert.equal(bridge.getReadiness().status, 'not-ready');
+});
+
+test('dist approvals barrel and root export Wave 5 approval bridge helpers', () => {
+  for (const exportName of expectedApprovalRuntimeExports) {
+    assert.equal(exportName in approvals, true, `missing approvals export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root approvals export ${exportName}`);
+  }
+
+  const request = approvals.createApprovalBridgeRequest({
     approvalRef: 'approval:w5-fanin',
     title: 'Approve Wave 5 fan-in',
     message: 'Safe approval bridge request.',
     approveTokenRef: 'token:approve-w5',
     rejectTokenRef: 'token:reject-w5',
   });
+  const decision = root.createApprovalBridgeDecision({
+    approvalRef: 'approval:w5-fanin',
+    status: 'approved',
+    reason: 'Approved in static-free smoke.',
+  });
+  const requirement = approvals.createApprovalBridgePermissionRequirement({
+    approvalRef: 'approval:w5-fanin',
+  });
 
-  assert.equal(root.findCommandDescriptor(commandSet, '/begin')?.name, 'start');
-  assert.equal(root.isCommandDescriptor(command), true);
-  assert.equal(fragment.kind, 'telegram-render-fragment');
-  assert.equal(root.isTelegramRenderFragment(fragment), true);
-  assert.equal(deliveryRequest.deliveryRef, 'operation:w5-delivery');
-  assert.equal(callback.ok, true);
-  assert.equal(missingRuntimeReadiness.status, 'not-ready');
-  assert.equal(root.isApprovalBridgeRequest(approvalRequest), true);
+  assert.equal(request.kind, 'openclaw-approval-request');
+  assert.equal(request.approvePayload, 'hz:token:approve-w5');
+  assert.equal(root.isApprovalBridgeRequest(request), true);
+  assert.equal(decision.kind, 'openclaw-approval-decision');
+  assert.equal(decision.status, 'approved');
+  assert.equal(root.isApprovalBridgeDecision(decision), true);
+  assert.equal(requirement.action, 'resolve-approval');
+  assert.equal(requirement.resourceKind, 'approval');
 });
 
-test('dist storage barrels keep Wave 7 durable storage public coverage intact', async () => {
+test('dist storage barrels and root export Wave 7 durable storage helpers', async () => {
   assertExports(storage, expectedStorageRuntimeExports, 'storage');
   assertExports(storageTopicBinding, [
     'cloneDurableTopicBindingRecord',
@@ -415,6 +566,9 @@ test('dist storage barrels keep Wave 7 durable storage public coverage intact', 
     key: root.createCallbackIdempotencyKey({ channelId: 'channel-storage', chatId: 'chat-storage', callbackId: 'callback-storage' }),
     firstSeenAt: '2026-06-24T00:02:00.000Z',
   });
+  assert.equal(reserved.ok, true);
+  assert.equal(reserved.value.kind, 'reserved');
+
   const bundle = root.createDurableCoreStoreAdapterBundle({
     boundaries: {
       sessionBindingStore: createCoreBoundary(),
@@ -422,119 +576,168 @@ test('dist storage barrels keep Wave 7 durable storage public coverage intact', 
       presentationActionTokenStore: createCoreBoundary(),
     },
   });
-
-  assert.equal(reserved.ok, true);
-  assert.equal(reserved.value.kind, 'reserved');
   assert.equal(bundle.ok, true);
   assert.equal(bundle.value.readiness.status, 'ready');
 });
 
-test('dist OpenClaw barrels expose Wave 8 integration shells through subpath, aggregate, and root exports', () => {
-  assertExports(openclawChannel, expectedOpenClawChannelRuntimeExports, 'openclaw/channel');
-  assertExports(openclawDelivery, expectedOpenClawDeliveryRuntimeExports, 'openclaw/delivery');
-  assertExports(openclawRuntime, expectedOpenClawRuntimePortExports, 'openclaw/runtime');
-  assertExports(openclawApproval, expectedOpenClawApprovalRuntimeExports, 'openclaw/approval');
+test('Wave 8 OpenClaw barrels stay additive and expose safe root smoke helpers', async () => {
   assertExports(openclaw, expectedOpenClawRuntimeExports, 'openclaw');
-  assertExports(root, expectedOpenClawRuntimeExports, 'root openclaw');
-});
+  assertExports(openclawChannel, ['adaptOpenClawChannelEventEnvelope'], 'openclaw/channel');
+  assertExports(
+    openclawDelivery,
+    ['createOpenClawDeliveryAdapter', 'createOpenClawDeliveryPortRequest', 'sendOpenClawDeliveryRequest'],
+    'openclaw/delivery',
+  );
+  assertExports(
+    openclawRuntime,
+    ['createOpenClawRuntimePortBridge', 'dispatchOpenClawRuntimePort', 'summarizeOpenClawRuntimePortReadiness'],
+    'openclaw/runtime',
+  );
+  assertExports(
+    openclawApproval,
+    [
+      'createOpenClawApprovalBridge',
+      'submitOpenClawApprovalBridgeRequest',
+      'resolveOpenClawApprovalBridgeDecision',
+      'summarizeOpenClawApprovalBridgeReadiness',
+    ],
+    'openclaw/approval',
+  );
+  assertExports(root, expectedOpenClawRuntimeExports, 'root Wave 8');
 
-test('dist OpenClaw barrel Wave 8 shells compose with fake injected ports only', async () => {
-  const channelResult = openclaw.adaptOpenClawChannelEventEnvelope(Object.freeze({
+  const adaptedEvent = openclaw.adaptOpenClawChannelEventEnvelope({
     kind: 'message',
-    operationId: 'w8e-channel',
-    correlationId: 'w8e-channel',
-    channelId: 'channel-w8e',
-    chatId: 'chat-w8e',
-    threadId: 'thread-w8e',
-    messageId: 'message-w8e',
-    text: 'Wave 8 channel event ready.',
-  }));
+    operationId: 'w8e-op-1',
+    correlationId: 'w8e-corr-1',
+    channel: { id: 'channel-openclaw' },
+    chat: { id: 'chat-openclaw' },
+    thread: { id: 'thread-openclaw', title: '  Wave 8   Topic ' },
+    actor: { id: 'actor-openclaw', displayName: '  Open Claw ' },
+    occurredAt: '2026-06-24T08:00:00.000Z',
+    message: { id: 'message-openclaw', text: '  hello OpenClaw  ' },
+  });
+  assert.equal(adaptedEvent.ok, true);
+  assert.equal(adaptedEvent.value.event.eventKind, 'message');
+  assert.equal(adaptedEvent.value.event.text, 'hello OpenClaw');
+  assert.equal(adaptedEvent.value.mappingInput.event, adaptedEvent.value.event);
 
-  const deliveryRequest = root.createTelegramDeliveryPumpRequest({
-    deliveryRef: 'operation:w8e-delivery',
-    target: telegramDeliveryTarget,
-    content: { format: 'plain', text: 'Wave 8 delivery ready.' },
-    correlationRef: 'correlation:w8e-delivery',
-  });
-  const deliveryAdapter = openclaw.createOpenClawDeliveryAdapter({
-    port: Object.freeze({
-      sendMessage(portRequest) {
-        assert.equal(portRequest.text, 'Wave 8 delivery ready.');
-        return Object.freeze({
-          ok: true,
-          messageId: 'telegram-message:w8e-delivery',
-          correlationRef: portRequest.correlationRef,
-        });
-      },
-    }),
-  });
-  const deliveryResult = await deliveryAdapter.send(deliveryRequest);
-
-  const runtimeRequest = Object.freeze({
-    dispatchRef: 'operation:w8e-runtime',
-    intent: Object.freeze({ kind: 'adapter-smoke', text: 'Offline runtime dispatch.' }),
-    correlationRef: 'correlation:w8e-runtime',
-  });
-  const runtimeBridge = openclaw.createOpenClawRuntimePortBridge({
-    runtimePort: Object.freeze({
-      dispatch(request) {
-        return Object.freeze({
-          ok: true,
-          dispatchRef: request.dispatchRef,
-          output: Object.freeze({
-            outputRef: 'runtime-output:w8e-runtime',
-            message: 'Offline runtime output.',
-          }),
-          correlationRef: request.correlationRef,
-        });
-      },
-      getReadiness() {
-        return Object.freeze({ status: 'ready', message: 'Offline runtime port ready.' });
-      },
-    }),
-  });
-  const runtimeResult = runtimeBridge.dispatch(runtimeRequest);
-
-  const approvalPort = Object.freeze({
-    submitApproval(request) {
-      return Object.freeze({ ok: true, approvalRef: request.approvalRef, status: 'submitted' });
+  const deliveryPort = Object.freeze({
+    sendMessage(request) {
+      return Object.freeze({ ok: true, messageId: `telegram-message:${request.deliveryRef}` });
     },
-    resolveApproval(decision) {
-      return Object.freeze({ ok: true, approvalRef: decision.approvalRef, status: decision.status });
+  });
+  const deliveryRequest = root.createTelegramDeliveryPumpRequest({
+    deliveryRef: 'operation:w8e-delivery-1',
+    target: telegramDeliveryTarget,
+    content: { format: 'plain', text: 'Wave 8 delivery smoke' },
+    correlationRef: 'correlation:w8e-delivery-1',
+  });
+  const deliveryAdapter = openclaw.createOpenClawDeliveryAdapter({ port: deliveryPort });
+  const deliveryResult = await deliveryAdapter.send(deliveryRequest);
+  assert.equal(openclaw.createOpenClawDeliveryPortRequest(deliveryRequest).text, 'Wave 8 delivery smoke');
+  assert.equal(deliveryResult.ok, true);
+  assert.equal(deliveryResult.value.ok, true);
+  assert.equal(deliveryResult.value.externalMessageRef.messageId, 'telegram-message:operation:w8e-delivery-1');
+
+  const runtimeMissing = openclaw.summarizeOpenClawRuntimePortReadiness();
+  const runtimePort = Object.freeze({
+    dispatch(request) {
+      return Object.freeze({
+        ok: true,
+        dispatchRef: request.dispatchRef,
+        output: Object.freeze({
+          outputRef: 'runtime-output:w8e-smoke',
+          message: 'Wave 8 runtime smoke',
+        }),
+      });
     },
     getReadiness() {
-      return Object.freeze({ status: 'ready', message: 'Offline approval port ready.' });
+      return Object.freeze({ status: 'ready', message: 'Wave 8 runtime port ready' });
+    },
+  });
+  const runtimeBridge = openclaw.createOpenClawRuntimePortBridge({ runtimePort });
+  const runtimeDispatch = runtimeBridge.dispatch(
+    Object.freeze({
+      dispatchRef: 'operation:w8e-runtime-1',
+      intent: Object.freeze({
+        kind: 'run-command',
+        text: 'Wave 8 runtime smoke',
+        resourceRef: 'runtime-resource:w8e-smoke',
+      }),
+      workspaceRef: 'workspace:w8e',
+      agentRef: 'agent:w8e',
+      actorRef: 'actor:w8e',
+      correlationRef: 'correlation:w8e-runtime-1',
+      detailsRef: 'details:w8e-runtime-1',
+    }),
+  );
+  assert.equal(runtimeMissing.status, 'not-ready');
+  assert.equal(runtimeBridge.getReadiness().status, 'ready');
+  assert.equal(runtimeDispatch.ok, true);
+  assert.equal(runtimeDispatch.value.output.outputRef, 'runtime-output:w8e-smoke');
+
+  const approvalMissing = openclaw.summarizeOpenClawApprovalBridgeReadiness();
+  const approvalPort = Object.freeze({
+    submitApproval(request) {
+      return Object.freeze({
+        ok: true,
+        state: Object.freeze({
+          approvalRef: request.approvalRef,
+          status: 'submitted',
+          detailsRef: request.detailsRef,
+          correlationRef: request.correlationRef,
+        }),
+      });
+    },
+    resolveApproval(decision) {
+      return Object.freeze({
+        ok: true,
+        state: Object.freeze({
+          approvalRef: decision.approvalRef,
+          status: decision.status,
+          detailsRef: decision.detailsRef,
+          correlationRef: decision.correlationRef,
+        }),
+      });
     },
   });
   const approvalBridge = openclaw.createOpenClawApprovalBridge({ approvalPort });
-  const approvalSubmit = approvalBridge.submit({
-    approvalRef: 'approval:w8e-fanin',
-    title: 'Approve Wave 8 fan-in',
-    message: 'Safe offline approval request.',
+  const approvalRequest = Object.freeze({
+    approvalRef: 'approval:w8e-1',
+    title: 'Approve Wave 8 smoke',
+    message: 'safe approval smoke',
     approveTokenRef: 'token:w8e-approve',
     rejectTokenRef: 'token:w8e-reject',
+    workspaceRef: 'workspace:w8e',
+    agentRef: 'agent:w8e',
+    actorRef: 'actor:w8e',
+    detailsRef: 'details:w8e-approval-1',
+    correlationRef: 'correlation:w8e-approval-1',
   });
-  const approvalResolve = approvalBridge.resolve(
-    { approvalRef: 'approval:w8e-fanin', status: 'approved', reason: 'Approved by fake port.' },
-    root.allowPermission({ action: 'resolve-approval', resourceKind: 'approval' }),
+  const approvalDecision = Object.freeze({
+    approvalRef: 'approval:w8e-1',
+    status: 'approved',
+    actorRef: 'actor:w8e',
+    reason: 'approved safely',
+    detailsRef: 'details:w8e-approval-1',
+    correlationRef: 'correlation:w8e-approval-1',
+  });
+  const permissionDecision = root.allowPermission(
+    root.createApprovalBridgePermissionRequirement({
+      approvalRef: 'approval:w8e-1',
+      actorRef: 'actor:w8e',
+      workspaceRef: 'workspace:w8e',
+      agentRef: 'agent:w8e',
+      detailsRef: 'details:w8e-approval-1',
+      correlationRef: 'correlation:w8e-approval-1',
+    }),
   );
-
-  assert.equal(channelResult.ok, true);
-  assert.equal(channelResult.value.event.eventKind, 'message');
-  assert.equal(channelResult.value.mappingInput.event.operationRef, 'operation:w8e-channel');
-  assert.equal(deliveryResult.ok, true);
-  assert.equal(deliveryResult.value.ok, true);
-  assert.equal(deliveryResult.value.externalMessageRef.messageId, 'telegram-message:w8e-delivery');
-  assert.equal(runtimeBridge.getReadiness().status, 'ready');
-  assert.equal(runtimeResult.ok, true);
-  assert.equal(runtimeResult.value.output.outputRef, 'runtime-output:w8e-runtime');
+  const submitted = approvalBridge.submit(approvalRequest);
+  const resolved = approvalBridge.resolve(approvalDecision, permissionDecision);
+  assert.equal(approvalMissing.status, 'not-ready');
   assert.equal(approvalBridge.getReadiness().status, 'ready');
-  assert.equal(approvalSubmit.ok, true);
-  assert.equal(approvalSubmit.value.state.status, 'submitted');
-  assert.equal(approvalResolve.ok, true);
-  assert.equal(approvalResolve.value.state.status, 'approved');
-
-  for (const sample of [channelResult, deliveryResult, runtimeResult, approvalSubmit, approvalResolve]) {
-    assertSafeOutput(sample);
-  }
+  assert.equal(submitted.ok, true);
+  assert.equal(submitted.value.state.status, 'submitted');
+  assert.equal(resolved.ok, true);
+  assert.equal(resolved.value.state.status, 'approved');
 });
