@@ -49,6 +49,8 @@ A W12 integration-proof release candidate must keep the following W12 gates gree
 - No raw provider, runtime, tool, secret, path, or stack leakage is introduced in public outputs, docs examples, tests, or readiness summaries.
 - No real Telegram/OpenClaw production runtime claim is made.
 
+The W12 GitHub Actions workflow requires `HAZETEAM_CORE_READ_TOKEN` to be configured before CI can pass, because it checks out the private `NordCoder/hazeteam-core` repository at the pinned ref. A missing token is a CI configuration failure, not an implementation failure. Do not bypass this gate with private core paths, copied core source, npm publish, npm link, or unsafe Node version overrides.
+
 The W12 gate proves integration with pinned `hazeteam-core` public APIs and fake adapter edges only. It is not a production runtime, real transport, sidecar, durable backend, or credential-runtime certification.
 
 ## Static and acceptance gates
