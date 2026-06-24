@@ -241,7 +241,7 @@ test('root dist index exports shared, event, delivery, support, binding, descrip
     assert.equal(exportName in root, true, `missing root export ${exportName}`);
   }
 
-  assert.equal(root.OPENCLAW_ADAPTER_PACKAGE.status, 'skeleton');
+  assert.equal(root.OPENCLAW_ADAPTER_PACKAGE.status, 'foundation');
   assert.equal(root.createWorkspaceRef('acme'), 'workspace:acme');
   assert.equal(root.adapterOk('value').ok, true);
   assert.equal(root.isOpenClawTelegramMessageEvent({ eventKind: 'message' }), true);

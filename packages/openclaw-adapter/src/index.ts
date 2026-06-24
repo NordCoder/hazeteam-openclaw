@@ -1,4 +1,4 @@
-export type OpenClawAdapterPackageStatus = 'skeleton';
+export type OpenClawAdapterPackageStatus = 'foundation';
 
 export interface OpenClawAdapterPackageMetadata {
   readonly name: '@hazeteam/openclaw-adapter';
@@ -7,7 +7,7 @@ export interface OpenClawAdapterPackageMetadata {
 
 export const OPENCLAW_ADAPTER_PACKAGE: OpenClawAdapterPackageMetadata = {
   name: '@hazeteam/openclaw-adapter',
-  status: 'skeleton',
+  status: 'foundation',
 };
 
 export * from './contracts/index.js';
