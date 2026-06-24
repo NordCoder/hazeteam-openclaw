@@ -1,6 +1,6 @@
 # Current development state
 
-This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after the W10 release-hardened adapter foundation.
+This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W11 test/docs/status consistency cleanup over the W10 release-hardened adapter foundation.
 
 ## Repository role
 
@@ -35,9 +35,9 @@ docs/adapter-authoring/README.md
 
 The local `docs/core-context.md` is a digest, not a replacement for the core docs or the current contract pack.
 
-## Completed W10 foundation baseline
+## Completed W10/W11 foundation baseline
 
-The current `main` baseline is the W10 release-hardened adapter foundation. At a high level, it includes:
+The current `main` baseline is the W10 release-hardened adapter foundation with W11 test/docs/status consistency cleanup. At a high level, it includes:
 
 - workspace and package foundation;
 - shared safe adapter contracts, refs, result envelopes, readiness summaries, and DTO boundaries;
@@ -47,36 +47,37 @@ The current `main` baseline is the W10 release-hardened adapter foundation. At a
 - adapter-owned durable store interfaces and durable store shells for topic bindings, idempotency, callback lifecycle, delivery attempts, external message references, and core-facing store boundaries;
 - OpenClaw-facing channel, delivery, runtime, and approval integration shells over injected safe boundaries;
 - W9 secret-gated smoke harness posture that remains dry-run or blocked by design;
-- W10 deployment, operations, release checklist, known-limitations, and documentation index fan-in.
+- W10 deployment, operations, release checklist, known-limitations, and documentation index fan-in;
+- W11 acceptance-gate, package-status, status-doc, and static-boundary consistency cleanup.
 
 This is a foundation baseline, not a production OpenClaw/Telegram runtime.
 
-## Current engineering gate
+## Completed consistency gate
 
-The current cleanup gate is:
+The completed cleanup gate is:
 
 ```text
 W11 — Test and Documentation Consistency
 ```
 
-W11 exists to make the W10 foundation honest and ready for the next core integration work. It should remove stale W3-era status language, ensure acceptance tests are represented in the official check gate, refresh package status metadata, and keep release/status docs consistent.
+W11 made the W10 foundation more honest and ready for the next core integration work. It removed stale status language, ensured acceptance tests are represented in the official check gate, refreshed package status metadata from skeleton to foundation semantics, and removed or narrowed obsolete historical phase-scope static checks while preserving meaningful safety boundaries.
 
-W11 must not add real OpenClaw, Telegram, OCA, database, queue, scheduler, sidecar, or product runtime behavior.
+W11 did not add real OpenClaw, Telegram, OCA, database, queue, scheduler, sidecar, or product runtime behavior.
 
-## W11 expected scope
+## W11 completed scope
 
-W11 slices may update only their assigned files. At the wave level, the intended cleanup areas are:
+At the wave level, the completed cleanup areas are:
 
 - root package scripts for explicit acceptance-test gating;
-- current-state and documentation index wording that still refers to W3 or W3E as current;
-- package status metadata that still describes the package as a skeleton;
-- final fan-in consistency after the W11 leaves are manually merged.
+- current-state and documentation index wording that no longer treats W3 or W3E as current;
+- package status metadata that no longer describes the package as a skeleton;
+- final fan-in consistency after the W11 leaves were manually merged.
 
-Use the assigned prompt and contract pack as the source of truth for each slice. Do not borrow files or implementation assumptions from sibling branches unless the Orchestrator explicitly makes a phase stacked.
+Use the assigned prompt and contract pack as the source of truth for each future slice. Do not borrow files or implementation assumptions from sibling branches unless the Orchestrator explicitly makes a phase stacked.
 
 ## Next major implementation proof
 
-After W11 is merged, reviewed, and CI is understood, the next major implementation proof is:
+The next major implementation proof is:
 
 ```text
 W12 — Core Integration Proof
