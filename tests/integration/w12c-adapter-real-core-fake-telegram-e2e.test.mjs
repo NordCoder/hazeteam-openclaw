@@ -25,6 +25,7 @@ import {
 } from '../../packages/openclaw-testkit/dist/index.js';
 
 const FIXED_NOW = '2026-06-24T00:00:00.000Z';
+const SAFE_INBOUND_EVENT_REF = 'external-event:w12c-inbound';
 
 const FORBIDDEN_PUBLIC_LEAK_TERMS = Object.freeze([
   'rawUpdate',
@@ -200,7 +201,10 @@ function mapMappedInboundToHostAction(mappedInbound) {
     correlationId: mappedInbound.correlationRef,
     text: mappedInbound.dispatch.text,
     payload: Object.freeze({
-      adapterSource: mappedInbound.source,
+      externalEvent: Object.freeze({
+        eventRef: SAFE_INBOUND_EVENT_REF,
+        eventKind: mappedInbound.eventKind,
+      }),
       operationRef: mappedInbound.operationRef,
       externalConversation: Object.freeze({
         channelRef: mappedInbound.routing.telegramTopic.channelId,
@@ -250,7 +254,7 @@ function createFakeAgentControlHost() {
               workspaceRef: action.workspaceRef?.id ?? 'workspace:w12c-workspace',
               actionKind: action.kind,
               correlationId: action.correlationId,
-              adapterSource: 'openclaw-telegram',
+              inboundEventRef: action.payload?.externalEvent?.eventRef ?? SAFE_INBOUND_EVENT_REF,
             }),
           }),
         ]),
