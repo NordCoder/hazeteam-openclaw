@@ -143,11 +143,14 @@ test('Wave 8 OpenClaw production source does not read env or secret variables', 
 
 test('Wave 8 secret-gated real smoke work is limited to the inert placeholder test', () => {
   const acceptanceRoot = repoPath('tests', 'acceptance');
-  const allowedPlaceholder = repoPath('tests', 'acceptance', 'w8-openclaw-secret-gated-smoke.test.mjs');
+  const allowedRealSmokeFiles = new Set([
+    repoPath('tests', 'acceptance', 'w8-openclaw-secret-gated-smoke.test.mjs'),
+    repoPath('tests', 'acceptance', 'w9-secret-gated-real-smoke-suite.test.mjs'),
+  ]);
   const suspiciousRealSmokePattern = /(?:^|[-_])(w9|wave[-_]?9|real[-_]?openclaw|openclaw[-_]?real|secret[-_]?gated|smoke)(?:[-_.]|$)/iu;
 
   for (const filePath of listFiles(acceptanceRoot)) {
-    if (!filePath.endsWith('.test.mjs') || filePath === allowedPlaceholder) {
+    if (!filePath.endsWith('.test.mjs') || allowedRealSmokeFiles.has(filePath)) {
       continue;
     }
 
