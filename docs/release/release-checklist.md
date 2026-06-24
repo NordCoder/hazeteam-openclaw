@@ -51,6 +51,8 @@ A W12 integration-proof release candidate must keep the following W12 gates gree
 
 The W12 GitHub Actions workflow requires `HAZETEAM_CORE_READ_TOKEN` to be configured before CI can pass, because it checks out the private `NordCoder/hazeteam-core` repository at the pinned ref. A missing token is a CI configuration failure, not an implementation failure. Do not bypass this gate with private core paths, copied core source, npm publish, npm link, or unsafe Node version overrides.
 
+The W12 core integration tarball must include the built `dist` public export targets required by the pinned core package exports, including `dist/foundation/index.js`, `dist/host/index.js`, and `dist/presentation/index.js`. Missing built `dist` files in the packed core tarball are a CI packaging failure. Do not bypass this failure with private core paths, copied core source, npm publish, or npm link.
+
 The W12 gate proves integration with pinned `hazeteam-core` public APIs and fake adapter edges only. It is not a production runtime, real transport, sidecar, durable backend, or credential-runtime certification.
 
 ## Static and acceptance gates
