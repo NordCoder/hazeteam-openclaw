@@ -224,7 +224,7 @@ function createFakeCoreBoundary(mappedInbound) {
     }),
   });
   const presentation = Object.freeze({
-    intent: 'command-result',
+    intent: 'success',
     title: 'Fake core response',
     body: Object.freeze([
       Object.freeze({ text: `Mapped ${mappedInbound.eventKind} for ${mappedInbound.routing.agentRef}.` }),
