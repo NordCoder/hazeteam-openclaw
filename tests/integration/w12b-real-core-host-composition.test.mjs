@@ -5,8 +5,8 @@ import { ok } from 'hazeteam-core/foundation';
 import {
   CORE_INTERACTION_CONTRACT_VERSION,
   CORE_INTERACTION_METHOD_NAMES,
+  assertInMemoryHostSessionBindingStore,
   createCoreInteractionHost,
-  createInMemoryHostSessionBindingStore,
   describeCoreInteractionHostContract,
   describeCoreInteractionPortInventory,
   validateCoreInteractionPortInventory,
@@ -159,7 +159,7 @@ function createFakeAgentControlHost() {
 function createRealCoreHostWithFakePorts() {
   return createCoreInteractionHost({
     agentControlHost: createFakeAgentControlHost(),
-    sessionBindingStore: createInMemoryHostSessionBindingStore({ now: fixedNow }),
+    sessionBindingStore: assertInMemoryHostSessionBindingStore({ now: fixedNow }),
     presentationOutboxStore: createInMemoryPresentationOutboxStore({ now: fixedNow }),
     presentationActionTokenStore: createInMemoryPresentationActionTokenStore({
       now: fixedNow,
