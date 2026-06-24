@@ -106,6 +106,14 @@ The package script assumes the pinned core package has already been installed in
 
 Because `NordCoder/hazeteam-core` is private, the W12 GitHub Actions checkout of the pinned core ref requires the repository or organization secret `HAZETEAM_CORE_READ_TOKEN`. The token should be a fine-grained PAT or GitHub App token with read-only contents access to `NordCoder/hazeteam-core`. The workflow uses the token only to check out the pinned core ref; it still builds and packs core locally and installs the generated tarball into `hazeteam-openclaw` without publishing.
 
+## Packed core tarball staging
+
+The W12 workflow packs `hazeteam-core` from a temporary staged package directory outside the source checkout. After building the pinned core ref, the workflow copies the pinned `package.json` and built `dist` directory into the staged package, verifies the public export targets required by W12 are present, and runs `npm pack` from that staged directory.
+
+This staging step is required because the pinned `hazeteam-core` repository ignores `dist` in source-control ignore rules. The W12 release gate requires the locally packed tarball installed into `hazeteam-openclaw` to contain the built files targeted by public package exports, including `dist/foundation/index.js`, `dist/host/index.js`, and `dist/presentation/index.js`.
+
+This is a CI packaging requirement for the integration-proof gate only. It does not imply production runtime readiness, npm registry publication, npm link usage, private core import permission, or copied core source in `hazeteam-openclaw`.
+
 ## W12 proof targets
 
 ### W12A public import policy and static boundary
