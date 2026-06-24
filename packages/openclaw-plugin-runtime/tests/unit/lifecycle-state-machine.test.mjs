@@ -31,6 +31,7 @@ const forbiddenSerializedTerms = [
   'webhook',
   'polling',
   'telegram',
+  'client handle',
   'openclaw client handle',
   'sdk',
 ];
@@ -293,7 +294,7 @@ test('plugin lifecycle reason helpers redact unsafe inputs from serialized outpu
   const unsafeReason = {
     code: 'token.secret.rawError.rawPayload.apiKey',
     summary:
-      'Bearer token secret password credential apiKey rawError rawPayload rawProviderResponse rawRuntimePayload rawToolPayload stack filesystem storagePath network webhook polling telegram openclaw client handle sdk /tmp/private',
+      'Bearer token secret password credential apiKey rawError rawPayload rawProviderResponse rawRuntimePayload rawToolPayload stack filesystem storagePath network webhook polling telegram client handle openclaw client handle sdk /tmp/private',
     category: 'network',
   };
 
