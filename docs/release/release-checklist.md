@@ -2,7 +2,7 @@
 
 ## Release scope
 
-This checklist covers the OpenClaw adapter foundation as it exists after W9A. It is a release-readiness document for the adapter foundation, not a claim that a complete production OpenClaw/Telegram product is available.
+This checklist covers the OpenClaw adapter foundation as it exists after W11 test/docs/status consistency cleanup. It is a release-readiness document for the adapter foundation, not a claim that a complete production OpenClaw/Telegram product is available.
 
 The foundation includes:
 
@@ -11,7 +11,8 @@ The foundation includes:
 - fake E2E/no-leak coverage for mapper, core host shell, runtime bridge, renderer, delivery pump, callback token flow, approval bridge, and readiness composition;
 - durable store interfaces and adapter-owned durable store shells for topic bindings, idempotency, callback token lifecycle, delivery attempts, external message references, and core-facing store boundaries;
 - OpenClaw adapter-owned integration shells for channel events, delivery, runtime, and approval;
-- W9 secret-gated smoke harness behavior that is dry-run or blocked by design and does not call remote services by default.
+- W9 secret-gated smoke harness behavior that is dry-run or blocked by design and does not call remote services by default;
+- W11 release-gate consistency updates that keep acceptance tests inside the normal repository test/check flow and package status aligned with foundation semantics.
 
 The foundation does not by itself ship real SDK wiring, a Telegram listener, a production credential loader, deployment automation, or product-layer behavior.
 
@@ -20,7 +21,7 @@ The foundation does not by itself ship real SDK wiring, a Telegram listener, a p
 Run the repository checks before a release candidate is merged or tagged:
 
 ```sh
-npm run build
+npm run test:static
 npm run test
 npm run check
 ```
@@ -37,7 +38,8 @@ A release candidate must keep the current static and acceptance gate categories 
 - durable store restart matrix coverage for restart-like replay of safe persisted records;
 - W8 OpenClaw fan-in boundary checks for exported OpenClaw shells, no private core paths, no direct real infrastructure calls, and no production env/secret reads;
 - W9 real-smoke boundary checks for test-only smoke harness ownership, no production dependency on smoke helpers, and no real network or SDK imports;
-- secret-gated smoke behavior checks that verify skipped, not-ready, dry-run-ready, and blocked-by-design states without leaking protected data.
+- secret-gated smoke behavior checks that verify skipped, not-ready, dry-run-ready, and blocked-by-design states without leaking protected data;
+- acceptance-test gating through the normal root test and check scripts.
 
 Do not weaken these gates to make a release branch pass. If a gate fails, either fix the release branch inside its assigned scope or stop and report the failure.
 
@@ -66,7 +68,7 @@ A release candidate is eligible for merge only when all of the following are tru
 3. CI and local checks are green, or connector-only workers explicitly report that command execution was unavailable.
 4. No product-layer concern leaks into `hazeteam-core` or into generic adapter foundation surfaces.
 5. No real network, SDK, credential-loading, or process-supervision behavior is added unless a separate approved implementation slice explicitly owns it.
-6. No package manifests, CI, production source, tests, roadmap files, deployment docs, operations docs, docs index, or README are changed by this W10C slice.
+6. Package manifests, CI, production source, tests, roadmap files, deployment docs, operations docs, docs index, and README are changed only when explicitly allowed by the assigned slice.
 7. Known limitations are preserved as limitations unless the current source and tests prove that the capability exists.
 
 For documentation-only release hardening, a passing review is a documentation merge gate, not a production-readiness certification.
