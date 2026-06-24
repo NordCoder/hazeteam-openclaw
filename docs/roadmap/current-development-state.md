@@ -80,7 +80,9 @@ Use the assigned prompt and contract pack as the source of truth for each future
 
 W12A establishes the core ref/import policy and static boundary foundation in `docs/development/core-integration.md` and `tests/static/w12-core-public-import-boundary.test.mjs`.
 
-This setup records the pinned `NordCoder/hazeteam-core` ref, public export inventory, local pack/install strategy, and no-private-core-import guard. It does not complete the W12 execution proof. W12B, W12C, W12D, and W12E remain future or next W12 phases until their branches add and prove the corresponding behavior.
+This setup records the pinned `NordCoder/hazeteam-core` ref, public export inventory, local pack/install strategy, and no-private-core-import guard. It does not complete the W12 execution proof by itself.
+
+W12B adds the real public core host composition proof target. W12C adds the fake Telegram/OpenClaw inbound adapter flow through the real public core host facade and fake delivery/presentation surfaces. W12D callback-token execution proof and W12E cross-repo CI fan-in remain future or pending phases until their branches add and prove the corresponding behavior.
 
 ## Next major implementation proof
 

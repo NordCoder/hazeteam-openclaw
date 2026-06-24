@@ -110,7 +110,15 @@ W12B adds `tests/integration/w12b-real-core-host-composition.test.mjs` as the fi
 
 The test constructs the real public `createCoreInteractionHost` facade through `hazeteam-core/host`, injects fake or in-memory required ports through public core contracts, asserts the documented facade method inventory, and checks `getPortReadiness` output for JSON-serializable no-leak readiness diagnostics.
 
-This W12B target is intentionally not wired into package scripts or CI in this slice. W12E owns local packed-core installation, cross-repo CI fan-in, and any release-gate status update. W12C and W12D remain future phases.
+This W12B target is intentionally not wired into package scripts or CI in this slice. W12E owns local packed-core installation, cross-repo CI fan-in, and any release-gate status update.
+
+## Current W12C status
+
+W12C adds `tests/integration/w12c-adapter-real-core-fake-telegram-e2e.test.mjs` as a fake Telegram/OpenClaw edge proof through the real public core host facade.
+
+The test maps a deterministic fake Telegram/OpenClaw inbound message through the existing adapter mapper into safe core-facing refs, submits a bounded host action through `submitHostAction`, verifies the public core envelope is JSON-serializable and no-leak safe, then optionally renders and delivers the safe response through existing fake adapter rendering and delivery shells.
+
+This W12C target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, does not add callback token verify/consume proof, and is intentionally not wired into package scripts or CI in this slice. W12D and W12E remain future phases.
 
 ## Future W12 test expectations
 
