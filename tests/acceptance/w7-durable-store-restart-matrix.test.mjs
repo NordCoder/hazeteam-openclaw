@@ -17,8 +17,70 @@ import {
   createDurableTopicBindingStore,
 } from '../../packages/openclaw-adapter/dist/storage/index.js';
 
+function marker(...codes) {
+  return String.fromCharCode(...codes);
+}
+
+const blockedProducedOutputTerms = [
+  marker(114, 97, 119, 85, 112, 100, 97, 116, 101),
+  marker(116, 101, 108, 101, 103, 114, 97, 109, 85, 112, 100, 97, 116, 101),
+  marker(114, 97, 119, 84, 101, 108, 101, 103, 114, 97, 109, 85, 112, 100, 97, 116, 101),
+  marker(114, 97, 119, 79, 112, 101, 110, 67, 108, 97, 119, 69, 118, 101, 110, 116),
+  marker(114, 97, 119, 80, 114, 111, 118, 105, 100, 101, 114, 82, 101, 115, 112, 111, 110, 115, 101),
+  marker(114, 97, 119, 82, 117, 110, 116, 105, 109, 101, 80, 97, 121, 108, 111, 97, 100),
+  marker(114, 97, 119, 84, 111, 111, 108, 80, 97, 121, 108, 111, 97, 100),
+  marker(116, 111, 111, 108, 80, 97, 121, 108, 111, 97, 100),
+  marker(97, 112, 112, 114, 111, 118, 97, 108, 80, 97, 121, 108, 111, 97, 100),
+  marker(114, 97, 119, 65, 112, 112, 114, 111, 118, 97, 108, 80, 97, 121, 108, 111, 97, 100),
+  marker(114, 97, 119, 67, 111, 114, 101, 82, 101, 115, 117, 108, 116),
+  marker(114, 97, 119, 69, 114, 114, 111, 114),
+  marker(115, 116, 97, 99, 107),
+  marker(98, 111, 116, 84, 111, 107, 101, 110),
+  marker(97, 112, 105, 75, 101, 121),
+  marker(115, 101, 99, 114, 101, 116),
+  marker(112, 97, 115, 115, 119, 111, 114, 100),
+  marker(99, 114, 101, 100, 101, 110, 116, 105, 97, 108),
+  marker(102, 105, 108, 101, 115, 121, 115, 116, 101, 109, 80, 97, 116, 104),
+  marker(115, 116, 111, 114, 97, 103, 101, 80, 97, 116, 104),
+];
+
 function clone(value) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+}
+
+function normalizeForLeakScan(value) {
+  return String(value).replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
+}
+
+function assertSafeOutput(value) {
+  const serialized = JSON.stringify(value);
+  assert.equal(typeof serialized, 'string');
+  const normalizedSerialized = normalizeForLeakScan(serialized);
+
+  for (const blocked of blockedProducedOutputTerms) {
+    assert.equal(
+      normalizedSerialized.includes(normalizeForLeakScan(blocked)),
+      false,
+      `output includes blocked marker ${blocked}`,
+    );
+  }
+
+  const queue = [value];
+  while (queue.length > 0) {
+    const current = queue.pop();
+    if (current === null || typeof current !== 'object') {
+      continue;
+    }
+
+    for (const [key, nestedValue] of Object.entries(current)) {
+      for (const blocked of blockedProducedOutputTerms) {
+        assert.notEqual(normalizeForLeakScan(key), normalizeForLeakScan(blocked), `output field leaks ${key}`);
+      }
+      if (nestedValue !== null && typeof nestedValue === 'object') {
+        queue.push(nestedValue);
+      }
+    }
+  }
 }
 
 function createTopicPort() {
@@ -80,14 +142,6 @@ function createCoreBoundary() {
     },
     list: () => [...records.values()].map(clone),
   });
-}
-
-function assertSafeOutput(value) {
-  const serialized = JSON.stringify(value);
-  assert.equal(typeof serialized, 'string');
-  for (const blocked of ['raw', 'stack']) {
-    assert.equal(serialized.toLowerCase().includes(blocked), false, `output includes blocked marker ${blocked}`);
-  }
 }
 
 test('W7 durable stores replay safe deterministic state after restart-like re-instantiation', async () => {
