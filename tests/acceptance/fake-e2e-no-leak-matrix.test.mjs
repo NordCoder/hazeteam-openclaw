@@ -275,9 +275,9 @@ function createFakeCoreBoundary(mappedInbound) {
 
 function createDeliveryTarget(mappedInbound) {
   return Object.freeze({
-    channelId: mappedInbound.routing.telegramTopic.channelId,
-    chatId: mappedInbound.routing.telegramTopic.chatId,
-    messageThreadId: mappedInbound.routing.telegramTopic.messageThreadId,
+    channelId: `telegram-channel:${mappedInbound.routing.telegramTopic.channelId}`,
+    chatId: `telegram-chat:${mappedInbound.routing.telegramTopic.chatId}`,
+    messageThreadId: `telegram-thread:${mappedInbound.routing.telegramTopic.messageThreadId}`,
     workspaceRef: mappedInbound.routing.workspaceRef,
     agentRef: mappedInbound.routing.agentRef,
   });
