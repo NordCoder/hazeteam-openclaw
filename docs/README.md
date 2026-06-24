@@ -16,6 +16,7 @@ Further implementation must follow the contract pack and conflict-aware parallel
 
 - [Documentation index](index.md) — W10/W11 foundation map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
 - [Current development state](roadmap/current-development-state.md) — short W10/W11/W12-oriented handoff for continuing from current `main`; identifies the completed foundation, consistency cleanup, next core integration proof, and preserved limitations.
+- [W12 core integration development contract](development/core-integration.md) — pinned `hazeteam-core` ref, public export inventory, local pack/install strategy, and static private-import boundary foundation for W12A.
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
 - [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md) — target OpenClaw Telegram flow, topic model, callback model, and fake-first rule.
@@ -36,15 +37,16 @@ Further implementation must follow the contract pack and conflict-aware parallel
 2. Required contract docs from `hazeteam-openclaw-contract-pack-cd10.zip`.
 3. [Documentation index](index.md)
 4. [Current development state](roadmap/current-development-state.md)
-5. [Core context digest](core-context.md)
-6. [Adapter authoring guide](adapter-authoring/README.md)
-7. [Core boundary](architecture/core-boundary.md)
-8. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
-9. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
-10. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
-11. [Implementation waves](roadmap/implementation-waves.md)
-12. [File ownership matrix](roadmap/file-ownership-matrix.md)
-13. Source and tests in the assigned allowed area.
+5. [W12 core integration development contract](development/core-integration.md) for W12 and later core-integration work
+6. [Core context digest](core-context.md)
+7. [Adapter authoring guide](adapter-authoring/README.md)
+8. [Core boundary](architecture/core-boundary.md)
+9. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
+10. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
+11. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
+12. [Implementation waves](roadmap/implementation-waves.md)
+13. [File ownership matrix](roadmap/file-ownership-matrix.md)
+14. Source and tests in the assigned allowed area.
 
 ## Relationship to `hazeteam-core` docs
 
