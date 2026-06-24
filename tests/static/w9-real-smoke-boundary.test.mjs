@@ -68,6 +68,7 @@ test('W9 smoke suite preserves workspace topology', () => {
 
   assert.deepEqual(rootPackage.workspaces, [
     'packages/openclaw-adapter',
+    'packages/openclaw-plugin-runtime',
     'packages/openclaw-testkit',
   ]);
 });
