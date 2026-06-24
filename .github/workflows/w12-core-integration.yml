@@ -67,6 +67,24 @@ jobs:
         id: pack-core
         working-directory: hazeteam-core
         run: |
+          pack_dir="$PWD/../hazeteam-core-pack"
+          rm -rf "$pack_dir"
+          mkdir -p "$pack_dir"
+          cp package.json "$pack_dir/package.json"
+          cp -R dist "$pack_dir/dist"
+
+          for required_dist_file in \
+            dist/foundation/index.js \
+            dist/host/index.js \
+            dist/presentation/index.js
+          do
+            if [ ! -f "$pack_dir/$required_dist_file" ]; then
+              echo "::error::Staged hazeteam-core package is missing required public export target: $required_dist_file"
+              exit 1
+            fi
+          done
+
+          cd "$pack_dir"
           core_tarball="$(npm pack --silent)"
           echo "tarball=$PWD/$core_tarball" >> "$GITHUB_OUTPUT"
           echo "hazeteam-core ref: $HAZETEAM_CORE_PINNED_SHA"
