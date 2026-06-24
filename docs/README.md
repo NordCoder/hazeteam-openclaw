@@ -4,9 +4,9 @@
 
 `hazeteam-openclaw` is an external OpenClaw-native adapter, plugin, and product integration repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, Codex, and LifeOS behavior must not be treated as generic core semantics.
 
-Current repository status: the W10 release-hardened adapter foundation is present. It includes safe adapter contracts, DTO boundaries, deterministic testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable adapter store shells, OpenClaw integration shells, W9 secret-gated smoke posture, and W10 release-hardening docs.
+Current repository status: the W10 release-hardened adapter foundation is present with W11 test/docs/status consistency cleanup applied. It includes safe adapter contracts, DTO boundaries, deterministic testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable adapter store shells, OpenClaw integration shells, W9 secret-gated smoke posture, W10 release-hardening docs, and W11 release-gate/static-boundary consistency updates.
 
-The current cleanup gate is W11 test/docs/status consistency. The next major implementation proof after W11 is W12 core integration proof, where `hazeteam-openclaw` must consume pinned `hazeteam-core` public exports without copying core code or importing private paths.
+The next major implementation proof after W11 is W12 core integration proof, where `hazeteam-openclaw` must consume pinned `hazeteam-core` public exports without copying core code or importing private paths.
 
 No current docs should imply production readiness. There is still no real OpenClaw SDK wiring, Telegram listener/webhook/callback endpoint, OCA implementation, Codex/LifeOS product implementation, production credential loader, production durable backend, or production runtime deployment.
 
@@ -14,8 +14,8 @@ Further implementation must follow the contract pack and conflict-aware parallel
 
 ## Documentation index
 
-- [Documentation index](index.md) — W10 release-hardening map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
-- [Current development state](roadmap/current-development-state.md) — short W10/W11/W12-oriented handoff for continuing from current `main`; identifies the completed foundation, current consistency cleanup gate, next core integration proof, and preserved limitations.
+- [Documentation index](index.md) — W10/W11 foundation map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
+- [Current development state](roadmap/current-development-state.md) — short W10/W11/W12-oriented handoff for continuing from current `main`; identifies the completed foundation, consistency cleanup, next core integration proof, and preserved limitations.
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
 - [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md) — target OpenClaw Telegram flow, topic model, callback model, and fake-first rule.

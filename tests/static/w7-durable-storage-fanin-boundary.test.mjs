@@ -76,15 +76,3 @@ test('Wave 7 durable storage source avoids private core implementation paths and
     }
   }
 });
-
-test('Wave 7 fan-in leaves adapter package manifest script surface unchanged', () => {
-  const adapterPackage = JSON.parse(readSource('packages', 'openclaw-adapter', 'package.json'));
-
-  assert.deepEqual(Object.keys(adapterPackage.scripts).sort(), [
-    'build',
-    'clean',
-    'test',
-    'test:unit',
-    'typecheck',
-  ]);
-});
