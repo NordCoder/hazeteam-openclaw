@@ -13,6 +13,12 @@ import * as permissions from '../../dist/permissions/index.js';
 import * as rendering from '../../dist/rendering/index.js';
 import * as root from '../../dist/index.js';
 import * as runtime from '../../dist/runtime/index.js';
+import * as storage from '../../dist/storage/index.js';
+import * as storageCallbacks from '../../dist/storage/callbacks/index.js';
+import * as storageCore from '../../dist/storage/core/index.js';
+import * as storageDelivery from '../../dist/storage/delivery/index.js';
+import * as storageIdempotency from '../../dist/storage/idempotency/index.js';
+import * as storageTopicBinding from '../../dist/storage/topic-binding/index.js';
 
 const expectedContractRuntimeExports = [
   'adapterErr',
@@ -136,6 +142,27 @@ const expectedApprovalRuntimeExports = [
   'resolveApprovalBridgeDecision',
 ];
 
+const expectedStorageRuntimeExports = [
+  'cloneDurableTopicBindingRecord',
+  'createDurableCallbackTokenStore',
+  'createDurableCorePresentationActionTokenStoreAdapter',
+  'createDurableCorePresentationOutboxStoreAdapter',
+  'createDurableCoreSessionBindingStoreAdapter',
+  'createDurableCoreStoreAdapterBundle',
+  'createDurableDeliveryStore',
+  'createDurableIdempotencyStore',
+  'createDurableTopicBindingRecord',
+  'createDurableTopicBindingRecordKey',
+  'createDurableTopicBindingStore',
+  'DURABLE_CORE_STORE_ADAPTER_NAMES',
+  'durableTopicBindingRecordToSnapshot',
+  'normalizeDurableCoreActionTokenRecord',
+  'normalizeDurableCorePresentationOutboxRecord',
+  'normalizeDurableCoreSessionBindingRecord',
+  'normalizeDurableTopicBindingRecord',
+  'summarizeDurableCoreStoreReadiness',
+];
+
 const expectedRootRuntimeExports = [
   'OPENCLAW_ADAPTER_PACKAGE',
   ...expectedContractRuntimeExports,
@@ -149,6 +176,7 @@ const expectedRootRuntimeExports = [
   ...expectedCallbackRuntimeExports,
   ...expectedRuntimeBridgeRuntimeExports,
   ...expectedApprovalRuntimeExports,
+  ...expectedStorageRuntimeExports,
 ];
 
 const telegramDeliveryTarget = Object.freeze({
@@ -157,7 +185,39 @@ const telegramDeliveryTarget = Object.freeze({
   messageThreadId: 'telegram-thread:general',
 });
 
-test('root dist index exports shared, event, delivery, support, binding, descriptor, and Wave 5 helpers', () => {
+function assertExports(moduleValue, expectedNames, label) {
+  for (const exportName of expectedNames) {
+    assert.equal(exportName in moduleValue, true, `missing ${label} export ${exportName}`);
+  }
+}
+
+function createTopicPort() {
+  const records = new Map();
+  return Object.freeze({
+    get: (key) => records.get(key),
+    put(record) {
+      records.set(record.recordKey, record);
+      return record;
+    },
+    delete: (key) => records.delete(key),
+    list: () => [...records.values()],
+  });
+}
+
+function createCoreBoundary() {
+  const records = new Map();
+  return Object.freeze({
+    get: (key) => records.get(key),
+    put(record) {
+      records.set(record.recordKey, record);
+      return record;
+    },
+    delete: (key) => records.delete(key),
+    list: () => [...records.values()],
+  });
+}
+
+test('root dist index exports shared, event, delivery, support, binding, descriptor, and Wave 7 helpers', () => {
   for (const exportName of expectedRootRuntimeExports) {
     assert.equal(exportName in root, true, `missing root export ${exportName}`);
   }
@@ -440,4 +500,63 @@ test('dist approvals barrel and root export Wave 5 approval bridge helpers', () 
   assert.equal(root.isApprovalBridgeDecision(decision), true);
   assert.equal(requirement.action, 'resolve-approval');
   assert.equal(requirement.resourceKind, 'approval');
+});
+
+test('dist storage barrels and root export Wave 7 durable storage helpers', async () => {
+  assertExports(storage, expectedStorageRuntimeExports, 'storage');
+  assertExports(storageTopicBinding, [
+    'cloneDurableTopicBindingRecord',
+    'createDurableTopicBindingRecord',
+    'createDurableTopicBindingRecordKey',
+    'createDurableTopicBindingStore',
+    'durableTopicBindingRecordToSnapshot',
+    'normalizeDurableTopicBindingRecord',
+  ], 'storage/topic-binding');
+  assertExports(storageIdempotency, ['createDurableIdempotencyStore'], 'storage/idempotency');
+  assertExports(storageCallbacks, ['createDurableCallbackTokenStore'], 'storage/callbacks');
+  assertExports(storageDelivery, ['createDurableDeliveryStore'], 'storage/delivery');
+  assertExports(storageCore, [
+    'DURABLE_CORE_STORE_ADAPTER_NAMES',
+    'createDurableCoreStoreAdapterBundle',
+    'summarizeDurableCoreStoreReadiness',
+  ], 'storage/core');
+
+  const snapshot = root.createTopicBindingSnapshot({
+    key: { workspaceId: 'workspace-storage', channelId: 'channel-storage', topicId: 'topic-storage' },
+    status: 'active',
+    agentId: 'agent-storage',
+    sessionId: 'session-storage',
+    createdAtIso: '2026-06-24T00:00:00.000Z',
+    updatedAtIso: '2026-06-24T00:01:00.000Z',
+  });
+  const topicStore = storage.createDurableTopicBindingStore({ records: createTopicPort() });
+  topicStore.upsert(snapshot);
+  assert.deepEqual(topicStore.get(snapshot.key), snapshot);
+
+  const idempotencyRecords = new Map();
+  const idempotencyStore = root.createDurableIdempotencyStore(Object.freeze({
+    get: (key) => idempotencyRecords.get(key) ?? null,
+    put(record) {
+      idempotencyRecords.set(record.key, record);
+      return record;
+    },
+    delete: (key) => idempotencyRecords.delete(key),
+    list: () => [...idempotencyRecords.values()],
+  }));
+  const reserved = await idempotencyStore.reserve({
+    key: root.createCallbackIdempotencyKey({ channelId: 'channel-storage', chatId: 'chat-storage', callbackId: 'callback-storage' }),
+    firstSeenAt: '2026-06-24T00:02:00.000Z',
+  });
+  assert.equal(reserved.ok, true);
+  assert.equal(reserved.value.kind, 'reserved');
+
+  const bundle = root.createDurableCoreStoreAdapterBundle({
+    boundaries: {
+      sessionBindingStore: createCoreBoundary(),
+      presentationOutboxStore: createCoreBoundary(),
+      presentationActionTokenStore: createCoreBoundary(),
+    },
+  });
+  assert.equal(bundle.ok, true);
+  assert.equal(bundle.value.readiness.status, 'ready');
 });
