@@ -210,8 +210,12 @@ function validatePublicData(value: unknown, depth = 0): OpenClawToolRegistryReje
     return containsUnsafePublicText(value) ? 'unsafe_descriptor_value' : undefined;
   }
 
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return Number.isFinite(value as number) ? undefined : 'non_serializable_descriptor_value';
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? undefined : 'non_serializable_descriptor_value';
+  }
+
+  if (typeof value === 'boolean') {
+    return undefined;
   }
 
   if (typeof value === 'function') {
@@ -355,6 +359,14 @@ export function validateOpenClawToolDescriptor(
     return rejected('category_mismatch');
   }
 
+  if (!isOneOf(descriptor.effect, TOOL_EFFECT_CLASSIFICATIONS)) {
+    return rejected('invalid_descriptor');
+  }
+
+  if (descriptor.effect !== 'none' && !('approval' in descriptor)) {
+    return rejected('approval_metadata_required');
+  }
+
   if (
     typeof descriptor.title !== 'string' ||
     descriptor.title.length < 1 ||
@@ -364,7 +376,6 @@ export function validateOpenClawToolDescriptor(
     !validateSchemaBoundary(descriptor.inputSchemaBoundary) ||
     ('outputSchemaBoundary' in descriptor && !validateSchemaBoundary(descriptor.outputSchemaBoundary)) ||
     !validateApprovalDescriptor(descriptor.approval) ||
-    !isOneOf(descriptor.effect, TOOL_EFFECT_CLASSIFICATIONS) ||
     !validateCapabilityBinding(descriptor.capabilityBinding) ||
     !validateHandlerReference(descriptor.handlerReference) ||
     !validateAvailability(descriptor.availability) ||
@@ -372,10 +383,6 @@ export function validateOpenClawToolDescriptor(
     ('topicCommandSafe' in descriptor && typeof descriptor.topicCommandSafe !== 'boolean')
   ) {
     return rejected('invalid_descriptor');
-  }
-
-  if (descriptor.effect !== 'none' && !('approval' in descriptor)) {
-    return rejected('approval_metadata_required');
   }
 
   return ok(freezeToolDescriptor(descriptor));
