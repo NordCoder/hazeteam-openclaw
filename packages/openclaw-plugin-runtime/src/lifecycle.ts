@@ -165,6 +165,8 @@ const UNSAFE_TEXT_PATTERNS = Object.freeze([
   /webhook/iu,
   /polling/iu,
   /telegram/iu,
+  /client\s+handle/iu,
+  /clienthandle/iu,
   /openclaw\s+client\s+handle/iu,
   /sdk/iu,
   /(^|\s|["'([{])\/[a-z0-9_.-]+/iu,
