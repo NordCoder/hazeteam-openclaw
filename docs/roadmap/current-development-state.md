@@ -1,6 +1,6 @@
 # Current development state
 
-This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation.
+This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation and the W13A OpenClaw plugin runtime package skeleton.
 
 ## Repository role
 
@@ -88,13 +88,21 @@ W12E is the fan-in that wires the script and cross-repo CI strategy. The root sc
 
 The W12 proof remains fake-edge and real-core-public-API only. W12 does not add real OpenClaw SDK/client behavior, real Telegram listener, webhook, polling loop, callback endpoint, network delivery, database, cache, queue, scheduler, sidecar, credential loading, or product runtime behavior.
 
+## Current W13A plugin runtime skeleton
+
+W13A starts the OpenClaw plugin runtime shell as `packages/openclaw-plugin-runtime`. The package is a foundation-level workspace skeleton only. It exposes package status metadata, a static JSON-serializable descriptor, and a no-effect describe function that reports skeleton and not-production-ready posture.
+
+W13A does not implement lifecycle transitions, tool registry behavior, capability registry behavior, readiness aggregation, config loading, real OpenClaw SDK behavior, Telegram transport, OCA mechanics, sidecar support, durable infrastructure, credential loading, network behavior, or product runtime behavior.
+
+W13B, W13C, W13D, W13E, and W13F remain future or parallel-after-W13A implementation slices. They must keep using explicit phase prompts, disjoint branches, contract-pack boundaries, and fake-first testing until a later slice deliberately scopes broader runtime behavior.
+
 ## Next major implementation direction
 
-The next major implementation direction after W12 should remain contract-led and explicit about readiness level.
+The next major implementation direction after W13A should remain contract-led and explicit about readiness level.
 
-Future work may move toward OpenClaw plugin runtime, real transport ports, runtime capabilities, or product layers only when a phase prompt explicitly scopes those behaviors, lists allowed files, adds tests, and preserves the `hazeteam-core` transport-neutral boundary.
+Future work may move toward OpenClaw plugin lifecycle, tool registry, capability registry, readiness aggregation, real transport ports, runtime capabilities, or product layers only when a phase prompt explicitly scopes those behaviors, lists allowed files, adds tests, and preserves the `hazeteam-core` transport-neutral boundary.
 
-Do not treat W12 integration proof as permission to add production runtime behavior opportunistically.
+Do not treat W12 integration proof or the W13A package skeleton as permission to add production runtime behavior opportunistically.
 
 ## Preserved limitations
 

@@ -1,0 +1,24 @@
+{
+  "name": "@hazeteam/openclaw-plugin-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "node ../../scripts/clean.mjs",
+    "build": "tsc -b tsconfig.json --pretty false",
+    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
+    "test:unit": "find tests/unit -type f -name '*.test.mjs' -exec node --test {} +",
+    "test": "npm run test:unit"
+  }
+}

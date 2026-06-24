@@ -5,6 +5,7 @@
   "type": "module",
   "workspaces": [
     "packages/openclaw-adapter",
+    "packages/openclaw-plugin-runtime",
     "packages/openclaw-testkit"
   ],
   "scripts": {
