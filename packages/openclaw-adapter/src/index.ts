@@ -22,3 +22,4 @@ export * from './callbacks/index.js';
 export * from './runtime/index.js';
 export * from './approvals/index.js';
 export * from './storage/index.js';
+export * from './openclaw/index.js';
