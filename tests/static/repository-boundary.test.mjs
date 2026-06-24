@@ -82,6 +82,7 @@ test('root workspace package and verification scripts are present', () => {
   assert.equal(rootPackage.private, true);
   assert.deepEqual(rootPackage.workspaces, [
     'packages/openclaw-adapter',
+    'packages/openclaw-plugin-runtime',
     'packages/openclaw-testkit',
   ]);
 
