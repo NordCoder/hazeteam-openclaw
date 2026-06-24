@@ -460,8 +460,9 @@ export function createOpenClawToolRegistry(options?: {
   readonly defaultAvailability?: OpenClawToolAvailabilityPosture;
 }): OpenClawToolRegistry {
   const registered = new Map<string, OpenClawToolDescriptor>();
-  const defaultAvailability = isOneOf(options?.defaultAvailability, TOOL_AVAILABILITY_POSTURES)
-    ? options.defaultAvailability
+  const requestedDefaultAvailability = options?.defaultAvailability;
+  const defaultAvailability = isOneOf(requestedDefaultAvailability, TOOL_AVAILABILITY_POSTURES)
+    ? requestedDefaultAvailability
     : 'not-ready';
 
   function registerToolDescriptor(descriptor: unknown): OpenClawToolRegistryResult<OpenClawToolDescriptor> {
