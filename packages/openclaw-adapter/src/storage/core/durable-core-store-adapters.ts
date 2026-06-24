@@ -234,6 +234,32 @@ const SENSITIVE_ASSIGNMENT_PATTERN = new RegExp(
   `\\b(?:${SENSITIVE_ASSIGNMENT_TERMS.join('|')})\\b\\s*[:=]\\s*\\S+`,
   'giu',
 );
+const PROTECTED_VALUE_TERM_PARTS = [
+  ['raw', 'update'],
+  ['telegram', 'update'],
+  ['raw', 'telegram', 'update'],
+  ['raw', 'open', 'claw', 'event'],
+  ['raw', 'provider', 'response'],
+  ['raw', 'runtime', 'payload'],
+  ['raw', 'tool', 'payload'],
+  ['tool', 'payload'],
+  ['approval', 'payload'],
+  ['raw', 'approval', 'payload'],
+  ['raw', 'core', 'result'],
+  ['raw', 'error'],
+  ['stack'],
+  ['bot', 'token'],
+  ['api', 'key'],
+  ['secret'],
+  ['password'],
+  ['credential'],
+  ['filesystem', 'path'],
+  ['storage', 'path'],
+] as const;
+const NORMALIZED_PROTECTED_VALUE_TERMS = PROTECTED_VALUE_TERM_PARTS.map((parts) => parts.join(''));
+const PROTECTED_VALUE_MESSAGE_PATTERNS = PROTECTED_VALUE_TERM_PARTS.map(
+  (parts) => new RegExp(`(?<![A-Za-z0-9])${parts.join('(?:[\\s_-]*)')}(?![A-Za-z0-9])`, 'giu'),
+);
 const BASE_RECORD_ALLOWED_KEYS = [
   'recordKind',
   'recordKey',
@@ -344,6 +370,22 @@ function conflictResult<T>(
   return adapterErr(createAdapterSafeError({ code: 'conflict', message }), context);
 }
 
+function normalizeProtectedTermCandidate(value: string): string {
+  return value.replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
+}
+
+function containsProtectedValueTerm(value: string): boolean {
+  const normalized = normalizeProtectedTermCandidate(value);
+  return NORMALIZED_PROTECTED_VALUE_TERMS.some((term) => normalized.includes(term));
+}
+
+function redactProtectedValueTerms(value: string): string {
+  return PROTECTED_VALUE_MESSAGE_PATTERNS.reduce(
+    (currentValue, pattern) => currentValue.replace(pattern, '[redacted]'),
+    value,
+  );
+}
+
 function normalizeRecordKey(value: unknown): string {
   if (typeof value !== 'string') {
     throw new TypeError('recordKey must be a string.');
@@ -356,6 +398,10 @@ function normalizeRecordKey(value: unknown): string {
     !RECORD_KEY_PATTERN.test(normalized)
   ) {
     throw new TypeError('recordKey must be a non-empty safe identifier.');
+  }
+
+  if (containsProtectedValueTerm(normalized)) {
+    throw new TypeError('recordKey must not contain protected terms.');
   }
 
   return normalized;
@@ -373,18 +419,21 @@ function normalizeOptionalSafeMessage(value: unknown): string | undefined {
   const normalized = value
     .replace(/[\u0000-\u001F\u007F]+/gu, ' ')
     .replace(SENSITIVE_ASSIGNMENT_PATTERN, '[redacted]')
+    .replace(/\[redacted\]\s*[:=]\s*\S+/giu, '[redacted]')
+    .trim();
+  const redacted = redactProtectedValueTerms(normalized)
     .replace(/\s+/gu, ' ')
     .trim();
 
-  if (normalized.length === 0) {
+  if (redacted.length === 0) {
     return undefined;
   }
 
-  if (normalized.length <= MAX_SAFE_MESSAGE_LENGTH) {
-    return normalized;
+  if (redacted.length <= MAX_SAFE_MESSAGE_LENGTH) {
+    return redacted;
   }
 
-  return `${normalized.slice(0, MAX_SAFE_MESSAGE_LENGTH - 3)}...`;
+  return `${redacted.slice(0, MAX_SAFE_MESSAGE_LENGTH - 3)}...`;
 }
 
 function normalizeAdapterRef<TRef extends OpenClawAdapterRef>(
@@ -395,6 +444,10 @@ function normalizeAdapterRef<TRef extends OpenClawAdapterRef>(
   const parsed = parseOpenClawAdapterRef(value);
   if (parsed === null || (expectedKind !== undefined && parsed.kind !== expectedKind)) {
     throw new TypeError(`${fieldName} must be a safe adapter ref.`);
+  }
+
+  if (containsProtectedValueTerm(parsed.ref) || containsProtectedValueTerm(parsed.value)) {
+    throw new TypeError(`${fieldName} must not contain protected terms.`);
   }
 
   return parsed.ref as TRef;
@@ -445,7 +498,7 @@ function normalizeOptionalLimit(value: unknown): number | undefined {
     return undefined;
   }
 
-  if (!Number.isInteger(value) || value <= 0 || value > 1_000) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0 || value > 1_000) {
     throw new TypeError('limit must be a positive integer no greater than 1000 when provided.');
   }
 
@@ -470,7 +523,8 @@ function normalizeSerializedPayloadDescriptor(
   if (
     format.length === 0 ||
     format.length > MAX_DESCRIPTOR_FORMAT_LENGTH ||
-    !SAFE_DESCRIPTOR_FORMAT_PATTERN.test(format)
+    !SAFE_DESCRIPTOR_FORMAT_PATTERN.test(format) ||
+    containsProtectedValueTerm(format)
   ) {
     throw new TypeError('serializedPayloadDescriptor.format must be a safe identifier.');
   }

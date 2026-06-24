@@ -102,6 +102,10 @@ function createActionTokenRecord(overrides = {}) {
   });
 }
 
+function protectedMarker(...parts) {
+  return parts.join('');
+}
+
 function assertNoForbiddenSerializedTerms(value) {
   const serialized = JSON.stringify(value);
   for (const term of forbiddenSerializedTerms) {
@@ -309,6 +313,109 @@ test('normalizers redact sensitive assignments from safe messages and preserve o
   assert.match(outbox.serializedPayloadDescriptor.summary, /\[redacted\]/u);
   assertNoForbiddenSerializedTerms(session);
   assertNoForbiddenSerializedTerms(outbox);
+});
+
+test('redacts standalone protected terms from safeMessage before persistence and DTO return', async () => {
+  const sessionBoundary = createFakeRecordStore();
+  const bundle = createDurableCoreStoreAdapterBundle({
+    boundaries: {
+      sessionBindingStore: sessionBoundary,
+    },
+  });
+
+  assert.equal(bundle.ok, true);
+  const standaloneProtectedTerm = protectedMarker('raw', 'Update');
+  const put = await bundle.value.adapters.sessionBindingStore.putSessionBinding(
+    createSessionBindingRecord({
+      recordKey: 'session:protected-message',
+      safeMessage: `stored ${standaloneProtectedTerm} marker only`,
+    }),
+  );
+
+  assert.equal(put.ok, true);
+  assert.match(put.value.safeMessage, /\[redacted\]/u);
+  assert.equal(put.value.safeMessage.includes(standaloneProtectedTerm), false);
+
+  const [persisted] = sessionBoundary.dump();
+  assert.match(persisted.safeMessage, /\[redacted\]/u);
+  assert.equal(JSON.stringify(persisted).includes(standaloneProtectedTerm), false);
+  assertNoForbiddenSerializedTerms(put);
+  assertNoForbiddenSerializedTerms(persisted);
+});
+
+test('redacts standalone protected terms from serialized payload summaries before persistence and DTO return', async () => {
+  const outboxBoundary = createFakeRecordStore();
+  const bundle = createDurableCoreStoreAdapterBundle({
+    boundaries: {
+      presentationOutboxStore: outboxBoundary,
+    },
+  });
+
+  assert.equal(bundle.ok, true);
+  const standaloneProtectedTerm = protectedMarker('raw', 'Provider', 'Response');
+  const put = await bundle.value.adapters.presentationOutboxStore.putPresentationOutboxRecord(
+    createPresentationOutboxRecord({
+      recordKey: 'presentation:protected-summary',
+      serializedPayloadDescriptor: Object.freeze({
+        format: 'json-safe-ref',
+        contentRef: 'details:rendered-safe-2',
+        summary: `summary mentions ${standaloneProtectedTerm} value`,
+      }),
+    }),
+  );
+
+  assert.equal(put.ok, true);
+  assert.match(put.value.serializedPayloadDescriptor.summary, /\[redacted\]/u);
+  assert.equal(put.value.serializedPayloadDescriptor.summary.includes(standaloneProtectedTerm), false);
+
+  const [persisted] = outboxBoundary.dump();
+  assert.match(persisted.serializedPayloadDescriptor.summary, /\[redacted\]/u);
+  assert.equal(JSON.stringify(persisted).includes(standaloneProtectedTerm), false);
+  assertNoForbiddenSerializedTerms(put);
+  assertNoForbiddenSerializedTerms(persisted);
+});
+
+test('rejects record keys containing protected terms and does not persist them', async () => {
+  const sessionBoundary = createFakeRecordStore();
+  const bundle = createDurableCoreStoreAdapterBundle({
+    boundaries: {
+      sessionBindingStore: sessionBoundary,
+    },
+  });
+
+  assert.equal(bundle.ok, true);
+  const put = await bundle.value.adapters.sessionBindingStore.putSessionBinding(
+    createSessionBindingRecord({
+      recordKey: `session:${protectedMarker('storage', 'Path')}`,
+    }),
+  );
+
+  assert.equal(put.ok, false);
+  assert.equal(put.error.code, 'invalid-input');
+  assert.deepEqual(sessionBoundary.dump(), []);
+  assertNoForbiddenSerializedTerms(put);
+});
+
+test('rejects adapter refs containing protected terms and does not persist them', async () => {
+  const outboxBoundary = createFakeRecordStore();
+  const bundle = createDurableCoreStoreAdapterBundle({
+    boundaries: {
+      presentationOutboxStore: outboxBoundary,
+    },
+  });
+
+  assert.equal(bundle.ok, true);
+  const put = await bundle.value.adapters.presentationOutboxStore.putPresentationOutboxRecord(
+    createPresentationOutboxRecord({
+      recordKey: 'presentation:protected-ref',
+      externalMessageRef: `details:${protectedMarker('bot', 'Token')}`,
+    }),
+  );
+
+  assert.equal(put.ok, false);
+  assert.equal(put.error.code, 'invalid-input');
+  assert.deepEqual(outboxBoundary.dump(), []);
+  assertNoForbiddenSerializedTerms(put);
 });
 
 test('new durable core storage files avoid private core imports and real infrastructure calls', () => {
