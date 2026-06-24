@@ -79,7 +79,11 @@ const expectedCommandRuntimeExports = [
   'isTelegramCardDescriptor',
 ];
 
-const expectedMappingRuntimeExports = ['getInboundMappingRawDebugRef', 'mapOpenClawTelegramInboundEvent'];
+const expectedMappingRuntimeExports = [
+  'getInboundMappingRawDebugRef',
+  'mapOpenClawTelegramInboundEvent',
+];
+
 const expectedRenderingRuntimeExports = [
   'createTelegramRenderDeliveryRequest',
   'createTelegramRenderFragment',
@@ -88,6 +92,7 @@ const expectedRenderingRuntimeExports = [
   'renderTelegramCardDescriptor',
   'renderTelegramInput',
 ];
+
 const expectedHostRuntimeExports = [
   'ADAPTER_CORE_FACADE_METHOD_NAMES',
   'REQUIRED_ADAPTER_CORE_FACADE_METHOD_NAMES',
@@ -101,6 +106,7 @@ const expectedHostRuntimeExports = [
   'getMissingRequiredAdapterCoreHostPorts',
   'summarizeAdapterCoreHostReadiness',
 ];
+
 const expectedPermissionRuntimeExports = [
   'PERMISSION_BEFORE_TOKEN_CONSUME_RULE',
   'createStaticPermissionEvaluator',
@@ -108,20 +114,24 @@ const expectedPermissionRuntimeExports = [
   'evaluateOpenClawTelegramPermissions',
   'permissionGrantMatchesRequirement',
 ];
+
 const expectedDeliveryRuntimeExports = [
   'createTelegramDeliveryPumpRequest',
   'pumpTelegramDeliveryRequest',
   'createTelegramDeliveryPump',
 ];
+
 const expectedCallbackRuntimeExports = [
   'parseOpenClawTelegramCallbackPayload',
   'runOpenClawTelegramCallbackTokenFlow',
 ];
+
 const expectedRuntimeBridgeRuntimeExports = [
   'dispatchOpenClawRuntime',
   'summarizeOpenClawRuntimeBridgeReadiness',
   'createOpenClawRuntimeBridge',
 ];
+
 const expectedApprovalRuntimeExports = [
   'createApprovalBridgeRequest',
   'createApprovalBridgeDecision',
@@ -131,24 +141,25 @@ const expectedApprovalRuntimeExports = [
   'submitApprovalBridgeRequest',
   'resolveApprovalBridgeDecision',
 ];
+
 const expectedStorageRuntimeExports = [
-  'createDurableTopicBindingRecord',
-  'createDurableTopicBindingRecordKey',
-  'createDurableTopicBindingStore',
-  'durableTopicBindingRecordToSnapshot',
-  'normalizeDurableTopicBindingRecord',
   'cloneDurableTopicBindingRecord',
-  'createDurableIdempotencyStore',
   'createDurableCallbackTokenStore',
-  'createDurableDeliveryStore',
-  'DURABLE_CORE_STORE_ADAPTER_NAMES',
   'createDurableCorePresentationActionTokenStoreAdapter',
   'createDurableCorePresentationOutboxStoreAdapter',
   'createDurableCoreSessionBindingStoreAdapter',
   'createDurableCoreStoreAdapterBundle',
+  'createDurableDeliveryStore',
+  'createDurableIdempotencyStore',
+  'createDurableTopicBindingRecord',
+  'createDurableTopicBindingRecordKey',
+  'createDurableTopicBindingStore',
+  'DURABLE_CORE_STORE_ADAPTER_NAMES',
+  'durableTopicBindingRecordToSnapshot',
   'normalizeDurableCoreActionTokenRecord',
   'normalizeDurableCorePresentationOutboxRecord',
   'normalizeDurableCoreSessionBindingRecord',
+  'normalizeDurableTopicBindingRecord',
   'summarizeDurableCoreStoreReadiness',
 ];
 
@@ -167,6 +178,12 @@ const expectedRootRuntimeExports = [
   ...expectedApprovalRuntimeExports,
   ...expectedStorageRuntimeExports,
 ];
+
+const telegramDeliveryTarget = Object.freeze({
+  channelId: 'telegram-channel:w5-fanin',
+  chatId: 'telegram-chat:w5-fanin',
+  messageThreadId: 'telegram-thread:general',
+});
 
 function assertExports(moduleValue, expectedNames, label) {
   for (const exportName of expectedNames) {
@@ -200,37 +217,300 @@ function createCoreBoundary() {
   });
 }
 
-test('root dist index exports existing public API plus Wave 7 durable storage API', () => {
-  assertExports(root, expectedRootRuntimeExports, 'root');
+test('root dist index exports shared, event, delivery, support, binding, descriptor, and Wave 7 helpers', () => {
+  for (const exportName of expectedRootRuntimeExports) {
+    assert.equal(exportName in root, true, `missing root export ${exportName}`);
+  }
+
   assert.equal(root.OPENCLAW_ADAPTER_PACKAGE.status, 'skeleton');
   assert.equal(root.createWorkspaceRef('acme'), 'workspace:acme');
   assert.equal(root.adapterOk('value').ok, true);
+  assert.equal(root.isOpenClawTelegramMessageEvent({ eventKind: 'message' }), true);
+  assert.equal(root.createTelegramActionButtonPayload('token:approve'), 'hz:token:approve');
+  assert.equal(root.isTelegramActionButtonPayload('hz:token:approve'), true);
+  assert.equal(root.summarizeAdapterReadiness({ checks: [] }).status, 'unknown');
   assert.equal(root.createAdapterIdempotencyKey('callback', ['safe']), 'callback:safe');
+  assert.equal(
+    root.isPermissionAllowed(root.allowPermission({ action: 'send-message', resourceKind: 'topic' })),
+    true,
+  );
 });
 
-test('existing dist barrels keep their public runtime exports', () => {
-  assertExports(contracts, expectedContractRuntimeExports, 'contracts');
-  assertExports(binding, expectedBindingRuntimeExports, 'binding');
-  assertExports(commands, expectedCommandRuntimeExports, 'commands');
-  assertExports(mapping, expectedMappingRuntimeExports, 'mapping');
-  assertExports(rendering, expectedRenderingRuntimeExports, 'rendering');
-  assertExports(host, expectedHostRuntimeExports, 'host');
-  assertExports(permissions, expectedPermissionRuntimeExports, 'permissions');
-  assertExports(delivery, expectedDeliveryRuntimeExports, 'delivery');
-  assertExports(callbacks, expectedCallbackRuntimeExports, 'callbacks');
-  assertExports(runtime, expectedRuntimeBridgeRuntimeExports, 'runtime');
-  assertExports(approvals, expectedApprovalRuntimeExports, 'approvals');
+test('dist contracts barrel exports shared, event, delivery, and support contract helpers', () => {
+  for (const exportName of expectedContractRuntimeExports) {
+    assert.equal(exportName in contracts, true, `missing contracts export ${exportName}`);
+  }
+
+  assert.equal(contracts.createAdapterOperationRef('op-1'), 'operation:op-1');
+  assert.equal(contracts.createAdapterSafeError({ code: 'not-found', message: 'missing' }).code, 'not-found');
+  assert.equal(contracts.isOpenClawTelegramCallbackEvent({ eventKind: 'callback' }), true);
+  assert.equal(
+    contracts.createTelegramDeliverySafeError({ code: 'timeout', message: 'timed out' }).code,
+    'timeout',
+  );
+  assert.equal(
+    contracts.createInboundMessageIdempotencyKey({ channelId: 'ch', chatId: '1', messageId: '2' }),
+    'inbound-message:ch:1:thread-none:2',
+  );
+  assert.equal(
+    contracts.isPermissionDenied(
+      contracts.denyPermission({
+        requirement: { action: 'consume-callback', resourceKind: 'callback' },
+        reason: 'no',
+      }),
+    ),
+    true,
+  );
 });
 
-test('storage dist barrel and subpath barrels expose W7 durable store factories', () => {
+test('dist binding barrel and root export topic binding helpers', () => {
+  for (const exportName of expectedBindingRuntimeExports) {
+    assert.equal(exportName in binding, true, `missing binding export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root binding export ${exportName}`);
+  }
+
+  const snapshot = root.createTopicBindingSnapshot({
+    key: {
+      workspaceId: 'workspace-alpha',
+      channelId: 'channel-alpha',
+      topicId: 'topic-alpha',
+    },
+    status: 'active',
+    agentId: 'agent-alpha',
+    sessionId: 'session-alpha',
+    createdAtIso: '2026-01-01T00:00:00.000Z',
+    updatedAtIso: '2026-01-01T00:00:00.000Z',
+  });
+
+  const store = binding.createInMemoryTopicBindingStore();
+  store.upsert(snapshot);
+
+  assert.equal(root.isTopicBindingStatus(snapshot.status), true);
+  assert.equal(
+    root.serializeTopicBindingKey(snapshot.key),
+    'topic-binding:workspace=workspace-alpha:channel=channel-alpha:topic=topic-alpha',
+  );
+  assert.deepEqual(store.get(root.createTopicBindingKey(snapshot.key)), snapshot);
+});
+
+test('dist commands barrel and root export command and Telegram UI descriptor helpers', () => {
+  for (const exportName of expectedCommandRuntimeExports) {
+    assert.equal(exportName in commands, true, `missing commands export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root command export ${exportName}`);
+  }
+
+  const command = root.createCommandDescriptor({
+    name: '/Start',
+    title: 'Start session',
+    aliases: ['begin'],
+  });
+  const commandSet = commands.createCommandDescriptorSet({
+    commands: [command],
+    defaultCommandName: 'start',
+  });
+  const textBlock = root.createTelegramTextBlock({ text: 'Ready', tone: 'strong' });
+  const button = commands.createTelegramActionButtonDescriptor({
+    label: 'Approve',
+    payload: 'token:approve',
+    style: 'primary',
+  });
+  const card = root.createTelegramCardDescriptor({
+    title: 'Action required',
+    intent: 'action-request',
+    body: [textBlock],
+    buttonGroups: [commands.createTelegramButtonGroupDescriptor({ buttons: [button] })],
+  });
+  const foundCommand = root.findCommandDescriptor(commandSet, '/begin');
+
+  assert.equal(command.name, 'start');
+  assert.equal(root.isCommandDescriptor(command), true);
+  assert.equal(foundCommand?.name, command.name);
+  assert.equal(button.payload, 'hz:token:approve');
+  assert.equal(root.isTelegramCardDescriptor(card), true);
+});
+
+test('dist mapping barrel and root export Wave 4 inbound mapper shell helpers', () => {
+  for (const exportName of expectedMappingRuntimeExports) {
+    assert.equal(exportName in mapping, true, `missing mapping export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root mapping export ${exportName}`);
+  }
+
+  assert.equal(
+    root.getInboundMappingRawDebugRef({ rawDebugRef: 'raw-debug:w4-fanin' }),
+    'raw-debug:w4-fanin',
+  );
+});
+
+test('dist rendering barrel and root export Wave 4 Telegram renderer shell helpers', () => {
+  for (const exportName of expectedRenderingRuntimeExports) {
+    assert.equal(exportName in rendering, true, `missing rendering export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root rendering export ${exportName}`);
+  }
+
+  const fragment = root.renderSafePresentationLike({ title: 'Wave 4 ready' });
+
+  assert.equal(fragment.kind, 'telegram-render-fragment');
+  assert.equal(fragment.content.text, 'Wave 4 ready');
+  assert.equal(root.isTelegramRenderFragment(fragment), true);
+});
+
+test('dist host barrel and root export Wave 4 core host factory shell helpers', () => {
+  for (const exportName of expectedHostRuntimeExports) {
+    assert.equal(exportName in host, true, `missing host export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root host export ${exportName}`);
+  }
+
+  const result = root.createAdapterCoreHostFactory();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.value.metadata.corePackageName, 'hazeteam-core');
+  assert.deepEqual(
+    host.getMissingRequiredAdapterCoreHostPorts({ agentControlHost: Object.freeze({}) }),
+    ['sessionBindingStore', 'presentationOutboxStore', 'presentationActionTokenStore'],
+  );
+});
+
+test('dist permissions barrel and root export Wave 4 permission evaluator shell helpers', () => {
+  for (const exportName of expectedPermissionRuntimeExports) {
+    assert.equal(exportName in permissions, true, `missing permissions export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root permissions export ${exportName}`);
+  }
+
+  const requirement = Object.freeze({
+    action: 'admin-topic-binding',
+    resourceKind: 'workspace',
+  });
+  const grant = Object.freeze({
+    requirement: Object.freeze({
+      action: 'admin-topic-binding',
+      resourceKind: 'workspace',
+      actorRef: 'actor:admin',
+      workspaceRef: 'workspace:acme',
+    }),
+  });
+  const decision = root.evaluateOpenClawTelegramPermission({
+    requirement,
+    actor: Object.freeze({ actorRef: 'actor:admin', trust: 'trusted' }),
+    context: Object.freeze({ workspaceRef: 'workspace:acme' }),
+    grants: [grant],
+  });
+
+  assert.equal(decision.status, 'allowed');
+  assert.equal(root.permissionGrantMatchesRequirement(grant, decision.requirement), true);
+  assert.equal(root.PERMISSION_BEFORE_TOKEN_CONSUME_RULE.action, 'consume-callback');
+});
+
+test('dist delivery barrel and root export Wave 5 delivery pump helpers', () => {
+  for (const exportName of expectedDeliveryRuntimeExports) {
+    assert.equal(exportName in delivery, true, `missing delivery export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root delivery export ${exportName}`);
+  }
+
+  const request = root.createTelegramDeliveryPumpRequest({
+    deliveryRef: 'operation:w5-delivery',
+    target: telegramDeliveryTarget,
+    content: { format: 'plain', text: 'Wave 5 delivery ready' },
+    correlationRef: 'correlation:w5-delivery',
+  });
+  const pump = delivery.createTelegramDeliveryPump({
+    sink: Object.freeze({
+      submit(deliveryRequest) {
+        return Object.freeze({
+          ok: true,
+          deliveryRef: deliveryRequest.deliveryRef,
+          externalMessageRef: Object.freeze({
+            channelId: deliveryRequest.target.channelId,
+            chatId: deliveryRequest.target.chatId,
+            messageThreadId: deliveryRequest.target.messageThreadId,
+            messageId: 'telegram-message:w5-fanin',
+            ...(deliveryRequest.correlationRef === undefined
+              ? {}
+              : { correlationRef: deliveryRequest.correlationRef }),
+          }),
+          ...(deliveryRequest.correlationRef === undefined
+            ? {}
+            : { correlationRef: deliveryRequest.correlationRef }),
+        });
+      },
+    }),
+  });
+  const result = pump.deliver(request);
+
+  assert.equal(request.deliveryRef, 'operation:w5-delivery');
+  assert.equal(request.content.text, 'Wave 5 delivery ready');
+  assert.equal(result.ok, true);
+  assert.equal(result.value.kind, 'delivered');
+  assert.equal(result.value.externalMessageRef.messageId, 'telegram-message:w5-fanin');
+});
+
+test('dist callbacks barrel and root export Wave 5 callback token flow helpers', () => {
+  for (const exportName of expectedCallbackRuntimeExports) {
+    assert.equal(exportName in callbacks, true, `missing callbacks export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root callbacks export ${exportName}`);
+  }
+
+  const parsed = root.parseOpenClawTelegramCallbackPayload('hz:token:approve-1');
+
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.value.kind, 'openclaw-telegram-callback-payload');
+  assert.equal(parsed.value.tokenRef, 'token:approve-1');
+});
+
+test('dist runtime barrel and root export Wave 5 runtime bridge helpers', () => {
+  for (const exportName of expectedRuntimeBridgeRuntimeExports) {
+    assert.equal(exportName in runtime, true, `missing runtime export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root runtime export ${exportName}`);
+  }
+
+  const missingRuntimeReadiness = runtime.summarizeOpenClawRuntimeBridgeReadiness();
+  const bridge = root.createOpenClawRuntimeBridge();
+
+  assert.equal(missingRuntimeReadiness.status, 'not-ready');
+  assert.equal(missingRuntimeReadiness.checks[0].component, 'runtime');
+  assert.equal(bridge.getReadiness().status, 'not-ready');
+});
+
+test('dist approvals barrel and root export Wave 5 approval bridge helpers', () => {
+  for (const exportName of expectedApprovalRuntimeExports) {
+    assert.equal(exportName in approvals, true, `missing approvals export ${exportName}`);
+    assert.equal(exportName in root, true, `missing root approvals export ${exportName}`);
+  }
+
+  const request = approvals.createApprovalBridgeRequest({
+    approvalRef: 'approval:w5-fanin',
+    title: 'Approve Wave 5 fan-in',
+    message: 'Safe approval bridge request.',
+    approveTokenRef: 'token:approve-w5',
+    rejectTokenRef: 'token:reject-w5',
+  });
+  const decision = root.createApprovalBridgeDecision({
+    approvalRef: 'approval:w5-fanin',
+    status: 'approved',
+    reason: 'Approved in static-free smoke.',
+  });
+  const requirement = approvals.createApprovalBridgePermissionRequirement({
+    approvalRef: 'approval:w5-fanin',
+  });
+
+  assert.equal(request.kind, 'openclaw-approval-request');
+  assert.equal(request.approvePayload, 'hz:token:approve-w5');
+  assert.equal(root.isApprovalBridgeRequest(request), true);
+  assert.equal(decision.kind, 'openclaw-approval-decision');
+  assert.equal(decision.status, 'approved');
+  assert.equal(root.isApprovalBridgeDecision(decision), true);
+  assert.equal(requirement.action, 'resolve-approval');
+  assert.equal(requirement.resourceKind, 'approval');
+});
+
+test('dist storage barrels and root export Wave 7 durable storage helpers', async () => {
   assertExports(storage, expectedStorageRuntimeExports, 'storage');
   assertExports(storageTopicBinding, [
+    'cloneDurableTopicBindingRecord',
     'createDurableTopicBindingRecord',
     'createDurableTopicBindingRecordKey',
     'createDurableTopicBindingStore',
     'durableTopicBindingRecordToSnapshot',
     'normalizeDurableTopicBindingRecord',
-    'cloneDurableTopicBindingRecord',
   ], 'storage/topic-binding');
   assertExports(storageIdempotency, ['createDurableIdempotencyStore'], 'storage/idempotency');
   assertExports(storageCallbacks, ['createDurableCallbackTokenStore'], 'storage/callbacks');
@@ -240,16 +520,14 @@ test('storage dist barrel and subpath barrels expose W7 durable store factories'
     'createDurableCoreStoreAdapterBundle',
     'summarizeDurableCoreStoreReadiness',
   ], 'storage/core');
-});
 
-test('representative storage smoke calls work through root and storage barrels', async () => {
   const snapshot = root.createTopicBindingSnapshot({
-    key: { workspaceId: 'workspace-alpha', channelId: 'channel-alpha', topicId: 'topic-alpha' },
+    key: { workspaceId: 'workspace-storage', channelId: 'channel-storage', topicId: 'topic-storage' },
     status: 'active',
-    agentId: 'agent-alpha',
-    sessionId: 'session-alpha',
-    createdAtIso: '2026-01-01T00:00:00.000Z',
-    updatedAtIso: '2026-01-01T00:00:00.000Z',
+    agentId: 'agent-storage',
+    sessionId: 'session-storage',
+    createdAtIso: '2026-06-24T00:00:00.000Z',
+    updatedAtIso: '2026-06-24T00:01:00.000Z',
   });
   const topicStore = storage.createDurableTopicBindingStore({ records: createTopicPort() });
   topicStore.upsert(snapshot);
@@ -266,14 +544,11 @@ test('representative storage smoke calls work through root and storage barrels',
     list: () => [...idempotencyRecords.values()],
   }));
   const reserved = await idempotencyStore.reserve({
-    key: root.createCallbackIdempotencyKey({ channelId: 'ch', chatId: '1', callbackId: 'cb' }),
-    firstSeenAt: '2026-01-01T00:00:00.000Z',
+    key: root.createCallbackIdempotencyKey({ channelId: 'channel-storage', chatId: 'chat-storage', callbackId: 'callback-storage' }),
+    firstSeenAt: '2026-06-24T00:02:00.000Z',
   });
   assert.equal(reserved.ok, true);
   assert.equal(reserved.value.kind, 'reserved');
-
-  assert.equal(typeof storageCallbacks.createDurableCallbackTokenStore, 'function');
-  assert.equal(typeof storageDelivery.createDurableDeliveryStore, 'function');
 
   const bundle = root.createDurableCoreStoreAdapterBundle({
     boundaries: {
