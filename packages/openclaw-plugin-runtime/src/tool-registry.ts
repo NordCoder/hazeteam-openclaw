@@ -256,7 +256,7 @@ function validatePublicData(value: unknown, depth = 0): OpenClawToolRegistryReje
 }
 
 export function isSafeOpenClawToolRef(toolRef: string): boolean {
-  return TOOL_REF_PATTERN.test(toolRef) && !containsUnsafePublicText(toolRef);
+  return typeof toolRef === 'string' && TOOL_REF_PATTERN.test(toolRef) && !containsUnsafePublicText(toolRef);
 }
 
 function categoryMatchesToolRef(category: OpenClawToolCategory, toolRef: string): boolean {
@@ -385,7 +385,7 @@ export function validateOpenClawToolDescriptor(
     return rejected('invalid_descriptor');
   }
 
-  return ok(freezeToolDescriptor(descriptor));
+  return ok(freezeToolDescriptor(descriptor as unknown as OpenClawToolDescriptor));
 }
 
 function cloneSchemaBoundary(value: OpenClawToolSchemaBoundaryDescriptor): OpenClawToolSchemaBoundaryDescriptor {
@@ -460,7 +460,9 @@ export function createOpenClawToolRegistry(options?: {
   readonly defaultAvailability?: OpenClawToolAvailabilityPosture;
 }): OpenClawToolRegistry {
   const registered = new Map<string, OpenClawToolDescriptor>();
-  const defaultAvailability = options?.defaultAvailability ?? 'not-ready';
+  const defaultAvailability = isOneOf(options?.defaultAvailability, TOOL_AVAILABILITY_POSTURES)
+    ? options.defaultAvailability
+    : 'not-ready';
 
   function registerToolDescriptor(descriptor: unknown): OpenClawToolRegistryResult<OpenClawToolDescriptor> {
     const validated = validateOpenClawToolDescriptor(descriptor);
