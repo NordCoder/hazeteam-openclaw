@@ -498,7 +498,7 @@ function normalizeExternalMessageRef(input: {
     chatId: input.chatId,
     messageThreadId: input.threadId,
     messageId: input.messageId,
-  });
+  }) as OpenClawTelegramExternalMessageRef;
 }
 
 function normalizeAttachment(candidate: unknown): OpenClawTelegramAttachmentRef {
@@ -531,7 +531,7 @@ function normalizeAttachment(candidate: unknown): OpenClawTelegramAttachmentRef 
     ...(mimeType === undefined ? {} : { mimeType }),
     ...(sizeBytes === undefined ? {} : { sizeBytes }),
     ...(detailsRef === undefined ? {} : { detailsRef }),
-  });
+  }) as OpenClawTelegramAttachmentRef;
 }
 
 function normalizeAttachments(messageRecord: PlainRecord | undefined): readonly OpenClawTelegramAttachmentRef[] | undefined {
@@ -574,12 +574,12 @@ function createBaseEventFields(record: PlainRecord): Omit<OpenClawTelegramChanne
     MAX_SAFE_DISPLAY_LENGTH,
     'thread.topicName',
   );
-  const topicRef: TelegramForumTopicRef = Object.freeze({
+  const topicRef = Object.freeze({
     channelId,
     chatId,
     messageThreadId: threadId,
     ...(topicName === undefined ? {} : { topicName }),
-  });
+  }) as TelegramForumTopicRef;
 
   return Object.freeze({
     operationRef,
@@ -594,7 +594,7 @@ function createBaseEventFields(record: PlainRecord): Omit<OpenClawTelegramChanne
     ...(receivedAt === undefined ? {} : { receivedAt }),
     ...(detailsRef === undefined ? {} : { detailsRef }),
     ...(rawDebugRef === undefined ? {} : { rawDebugRef }),
-  });
+  }) as Omit<OpenClawTelegramChannelEvent, 'eventKind'>;
 }
 
 function normalizeMessageEvent(record: PlainRecord): OpenClawTelegramMessageEvent {
@@ -621,7 +621,7 @@ function normalizeMessageEvent(record: PlainRecord): OpenClawTelegramMessageEven
     }),
     ...(text === undefined ? {} : { text }),
     ...(attachments === undefined ? {} : { attachments }),
-  });
+  }) as OpenClawTelegramMessageEvent;
 }
 
 function normalizeCallbackEvent(record: PlainRecord): OpenClawTelegramCallbackEvent {
@@ -645,7 +645,7 @@ function normalizeCallbackEvent(record: PlainRecord): OpenClawTelegramCallbackEv
     callbackId: normalizeCallbackId(record, callbackRecord),
     callbackPayload: normalizeCallbackPayload(record, callbackRecord),
     ...(externalMessageRef === undefined ? {} : { externalMessageRef }),
-  });
+  }) as OpenClawTelegramCallbackEvent;
 }
 
 function normalizeSystemEvent(record: PlainRecord): OpenClawTelegramSystemEvent {
@@ -670,7 +670,7 @@ function normalizeSystemEvent(record: PlainRecord): OpenClawTelegramSystemEvent 
       getFirstField(systemRecord, ['kind', 'systemEventKind']) ?? getFirstField(record, ['systemEventKind']),
     ),
     ...(externalMessageRef === undefined ? {} : { externalMessageRef }),
-  });
+  }) as OpenClawTelegramSystemEvent;
 }
 
 function toMappingInput(event: OpenClawTelegramChannelEvent): OpenClawInboundMappingInput {
