@@ -2,9 +2,11 @@
 
 ## Status
 
-W12A establishes a planning and static-boundary foundation for later W12 core-integration proof work. It does not implement real core execution tests, real OpenClaw SDK wiring, real Telegram transport, callback endpoints, durable infrastructure, or production runtime behavior.
+W12 is an integration-proof baseline only when `hazeteam-openclaw` installs a locally packed `hazeteam-core` tarball built from the pinned core ref and the W12 integration command passes.
 
-Later W12 phases must use this document together with the contract pack and the pinned `hazeteam-core` ref before adding executable core integration proof.
+W12A establishes the pinned core ref and public import policy. W12B, W12C, and W12D add executable real-core proof targets. W12E wires the root package script and cross-repo GitHub Actions strategy that run those targets against the locally packed pinned core package.
+
+This W12 posture does not implement or certify real OpenClaw SDK wiring, real Telegram transport, callback endpoints, durable infrastructure, sidecar support, credential loading, or production runtime behavior.
 
 ## Pinned core repository
 
@@ -42,7 +44,7 @@ The following public package entrypoints were inspected from `NordCoder/hazeteam
 - `hazeteam-core/composition` — deterministic vertical MVP composition reference surface.
 - `hazeteam-core/host` — adapter-facing `createCoreInteractionHost`, session binding, host inbound action, port inventory/readiness, and facade contracts.
 
-W12B, W12C, and W12D should normally focus on the adapter-facing subset: `hazeteam-core/host`, `hazeteam-core/presentation`, `hazeteam-core/foundation`, `hazeteam-core/adapters`, and `hazeteam-core/testing` when test utilities are intentionally exported and appropriate for test-only proof.
+W12B, W12C, and W12D focus on the adapter-facing subset: `hazeteam-core/host`, `hazeteam-core/presentation`, `hazeteam-core/foundation`, `hazeteam-core/adapters`, and `hazeteam-core/testing` when test utilities are intentionally exported and appropriate for test-only proof.
 
 ## Public import policy
 
@@ -79,65 +81,85 @@ Forbidden categories:
 - Copied `hazeteam-core` source files in this repository.
 - Any workaround that treats repository layout as adapter-facing API.
 
-If a later W12 phase needs a symbol not reachable from a declared public export, it must report a core API gap or use a public alternative. It must not import private implementation files.
+If a W12 or later phase needs a symbol not reachable from a declared public export, it must report a core API gap or use a public alternative. It must not import private implementation files.
 
 ## Local and CI proof strategy
 
-The preferred W12 local and CI strategy is:
+The W12 local and CI strategy is:
 
 1. Check out `hazeteam-openclaw`.
 2. Check out `hazeteam-core` at `8eb7a3b3675a0779763067a1022cce75e63d1226`.
 3. Install and build `hazeteam-core`.
 4. Pack `hazeteam-core` locally with npm packing.
 5. Install the generated tarball into the `hazeteam-openclaw` test environment without publishing to npm.
-6. Run integration tests against public exports only.
+6. Build `hazeteam-openclaw`.
+7. Run static boundary tests and the W12 integration tests against public exports only.
 
-This strategy treats core as a pinned external package source. Local path or link use may be useful for exploratory debugging, but it must not become the release-gate proof. W12A does not add package dependencies, lockfiles, CI workflows, or executable cross-repo tests.
+This strategy treats core as a pinned external package source. Local path or link use may be useful for exploratory debugging, but it must not become the release-gate proof.
 
-## Current W12A status
+W12E wires this strategy through:
 
-W12A provides only:
+- root script `npm run test:core-integration`;
+- GitHub Actions workflow `.github/workflows/w12-core-integration.yml`.
+
+The package script assumes the pinned core package has already been installed into the test environment as a local packed tarball. The workflow performs that checkout, build, pack, install, static test, and integration test sequence.
+
+## W12 proof targets
+
+### W12A public import policy and static boundary
+
+W12A provides:
 
 - this pinned core ref and public import policy document;
 - a static no-private-core-import guard for current and future OpenClaw production and test code;
 - conservative README/current-state pointers so later W12 workers can find this policy.
 
-W12A does not prove real core host composition or adapter-to-core behavior. It is not an integration-proof release state by itself.
+W12A does not prove real core host composition or adapter-to-core behavior by itself.
 
-## Current W12B status
+### W12B real core host composition
 
 W12B adds `tests/integration/w12b-real-core-host-composition.test.mjs` as the first executable real-core host composition proof target.
 
 The test constructs the real public `createCoreInteractionHost` facade through `hazeteam-core/host`, injects fake or in-memory required ports through public core contracts, asserts the documented facade method inventory, and checks `getPortReadiness` output for JSON-serializable no-leak readiness diagnostics.
 
-This W12B target is intentionally not wired into package scripts or CI in this slice. W12E owns local packed-core installation, cross-repo CI fan-in, and any release-gate status update.
-
-## Current W12C status
+### W12C fake Telegram/OpenClaw inbound flow through real core
 
 W12C adds `tests/integration/w12c-adapter-real-core-fake-telegram-e2e.test.mjs` as a fake Telegram/OpenClaw edge proof through the real public core host facade.
 
 The test maps a deterministic fake Telegram/OpenClaw inbound message through the existing adapter mapper into safe core-facing refs, submits a bounded host action through `submitHostAction`, verifies the public core envelope is JSON-serializable and no-leak safe, then optionally renders and delivers the safe response through existing fake adapter rendering and delivery shells.
 
-This W12C target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, does not add callback token verify/consume proof, and is intentionally not wired into package scripts or CI in this slice. W12D adds the callback-token execution proof target described below. W12E remains future.
+This W12C target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior and does not add a callback endpoint.
 
-## Current W12D status
+### W12D callback token lifecycle through real core
 
 W12D adds `tests/integration/w12d-callback-token-real-core-lifecycle.test.mjs` as a fake OpenClaw/Telegram callback proof through the real public core host facade.
 
 The test constructs the real public `createCoreInteractionHost` facade through `hazeteam-core/host`, issues an action token through `issueActionToken`, maps a fake external callback carrying only an opaque `hz:<tokenRef>` payload into safe verification and consume inputs, checks permission-before-consume ordering at the test boundary, verifies and consumes the token through real core methods, and asserts replay verification/reconsume terminal behavior plus JSON-serializable no-leak public outputs.
 
-This W12D target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, callback HTTP endpoint, polling/webhook/runtime behavior, production durable storage, or release-gate wiring. W12E remains future.
+This W12D target remains fake-edge only. It does not add real Telegram/OpenClaw SDK or network behavior, callback HTTP endpoint, polling/webhook/runtime behavior, production durable storage, or release-gate wiring.
 
-## Future W12 test expectations
+### W12E fan-in script and cross-repo CI strategy
 
-- W12B should create a real core host fake-port composition test through public `hazeteam-core` exports.
-- W12C should prove a fake Telegram/OpenClaw adapter flow through real core semantics and fake delivery/presentation surfaces.
-- W12D adds callback token issue, verify, consume, and replay behavior through real core public semantics.
-- W12E should fan in cross-repo CI/release status only after the execution proof exists and must keep release claims honest.
+W12E wires the W12B, W12C, and W12D targets into the root script and cross-repo CI strategy without changing their behavior.
+
+W12E does not add product/runtime behavior. It does not add a normal npm registry dependency on `hazeteam-core`, does not publish `hazeteam-core`, does not use private core paths, and does not copy core code.
+
+## W12 release-gate status
+
+W12 can be described only as an integration-proof baseline against pinned `hazeteam-core` public APIs with fake adapter edges when all of the following are true:
+
+- `hazeteam-core` is checked out at `8eb7a3b3675a0779763067a1022cce75e63d1226`.
+- The pinned core package is installed into `hazeteam-openclaw` from a locally generated npm tarball.
+- `npm run test:static` passes.
+- `npm run test:core-integration` passes.
+- The W12 core integration workflow passes when available.
+- No private core imports or copied core source are present.
+
+W12 does not certify production runtime.
 
 ## No production runtime claim
 
-This policy does not certify or implement:
+This W12 policy does not certify or implement:
 
 - real OpenClaw SDK/client wiring;
 - real Telegram listener, webhook, callback HTTP endpoint, polling loop, or network delivery;

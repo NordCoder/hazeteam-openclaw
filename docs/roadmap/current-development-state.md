@@ -1,6 +1,6 @@
 # Current development state
 
-This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W11 test/docs/status consistency cleanup over the W10 release-hardened adapter foundation.
+This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation.
 
 ## Repository role
 
@@ -34,11 +34,11 @@ Also read the authoritative `hazeteam-core` adapter authoring docs from `NordCod
 docs/adapter-authoring/README.md
 ```
 
-The local `docs/core-context.md` is a digest, not a replacement for the core docs or the current contract pack. For W12 and later, `docs/development/core-integration.md` records the pinned core ref, inspected public export inventory, and private-import boundary policy that future execution-proof slices must preserve.
+The local `docs/core-context.md` is a digest, not a replacement for the core docs or the current contract pack. For W12 and later, `docs/development/core-integration.md` records the pinned core ref, inspected public export inventory, private-import boundary policy, local packed-core install strategy, and W12 fan-in gate.
 
 ## Completed W10/W11 foundation baseline
 
-The current `main` baseline is the W10 release-hardened adapter foundation with W11 test/docs/status consistency cleanup. At a high level, it includes:
+The foundation baseline includes:
 
 - workspace and package foundation;
 - shared safe adapter contracts, refs, result envelopes, readiness summaries, and DTO boundaries;
@@ -61,7 +61,7 @@ The completed cleanup gate is:
 W11 — Test and Documentation Consistency
 ```
 
-W11 made the W10 foundation more honest and ready for the next core integration work. It removed stale status language, ensured acceptance tests are represented in the official check gate, refreshed package status metadata from skeleton to foundation semantics, and removed or narrowed obsolete historical phase-scope static checks while preserving meaningful safety boundaries.
+W11 made the W10 foundation more honest and ready for core integration work. It removed stale status language, ensured acceptance tests are represented in the official check gate, refreshed package status metadata from skeleton to foundation semantics, and removed or narrowed obsolete historical phase-scope static checks while preserving meaningful safety boundaries.
 
 W11 did not add real OpenClaw, Telegram, OCA, database, queue, scheduler, sidecar, or product runtime behavior.
 
@@ -76,27 +76,25 @@ At the wave level, the completed cleanup areas are:
 
 Use the assigned prompt and contract pack as the source of truth for each future slice. Do not borrow files or implementation assumptions from sibling branches unless the Orchestrator explicitly makes a phase stacked.
 
-## Current W12 setup
+## Current W12 integration-proof baseline
+
+The current `main` after W12E is intended to be a W12 integration-proof baseline against pinned `hazeteam-core` public APIs with fake adapter edges.
 
 W12A establishes the core ref/import policy and static boundary foundation in `docs/development/core-integration.md` and `tests/static/w12-core-public-import-boundary.test.mjs`.
 
-This setup records the pinned `NordCoder/hazeteam-core` ref, public export inventory, local pack/install strategy, and no-private-core-import guard. It does not complete the W12 execution proof by itself.
+W12B adds the real public core host composition proof target. W12C adds the fake Telegram/OpenClaw inbound adapter flow through the real public core host facade and fake delivery/presentation surfaces. W12D adds the fake callback token issue, verify, consume, and replay proof target through the real public core host facade.
 
-W12B adds the real public core host composition proof target. W12C adds the fake Telegram/OpenClaw inbound adapter flow through the real public core host facade and fake delivery/presentation surfaces. W12D adds the fake callback token issue, verify, consume, and replay proof target through the real public core host facade. W12E cross-repo CI fan-in remains future or pending until its branch wires and proves the corresponding release gate.
+W12E is the fan-in that wires the script and cross-repo CI strategy. The root script `npm run test:core-integration` runs the W12B, W12C, and W12D integration targets. The W12 core integration workflow checks out `NordCoder/hazeteam-core` at `8eb7a3b3675a0779763067a1022cce75e63d1226`, builds it, packs it locally, installs the tarball into `hazeteam-openclaw`, and runs the static and W12 integration gates.
 
-## Next major implementation proof
+The W12 proof remains fake-edge and real-core-public-API only. W12 does not add real OpenClaw SDK/client behavior, real Telegram listener, webhook, polling loop, callback endpoint, network delivery, database, cache, queue, scheduler, sidecar, credential loading, or product runtime behavior.
 
-The next major implementation proof is:
+## Next major implementation direction
 
-```text
-W12 — Core Integration Proof
-```
+The next major implementation direction after W12 should remain contract-led and explicit about readiness level.
 
-W12 should prove that `hazeteam-openclaw` can integrate with real `hazeteam-core` public exports and public host semantics while still using fake Telegram/OpenClaw edges and fake delivery/runtime ports.
+Future work may move toward OpenClaw plugin runtime, real transport ports, runtime capabilities, or product layers only when a phase prompt explicitly scopes those behaviors, lists allowed files, adds tests, and preserves the `hazeteam-core` transport-neutral boundary.
 
-W12 must use a pinned external `hazeteam-core` package source or equivalent pinned ref strategy. It must not copy core code, import private core files, import core build output internals, or use relative imports into a checked-out core repository as release-gate proof.
-
-The expected W12 claim is integration-proof, not production runtime. W12 may prove real core host composition, fake adapter event flow through real core semantics, presentation outbox lifecycle, callback token verify/consume behavior, and no-leak boundaries. It must not claim real Telegram/OpenClaw/OCA/provider support.
+Do not treat W12 integration proof as permission to add production runtime behavior opportunistically.
 
 ## Preserved limitations
 
@@ -108,7 +106,8 @@ Until explicit future slices implement and test the capability, the current repo
 - no Codex, LifeOS, or other product-layer implementation;
 - no production credential loader;
 - no production HTTP health/readiness endpoint;
-- no production database, cache, queue, scheduler, process supervisor, migration CLI, backup CLI, restore command, or replay runtime.
+- no production database, cache, queue, scheduler, process supervisor, migration CLI, backup CLI, restore command, or replay runtime;
+- no sidecar support.
 
 These limitations must remain visible in docs, release notes, smoke summaries, and worker prompts until source, tests, and an explicit implementation slice prove otherwise.
 

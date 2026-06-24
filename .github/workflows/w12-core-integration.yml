@@ -1,0 +1,83 @@
+name: W12 Core Integration
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - .github/workflows/w12-core-integration.yml
+      - docs/development/core-integration.md
+      - docs/roadmap/current-development-state.md
+      - docs/release/release-checklist.md
+      - docs/release/known-limitations.md
+      - docs/index.md
+      - docs/README.md
+      - tests/integration/w12b-real-core-host-composition.test.mjs
+      - tests/integration/w12c-adapter-real-core-fake-telegram-e2e.test.mjs
+      - tests/integration/w12d-callback-token-real-core-lifecycle.test.mjs
+      - tests/static/w12-core-public-import-boundary.test.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  w12-core-integration:
+    name: Pinned core public API integration proof
+    runs-on: ubuntu-latest
+    env:
+      HAZETEAM_CORE_REPOSITORY: NordCoder/hazeteam-core
+      HAZETEAM_CORE_PINNED_SHA: 8eb7a3b3675a0779763067a1022cce75e63d1226
+    steps:
+      - name: Checkout hazeteam-openclaw
+        uses: actions/checkout@v4
+        with:
+          path: hazeteam-openclaw
+
+      - name: Checkout pinned hazeteam-core
+        uses: actions/checkout@v4
+        with:
+          repository: NordCoder/hazeteam-core
+          ref: ${{ env.HAZETEAM_CORE_PINNED_SHA }}
+          path: hazeteam-core
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install hazeteam-core dependencies
+        working-directory: hazeteam-core
+        run: npm install
+
+      - name: Build hazeteam-core
+        working-directory: hazeteam-core
+        run: npm run build
+
+      - name: Pack hazeteam-core locally
+        id: pack-core
+        working-directory: hazeteam-core
+        run: |
+          core_tarball="$(npm pack --silent)"
+          echo "tarball=$PWD/$core_tarball" >> "$GITHUB_OUTPUT"
+          echo "hazeteam-core ref: $HAZETEAM_CORE_PINNED_SHA"
+          echo "core import mode: local npm pack tarball"
+
+      - name: Install hazeteam-openclaw dependencies
+        working-directory: hazeteam-openclaw
+        run: npm install
+
+      - name: Install local hazeteam-core tarball
+        working-directory: hazeteam-openclaw
+        run: npm install --no-save "${{ steps.pack-core.outputs.tarball }}"
+
+      - name: Build hazeteam-openclaw
+        working-directory: hazeteam-openclaw
+        run: npm run build
+
+      - name: Run static boundary tests
+        working-directory: hazeteam-openclaw
+        run: npm run test:static
+
+      - name: Run W12 core integration tests
+        working-directory: hazeteam-openclaw
+        run: npm run test:core-integration

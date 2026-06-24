@@ -2,16 +2,17 @@
 
 ## Current foundation scope
 
-`hazeteam-openclaw` is an external OpenClaw/Telegram adapter foundation over stable `hazeteam-core`. The current foundation documents safe adapter contracts, fake-first composition, injected boundary shells, durable adapter-owned store shells, OpenClaw-facing integration shells, and the W9 secret-gated smoke posture.
+`hazeteam-openclaw` is an external OpenClaw/Telegram adapter foundation over stable `hazeteam-core`. The current foundation documents safe adapter contracts, fake-first composition, injected boundary shells, durable adapter-owned store shells, OpenClaw-facing integration shells, the W9 secret-gated smoke posture, and W12 integration proof wiring against pinned `hazeteam-core` public APIs with fake adapter edges.
 
-This index is a navigation fan-in for the W10 release-hardening documents and W11 consistency cleanup state. It does not certify a production OpenClaw/Telegram product runtime.
+This index is a navigation fan-in for the W10 release-hardening documents, W11 consistency cleanup state, and W12 core integration status. It does not certify a production OpenClaw/Telegram product runtime.
 
 ## Release-hardening map
 
+- [`docs/development/core-integration.md`](development/core-integration.md) — W12 pinned core ref, public import policy, local packed-core install strategy, script/CI fan-in, and integration-proof status boundary.
 - [`docs/deployment/config-readiness-health-credentials.md`](deployment/config-readiness-health-credentials.md) — configuration assumptions, readiness semantics, health evidence, and credential-handling posture for the current foundation.
 - [`docs/operations/migration-backup-replay.md`](operations/migration-backup-replay.md) — migration, backup, restore, replay, and recovery assumptions around injected durable stores and safe records.
-- [`docs/release/release-checklist.md`](release/release-checklist.md) — pre-release checks, static and acceptance gates, security/no-leak review, and merge/release gates.
-- [`docs/release/known-limitations.md`](release/known-limitations.md) — current limitations, boundary non-goals, future work, and risk notes that must remain visible until implemented by explicit future slices.
+- [`docs/release/release-checklist.md`](release/release-checklist.md) — pre-release checks, static and acceptance gates, W12 core integration release gate, security/no-leak review, and merge/release gates.
+- [`docs/release/known-limitations.md`](release/known-limitations.md) — current limitations, W12 fake-edge integration-proof boundary, future work, and risk notes that must remain visible until implemented by explicit future slices.
 - [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) — conflict-aware implementation roadmap, phase sequence, parallel leaf policy, and fan-in rules.
 
 ## Deployment and credential posture
@@ -19,6 +20,10 @@ This index is a navigation fan-in for the W10 release-hardening documents and W1
 Start with [`docs/deployment/config-readiness-health-credentials.md`](deployment/config-readiness-health-credentials.md) when reviewing how the adapter foundation treats configuration, readiness, health evidence, and credentials.
 
 The current foundation uses injected ports, facades, safe DTOs, safe refs, and safe readiness/result summaries. It does not include a production credential loader, production OpenClaw SDK/client wiring, or a production HTTP health endpoint.
+
+## W12 core integration posture
+
+Use [`docs/development/core-integration.md`](development/core-integration.md) before W12 or later core-integration work. W12 integration-proof status depends on installing a locally packed `hazeteam-core` tarball from the pinned ref and passing the W12 script/CI gate. It is not a real transport, sidecar, credential, durable backend, or production runtime certification.
 
 ## Operations and recovery posture
 
@@ -28,7 +33,7 @@ The current foundation defines safe record shapes and validation expectations be
 
 ## Release checklist and limitations
 
-Use [`docs/release/release-checklist.md`](release/release-checklist.md) before release review to confirm build/test/check posture, static and acceptance gates, no-leak requirements, and merge/release gates.
+Use [`docs/release/release-checklist.md`](release/release-checklist.md) before release review to confirm build/test/check posture, static and acceptance gates, W12 core integration proof gate, no-leak requirements, and merge/release gates.
 
 Use [`docs/release/known-limitations.md`](release/known-limitations.md) to keep unsupported production capabilities visible. Known limitations must not be removed from release-facing docs until current source, tests, and an explicit implementation slice prove the capability exists.
 
@@ -36,7 +41,7 @@ Use [`docs/release/known-limitations.md`](release/known-limitations.md) to keep 
 
 Use [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) for sequencing, dependency, and fan-in policy.
 
-The following are not included in the current foundation:
+The following are not included in the current foundation or W12 integration proof:
 
 - production OpenClaw SDK/client wiring;
 - production Telegram/OpenClaw network integration;
@@ -44,6 +49,7 @@ The following are not included in the current foundation:
 - production HTTP health/readiness endpoint;
 - packaged migration, backup, restore, or replay tooling;
 - replay runtime or real remote smoke execution;
+- sidecar support;
 - OCA, Codex, LifeOS, or other future product-layer implementations.
 
 Future slices may add those capabilities only when explicitly scoped, implemented in production source, covered by tests, and kept outside `hazeteam-core` transport-neutral boundaries.
