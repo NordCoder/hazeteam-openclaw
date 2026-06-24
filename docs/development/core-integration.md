@@ -104,6 +104,8 @@ W12E wires this strategy through:
 
 The package script assumes the pinned core package has already been installed into the test environment as a local packed tarball. The workflow performs that checkout, build, pack, install, static test, and integration test sequence.
 
+Because `NordCoder/hazeteam-core` is private, the W12 GitHub Actions checkout of the pinned core ref requires the repository or organization secret `HAZETEAM_CORE_READ_TOKEN`. The token should be a fine-grained PAT or GitHub App token with read-only contents access to `NordCoder/hazeteam-core`. The workflow uses the token only to check out the pinned core ref; it still builds and packs core locally and installs the generated tarball into `hazeteam-openclaw` without publishing.
+
 ## W12 proof targets
 
 ### W12A public import policy and static boundary
