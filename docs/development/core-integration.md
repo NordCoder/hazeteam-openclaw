@@ -104,6 +104,14 @@ W12A provides only:
 
 W12A does not prove real core host composition or adapter-to-core behavior. It is not an integration-proof release state by itself.
 
+## Current W12B status
+
+W12B adds `tests/integration/w12b-real-core-host-composition.test.mjs` as the first executable real-core host composition proof target.
+
+The test constructs the real public `createCoreInteractionHost` facade through `hazeteam-core/host`, injects fake or in-memory required ports through public core contracts, asserts the documented facade method inventory, and checks `getPortReadiness` output for JSON-serializable no-leak readiness diagnostics.
+
+This W12B target is intentionally not wired into package scripts or CI in this slice. W12E owns local packed-core installation, cross-repo CI fan-in, and any release-gate status update. W12C and W12D remain future phases.
+
 ## Future W12 test expectations
 
 - W12B should create a real core host fake-port composition test through public `hazeteam-core` exports.
