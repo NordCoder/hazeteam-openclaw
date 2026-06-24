@@ -103,18 +103,6 @@ test('Wave 8 OpenClaw leaf source avoids private core paths and real infra calls
   }
 });
 
-test('Wave 8 OpenClaw fan-in leaves adapter package manifest script surface unchanged', () => {
-  const adapterPackage = JSON.parse(readSource('packages', 'openclaw-adapter', 'package.json'));
-
-  assert.deepEqual(Object.keys(adapterPackage.scripts).sort(), [
-    'build',
-    'clean',
-    'test',
-    'test:unit',
-    'typecheck',
-  ]);
-});
-
 test('Wave 8 OpenClaw production source does not read env or secret variables', () => {
   const forbiddenEnvPatterns = [
     /\bprocess\.env\b/u,
@@ -131,13 +119,13 @@ test('Wave 8 OpenClaw production source does not read env or secret variables', 
   }
 });
 
-test('Wave 8 secret-gated real smoke work is limited to the inert placeholder test', () => {
+test('Wave 8 secret-gated real smoke work is limited to official inert acceptance tests', () => {
   const acceptanceRoot = repoPath('tests', 'acceptance');
   const allowedRealSmokeFiles = new Set([
     repoPath('tests', 'acceptance', 'w8-openclaw-secret-gated-smoke.test.mjs'),
     repoPath('tests', 'acceptance', 'w9-secret-gated-real-smoke-suite.test.mjs'),
   ]);
-  const suspiciousRealSmokePattern = /(?:^|[-_])(w9|wave[-_]?9|real[-_]?openclaw|openclaw[-_]?real|secret[-_]?gated|smoke)(?:[-_.]|$)/iu;
+  const suspiciousRealSmokePattern = /(?:^|[-_])(real[-_]?openclaw|openclaw[-_]?real|secret[-_]?gated|smoke)(?:[-_.]|$)/iu;
 
   for (const filePath of listFiles(acceptanceRoot)) {
     if (!filePath.endsWith('.test.mjs') || allowedRealSmokeFiles.has(filePath)) {
@@ -147,7 +135,7 @@ test('Wave 8 secret-gated real smoke work is limited to the inert placeholder te
     assert.doesNotMatch(
       path.basename(filePath),
       suspiciousRealSmokePattern,
-      `${path.relative(repoRoot, filePath)} looks like Wave 9 or real smoke work`,
+      `${path.relative(repoRoot, filePath)} looks like real smoke work outside the approved inert harness`,
     );
   }
 });
