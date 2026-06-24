@@ -18,14 +18,15 @@ Read in this order:
 2. `hazeteam-openclaw-contract-pack-cd10.zip`, especially the contract docs named by the phase prompt.
 3. `docs/index.md`
 4. `docs/README.md`
-5. `docs/core-context.md`
-6. `docs/architecture/adapter-worker-onboarding.md`
-7. `docs/architecture/core-boundary.md`
-8. `docs/architecture/openclaw-telegram-adapter.md`
-9. `docs/architecture/parallel-execution-and-fanin.md`
-10. `docs/roadmap/implementation-waves.md`
-11. `docs/roadmap/file-ownership-matrix.md`
-12. The assigned source and tests.
+5. `docs/development/core-integration.md` for W12 and later core-integration work
+6. `docs/core-context.md`
+7. `docs/architecture/adapter-worker-onboarding.md`
+8. `docs/architecture/core-boundary.md`
+9. `docs/architecture/openclaw-telegram-adapter.md`
+10. `docs/architecture/parallel-execution-and-fanin.md`
+11. `docs/roadmap/implementation-waves.md`
+12. `docs/roadmap/file-ownership-matrix.md`
+13. The assigned source and tests.
 
 Also read the authoritative `hazeteam-core` adapter authoring docs from `NordCoder/hazeteam-core` on the pinned or assigned core ref when a phase touches core integration. Start at:
 
@@ -33,7 +34,7 @@ Also read the authoritative `hazeteam-core` adapter authoring docs from `NordCod
 docs/adapter-authoring/README.md
 ```
 
-The local `docs/core-context.md` is a digest, not a replacement for the core docs or the current contract pack.
+The local `docs/core-context.md` is a digest, not a replacement for the core docs or the current contract pack. For W12 and later, `docs/development/core-integration.md` records the pinned core ref, inspected public export inventory, and private-import boundary policy that future execution-proof slices must preserve.
 
 ## Completed W10/W11 foundation baseline
 
@@ -74,6 +75,12 @@ At the wave level, the completed cleanup areas are:
 - final fan-in consistency after the W11 leaves were manually merged.
 
 Use the assigned prompt and contract pack as the source of truth for each future slice. Do not borrow files or implementation assumptions from sibling branches unless the Orchestrator explicitly makes a phase stacked.
+
+## Current W12 setup
+
+W12A establishes the core ref/import policy and static boundary foundation in `docs/development/core-integration.md` and `tests/static/w12-core-public-import-boundary.test.mjs`.
+
+This setup records the pinned `NordCoder/hazeteam-core` ref, public export inventory, local pack/install strategy, and no-private-core-import guard. It does not complete the W12 execution proof. W12B, W12C, W12D, and W12E remain future or next W12 phases until their branches add and prove the corresponding behavior.
 
 ## Next major implementation proof
 
