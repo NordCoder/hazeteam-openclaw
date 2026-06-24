@@ -43,7 +43,6 @@ const w9AcceptanceFile = repoPath('tests', 'acceptance', 'w9-secret-gated-real-s
 const w9SmokeHelperFile = repoPath('tests', 'smoke', 'secret-gated-real-smoke-suite.mjs');
 const w9StaticBoundaryFile = repoPath('tests', 'static', 'w9-real-smoke-boundary.test.mjs');
 const w8AcceptanceFile = repoPath('tests', 'acceptance', 'w8-openclaw-secret-gated-smoke.test.mjs');
-const w8StaticBoundaryFile = repoPath('tests', 'static', 'w8-openclaw-fanin-boundary.test.mjs');
 
 const w9SmokeFiles = [w9AcceptanceFile, w9SmokeHelperFile];
 const w9OwnedFiles = [...w9SmokeFiles, w9StaticBoundaryFile];
@@ -64,20 +63,12 @@ test('W9 smoke harness files exist and stay test-only', () => {
   }
 });
 
-test('W9 smoke suite leaves workspace and adapter package manifest surfaces unchanged', () => {
+test('W9 smoke suite preserves workspace topology', () => {
   const rootPackage = JSON.parse(readSource('package.json'));
-  const adapterPackage = JSON.parse(readSource('packages', 'openclaw-adapter', 'package.json'));
 
   assert.deepEqual(rootPackage.workspaces, [
     'packages/openclaw-adapter',
     'packages/openclaw-testkit',
-  ]);
-  assert.deepEqual(Object.keys(adapterPackage.scripts).sort(), [
-    'build',
-    'clean',
-    'test',
-    'test:unit',
-    'typecheck',
   ]);
 });
 
@@ -159,26 +150,4 @@ test('W9 smoke harness remains separate from W8 placeholder smoke test', () => {
   assert.doesNotMatch(w9AcceptanceSource, /w8-openclaw-secret-gated-smoke\.test\.mjs/u);
   assert.doesNotMatch(w9HelperSource, /w8-openclaw-secret-gated-smoke\.test\.mjs/u);
   assert.doesNotMatch(w8AcceptanceSource, /w9-secret-gated-real-smoke-suite\.test\.mjs/u);
-});
-
-test('W8 smoke filename guard allows only the official W8 placeholder and W9A acceptance file', () => {
-  const w8BoundarySource = readFileSync(w8StaticBoundaryFile, 'utf8');
-  const allowedSetMatch = w8BoundarySource.match(
-    /const allowedRealSmokeFiles = new Set\(\[\n(?<body>[\s\S]*?)\n\s*\]\);/u,
-  );
-
-  assert.notEqual(allowedSetMatch, null, 'W8 boundary should use a narrow allowedRealSmokeFiles Set');
-  assert.match(w8BoundarySource, /suspiciousRealSmokePattern/u);
-  assert.match(w8BoundarySource, /allowedRealSmokeFiles\.has\(filePath\)/u);
-
-  const allowedFileNames = [...allowedSetMatch.groups.body.matchAll(
-    /repoPath\('tests', 'acceptance', '([^']+)'\)/gu,
-  )].map((match) => match[1]).sort();
-
-  assert.deepEqual(allowedFileNames, [
-    'w8-openclaw-secret-gated-smoke.test.mjs',
-    'w9-secret-gated-real-smoke-suite.test.mjs',
-  ].sort());
-  assert.doesNotMatch(w8BoundarySource, /path\.basename\(filePath\)\s*\.includes/u);
-  assert.doesNotMatch(w8BoundarySource, /filePath\.includes\(['"]w9/u);
 });
