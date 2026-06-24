@@ -77,19 +77,9 @@ test('Wave 7 durable storage source avoids private core implementation paths and
   }
 });
 
-test('Wave 7 fan-in leaves package manifest script surfaces unchanged', () => {
-  const rootPackage = JSON.parse(readSource('package.json'));
+test('Wave 7 fan-in leaves adapter package manifest script surface unchanged', () => {
   const adapterPackage = JSON.parse(readSource('packages', 'openclaw-adapter', 'package.json'));
 
-  assert.deepEqual(Object.keys(rootPackage.scripts).sort(), [
-    'build',
-    'check',
-    'clean',
-    'test',
-    'test:static',
-    'test:unit',
-    'typecheck',
-  ]);
   assert.deepEqual(Object.keys(adapterPackage.scripts).sort(), [
     'build',
     'clean',

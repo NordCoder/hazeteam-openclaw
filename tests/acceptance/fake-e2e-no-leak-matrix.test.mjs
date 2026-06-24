@@ -62,9 +62,9 @@ const refs = Object.freeze({
 });
 
 const telegramTopic = Object.freeze({
-  channelId: 'telegram-channel:workspace-alpha',
-  chatId: 'telegram-chat:chat-alpha',
-  messageThreadId: 'telegram-thread:topic-alpha',
+  channelId: 'telegram-channel-workspace-alpha',
+  chatId: 'telegram-chat-chat-alpha',
+  messageThreadId: 'telegram-thread-topic-alpha',
   topicName: 'Fake E2E Topic',
 });
 
@@ -72,7 +72,7 @@ const externalMessageRef = Object.freeze({
   channelId: telegramTopic.channelId,
   chatId: telegramTopic.chatId,
   messageThreadId: telegramTopic.messageThreadId,
-  messageId: 'telegram-message:inbound-1',
+  messageId: 'telegram-message-inbound-1',
 });
 
 function normalizeForLeakScan(value) {
@@ -224,7 +224,7 @@ function createFakeCoreBoundary(mappedInbound) {
     }),
   });
   const presentation = Object.freeze({
-    intent: 'command-result',
+    intent: 'success',
     title: 'Fake core response',
     body: Object.freeze([
       Object.freeze({ text: `Mapped ${mappedInbound.eventKind} for ${mappedInbound.routing.agentRef}.` }),
@@ -275,9 +275,9 @@ function createFakeCoreBoundary(mappedInbound) {
 
 function createDeliveryTarget(mappedInbound) {
   return Object.freeze({
-    channelId: mappedInbound.routing.telegramTopic.channelId,
-    chatId: mappedInbound.routing.telegramTopic.chatId,
-    messageThreadId: mappedInbound.routing.telegramTopic.messageThreadId,
+    channelId: `telegram-channel:${mappedInbound.routing.telegramTopic.channelId}`,
+    chatId: `telegram-chat:${mappedInbound.routing.telegramTopic.chatId}`,
+    messageThreadId: `telegram-thread:${mappedInbound.routing.telegramTopic.messageThreadId}`,
     workspaceRef: mappedInbound.routing.workspaceRef,
     agentRef: mappedInbound.routing.agentRef,
   });
