@@ -50,7 +50,7 @@ function relativePath(filePath) {
 }
 
 function normalizeSpecifier(specifier) {
-  return specifier.replaceAll('\\', '/');
+  return specifier.split(String.fromCharCode(92)).join('/');
 }
 
 function hasPathSegment(specifier, segment) {
