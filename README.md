@@ -4,7 +4,7 @@
 
 `hazeteam-core` stays transport-neutral and domain-neutral. This repository owns the OpenClaw/Telegram adapter boundary: adapter contracts, normalized events, testkit fakes, topic binding, command/UI descriptors, future event mapping, rendering, delivery, callbacks, runtime and approval bridges, durable adapter stores, future real OpenClaw wiring, and later product layers.
 
-Current status: workspace/package foundation, shared adapter contracts, channel/delivery/readiness/idempotency/permission contracts, Wave 3 testkit fakes, topic binding, and UI/command descriptor primitives are present. The next expected engineering step is fan-in/export consolidation for the already-merged Wave 3 leaves.
+Current status: the W10 release-hardened adapter foundation is present: safe contracts, testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable store shells, OpenClaw integration shells, W9 smoke posture, and W10 docs fan-in. It remains a foundation, not a production OpenClaw/Telegram product runtime.
 
 There is no real OpenClaw SDK wiring, Telegram listener/webhook/callback endpoint, OCA implementation, or LifeOS product implementation yet.
 
