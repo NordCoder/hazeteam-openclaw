@@ -35,6 +35,8 @@ export interface OpenClawPluginRuntimeDescription {
   readonly descriptor: OpenClawPluginRuntimeDescriptor;
 }
 
+export type OpenClawPluginRuntimeSkeletonDescription = OpenClawPluginRuntimeDescription;
+
 export const OPENCLAW_PLUGIN_RUNTIME_PUBLIC_SURFACES = Object.freeze([
   'lifecycle',
   'tool-registry',
