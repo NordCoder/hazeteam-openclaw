@@ -206,8 +206,12 @@ function createIntentContext(event: OpenClawMappedInboundEvent): AdapterOperatio
 function getPermissionRequirement(event: OpenClawMappedInboundEvent): PermissionRequirement | undefined {
   switch (event.eventKind) {
     case 'message':
-    case 'callback':
       return event.permissionRequirement;
+    case 'callback':
+      return Object.freeze({
+        ...event.permissionRequirement,
+        resourceRef: event.dispatch.callbackId,
+      });
     case 'system':
       return undefined;
     default: {
