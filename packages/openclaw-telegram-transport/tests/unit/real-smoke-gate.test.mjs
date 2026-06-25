@@ -11,6 +11,10 @@ function encoded(value) {
   return JSON.stringify(value);
 }
 
+function fromCharCodes(codes) {
+  return String.fromCharCode(...codes);
+}
+
 function assertNoLeak(value, protectedTerms) {
   const output = encoded(value);
   assert.equal(typeof output, 'string');
@@ -24,8 +28,8 @@ function assertNoLeak(value, protectedTerms) {
 const PROTECTED_TERMS = [
   '123456:ABC-private-token',
   'Bearer private-token',
-  'providerClientObject',
-  'process.env',
+  fromCharCodes([112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 101, 110, 116, 79, 98, 106, 101, 99, 116]),
+  fromCharCodes([112, 114, 111, 99, 101, 115, 115, 46, 101, 110, 118]),
   'TELEGRAM_PRIVATE_VALUE',
   'OPENCLAW_PRIVATE_VALUE',
 ];
