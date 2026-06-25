@@ -83,6 +83,8 @@ export interface InboundIdempotencyStore {
   readonly list: () => Promise<AdapterOperationResult<readonly InboundIdempotencyRecord[]>>;
 }
 
+const NO_INBOUND_IDEMPOTENCY_SUPPRESSED_EFFECTS: readonly [] = Object.freeze([]);
+
 function isPlainRecord(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null && !Array.isArray(input);
 }
@@ -265,7 +267,7 @@ export function createInboundIdempotencyStore(
             kind: 'reserved',
             duplicate: false,
             shouldDispatchCommandIntent: true,
-            suppressedEffects: Object.freeze([]),
+            suppressedEffects: NO_INBOUND_IDEMPOTENCY_SUPPRESSED_EFFECTS,
             record: pendingRecord,
           }),
         );
