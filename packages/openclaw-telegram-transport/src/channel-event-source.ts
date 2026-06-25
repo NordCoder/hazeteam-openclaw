@@ -7,11 +7,9 @@ import type {
 } from './config.js';
 
 export const CHANNEL_EVENT_SOURCE_PROVIDERS = Object.freeze(['telegram', 'openclaw'] as const);
-
 export type ChannelEventSourceProvider = (typeof CHANNEL_EVENT_SOURCE_PROVIDERS)[number];
 
 export const CHANNEL_EVENT_KINDS = Object.freeze(['message', 'callback', 'system'] as const);
-
 export type ChannelEventKind = (typeof CHANNEL_EVENT_KINDS)[number];
 
 export const CHANNEL_SYSTEM_EVENT_KINDS = Object.freeze([
@@ -23,11 +21,9 @@ export const CHANNEL_SYSTEM_EVENT_KINDS = Object.freeze([
   'member-left',
   'unknown',
 ] as const);
-
 export type ChannelSystemEventKind = (typeof CHANNEL_SYSTEM_EVENT_KINDS)[number];
 
 export const CHANNEL_EVENT_SOURCE_STATUSES = Object.freeze(['normalized', 'invalid', 'ignored', 'unsupported'] as const);
-
 export type ChannelEventSourceStatus = (typeof CHANNEL_EVENT_SOURCE_STATUSES)[number];
 
 export const CHANNEL_EVENT_SOURCE_REASON_CODES = Object.freeze([
@@ -45,7 +41,6 @@ export const CHANNEL_EVENT_SOURCE_REASON_CODES = Object.freeze([
   'unsafe-topic-title-redacted',
   'topic-title-display-only',
 ] as const);
-
 export type ChannelEventSourceReasonCode = (typeof CHANNEL_EVENT_SOURCE_REASON_CODES)[number];
 
 export type ChannelEventSourceIssueSeverity = 'info' | 'warning' | 'blocked';
@@ -163,6 +158,27 @@ export interface ChannelEventSourceNormalizeResult {
   readonly jsonSerializable: true;
 }
 
+interface NormalizedCommandParts {
+  readonly name: string;
+  readonly args?: string;
+}
+
+interface UnsupportedFieldSummary {
+  readonly unsupportedFieldCount: number;
+  readonly redactedFieldCount: number;
+}
+
+interface ResultInput {
+  readonly ok: boolean;
+  readonly status: ChannelEventSourceStatus;
+  readonly reasonCode: ChannelEventSourceReasonCode;
+  readonly providerKind: ChannelEventSourceProvider;
+  readonly providerDescriptor: TransportProviderConfigDescriptor | undefined;
+  readonly event: SafeChannelEventDto | undefined;
+  readonly providerAck: ChannelEventProviderAckDecision;
+  readonly issues: readonly ChannelEventSourceIssue[];
+}
+
 const SAFE_ID_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,255}$/u;
 const SAFE_COMMAND_PATTERN = /^[a-z][a-z0-9_]{0,31}$/iu;
 const MAX_TEXT_LENGTH = 4096;
@@ -237,12 +253,7 @@ function createIssue(
   componentRef: string,
   summary: string,
 ): ChannelEventSourceIssue {
-  return Object.freeze({
-    code,
-    severity,
-    componentRef,
-    summary,
-  } satisfies ChannelEventSourceIssue);
+  return Object.freeze({ code, severity, componentRef, summary } satisfies ChannelEventSourceIssue);
 }
 
 function hasUnsafeValueText(value: string): boolean {
@@ -267,11 +278,7 @@ function normalizeIdentifier(value: unknown): string | undefined {
     return undefined;
   }
 
-  if (hasUnsafeValueText(normalized)) {
-    return undefined;
-  }
-
-  return normalized;
+  return hasUnsafeValueText(normalized) ? undefined : normalized;
 }
 
 function safeRef(prefix: string, value: unknown): string | undefined {
@@ -280,39 +287,19 @@ function safeRef(prefix: string, value: unknown): string | undefined {
     return undefined;
   }
 
-  if (identifier.startsWith(`${prefix}:`)) {
-    return identifier;
-  }
-
-  return `${prefix}:${identifier}`;
-}
-
-function fallbackRef(prefix: string, suffix: string): string {
-  return `${prefix}:${suffix}`;
+  return identifier.startsWith(`${prefix}:`) ? identifier : `${prefix}:${identifier}`;
 }
 
 function normalizeProvider(value: unknown): ChannelEventSourceProvider | undefined {
-  if (isOneOf(value, CHANNEL_EVENT_SOURCE_PROVIDERS)) {
-    return value;
-  }
-
-  return undefined;
+  return isOneOf(value, CHANNEL_EVENT_SOURCE_PROVIDERS) ? value : undefined;
 }
 
 function normalizeEventKind(value: unknown): ChannelEventKind | undefined {
-  if (isOneOf(value, CHANNEL_EVENT_KINDS)) {
-    return value;
-  }
-
-  return undefined;
+  return isOneOf(value, CHANNEL_EVENT_KINDS) ? value : undefined;
 }
 
 function normalizeSystemKind(value: unknown): ChannelSystemEventKind {
-  if (isOneOf(value, CHANNEL_SYSTEM_EVENT_KINDS)) {
-    return value;
-  }
-
-  return 'unknown';
+  return isOneOf(value, CHANNEL_SYSTEM_EVENT_KINDS) ? value : 'unknown';
 }
 
 function normalizeIsoTimestamp(value: unknown): string | undefined {
@@ -325,11 +312,7 @@ function normalizeIsoTimestamp(value: unknown): string | undefined {
     return undefined;
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(normalized)) {
-    return undefined;
-  }
-
-  return normalized;
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(normalized) ? normalized : undefined;
 }
 
 function projectSafeText(
@@ -382,7 +365,7 @@ function projectDisplayTitle(
   } satisfies ChannelEventTopicDisplayProjection);
 }
 
-function parseCommandParts(value: string): { readonly name: string; readonly args: string | undefined } | undefined {
+function parseCommandParts(value: string): NormalizedCommandParts | undefined {
   const trimmed = value.trim();
   const withoutPrefix = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
   const match = /^(?<name>[a-z][a-z0-9_]{0,31})(?:\s+(?<args>.*))?$/iu.exec(withoutPrefix);
@@ -393,10 +376,11 @@ function parseCommandParts(value: string): { readonly name: string; readonly arg
   }
 
   const args = match.groups?.args?.trim();
-  return Object.freeze({
-    name: name.toLowerCase(),
-    args: args === '' ? undefined : args,
-  });
+  if (args === undefined || args === '') {
+    return Object.freeze({ name: name.toLowerCase() });
+  }
+
+  return Object.freeze({ name: name.toLowerCase(), args });
 }
 
 function projectCommand(
@@ -446,10 +430,7 @@ function deterministicHash(value: string): string {
   return hash.toString(16).padStart(8, '0');
 }
 
-function collectUnsupportedFields(record: Record<string, unknown>, issues: ChannelEventSourceIssue[]): {
-  readonly unsupportedFieldCount: number;
-  readonly redactedFieldCount: number;
-} {
+function collectUnsupportedFields(record: Record<string, unknown>, issues: ChannelEventSourceIssue[]): UnsupportedFieldSummary {
   let unsupportedFieldCount = 0;
   let redactedFieldCount = 0;
 
@@ -511,16 +492,7 @@ function createTransportProjection(
   } satisfies ChannelEventSourceTransportProjection);
 }
 
-function createResult(input: {
-  readonly ok: boolean;
-  readonly status: ChannelEventSourceStatus;
-  readonly reasonCode: ChannelEventSourceReasonCode;
-  readonly providerKind: ChannelEventSourceProvider;
-  readonly providerDescriptor?: TransportProviderConfigDescriptor;
-  readonly event?: SafeChannelEventDto;
-  readonly providerAck: ChannelEventProviderAckDecision;
-  readonly issues: readonly ChannelEventSourceIssue[];
-}): ChannelEventSourceNormalizeResult {
+function createResult(input: ResultInput): ChannelEventSourceNormalizeResult {
   const base = {
     descriptorKind: 'channel-event-source-normalization',
     descriptorVersion: 'w14b',
@@ -541,10 +513,7 @@ function createResult(input: {
     return Object.freeze(base);
   }
 
-  return Object.freeze({
-    ...base,
-    event: input.event,
-  } satisfies ChannelEventSourceNormalizeResult);
+  return Object.freeze({ ...base, event: input.event } satisfies ChannelEventSourceNormalizeResult);
 }
 
 function requiredRef(
@@ -563,7 +532,11 @@ function requiredRef(
 }
 
 function optionalRef(value: unknown, prefix: string, fallback: string): string {
-  return safeRef(prefix, value) ?? fallbackRef(prefix, fallback);
+  return safeRef(prefix, value) ?? `${prefix}:${fallback}`;
+}
+
+function omittedEvent(): undefined {
+  return undefined;
 }
 
 export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormalizeInput): ChannelEventSourceNormalizeResult {
@@ -584,6 +557,8 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       status: 'ignored',
       reasonCode: 'missing-transport-config',
       providerKind,
+      providerDescriptor: undefined,
+      event: omittedEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'missing-transport-config'),
       issues,
     });
@@ -602,6 +577,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'invalid-transport-config',
       providerKind,
       providerDescriptor,
+      event: omittedEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'invalid-transport-config'),
       issues,
     });
@@ -617,6 +593,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'ignored-provider-disabled',
       providerKind,
       providerDescriptor,
+      event: omittedEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'ignored-provider-disabled'),
       issues,
     });
@@ -630,6 +607,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'invalid-provider-input',
       providerKind,
       providerDescriptor,
+      event: omittedEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'invalid-provider-input'),
       issues,
     });
@@ -645,6 +623,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'ignored-event',
       providerKind,
       providerDescriptor,
+      event: omittedEvent(),
       providerAck: createAckDecision(requiresProviderAck, 'ignored-event'),
       issues,
     });
@@ -661,6 +640,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'unsupported-event-kind',
       providerKind,
       providerDescriptor,
+      event: omittedEvent(),
       providerAck: createAckDecision(requiresProviderAck, 'unsupported-event-kind'),
       issues,
     });
@@ -679,6 +659,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'invalid-provider-input',
       providerKind,
       providerDescriptor,
+      event: omittedEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'invalid-provider-input'),
       issues,
     });
