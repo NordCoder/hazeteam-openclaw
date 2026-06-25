@@ -98,7 +98,7 @@ function assertJsonSerializable(value, label) {
   return serialized;
 }
 
-test('composes a mapped slash command into a safe host command intent', () => {
+test('composes a mapped slash command into a canonical safe host-action command intent', () => {
   const mappedEvent = mapEvent(createMessageEvent('/status now'));
   const commandSet = createCommandDescriptorSet({
     commands: [
@@ -119,9 +119,14 @@ test('composes a mapped slash command into a safe host command intent', () => {
   assert.equal(intent.value.kind, 'adapter-command-intent');
   assert.equal(intent.value.source, 'openclaw-adapter-inbound');
   assert.equal(intent.value.sourceEventKind, 'message');
-  assert.equal(intent.value.target, 'core-host-action');
+  assert.equal(intent.value.intentRef, 'operation:w17b1-message');
+  assert.equal(intent.value.operationRef, 'operation:w17b1-message');
+  assert.equal(intent.value.target, 'host-action');
   assert.equal(intent.value.facadeMethod, 'submitHostAction');
   assert.equal(intent.value.actionKind, 'command');
+  assert.equal(intent.value.commandName, 'status');
+  assert.equal(intent.value.commandKind, 'adapter.command');
+  assert.equal(intent.value.text, 'now');
   assert.equal(intent.value.command.commandName, 'status');
   assert.equal(intent.value.command.argumentsText, 'now');
   assert.equal(intent.value.command.descriptor.name, 'status');
@@ -144,7 +149,12 @@ test('composes a mapped plain inbound message without requiring command descript
 
   assert.equal(intent.ok, true, intent.ok ? undefined : intent.error.message);
   assert.equal(intent.value.sourceEventKind, 'message');
+  assert.equal(intent.value.target, 'host-action');
+  assert.equal(intent.value.facadeMethod, 'submitHostAction');
   assert.equal(intent.value.actionKind, 'message');
+  assert.equal(intent.value.commandName, 'message');
+  assert.equal(intent.value.commandKind, 'adapter.message');
+  assert.equal(intent.value.text, 'plain bounded message');
   assert.equal(intent.value.message.text, 'plain bounded message');
   assert.equal(Object.hasOwn(intent.value, 'command'), false);
 });
@@ -175,9 +185,13 @@ test('composes callback action intent without exposing callback payload or token
 
   assert.equal(intent.ok, true, intent.ok ? undefined : intent.error.message);
   assert.equal(intent.value.sourceEventKind, 'callback');
-  assert.equal(intent.value.target, 'adapter-callback-action');
-  assert.equal(intent.value.facadeMethod, 'none');
+  assert.equal(intent.value.intentRef, 'operation:w17b1-callback');
+  assert.equal(intent.value.target, 'user-intent');
+  assert.equal(intent.value.facadeMethod, 'submitUserIntent');
   assert.equal(intent.value.actionKind, 'callback-action');
+  assert.equal(intent.value.commandName, 'callback-action');
+  assert.equal(intent.value.commandKind, 'adapter.callback-action');
+  assert.equal(intent.value.resourceRef, 'w17b1-callback-id');
   assert.equal(intent.value.callback.callbackRef, 'w17b1-callback-id');
   assert.equal(intent.value.callback.permissionRequired, true);
   assert.equal(intent.value.permissionRequirement.action, 'consume-callback');
