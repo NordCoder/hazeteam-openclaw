@@ -189,11 +189,15 @@ export async function resolveApprovalBridgeDecisionWithPermission(
   }
 
   if (!isPermissionAllowed(permission)) {
-    const detailsRef = getPermissionDetailsRef({ permission, decision, detailsRef: input.detailsRef });
+    const detailsRef = getPermissionDetailsRef({
+      permission,
+      decision,
+      ...(input.detailsRef === undefined ? {} : { detailsRef: input.detailsRef }),
+    });
     const correlationRef = getPermissionCorrelationRef({
       permission,
       decision,
-      correlationRef: input.correlationRef,
+      ...(input.correlationRef === undefined ? {} : { correlationRef: input.correlationRef }),
     });
 
     return approvalCompositionFailure({
