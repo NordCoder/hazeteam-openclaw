@@ -236,8 +236,8 @@ export function composeOpenClawRuntime(
 ): OpenClawRuntimeCompositionDescriptor {
   const profile = describeOpenClawRuntimeProfile({
     profile: input.profile,
-    realNetworkGateOpen: input.realNetworkGateOpen,
-    runtimeValueGateOpen: input.runtimeValueGateOpen,
+    ...(input.realNetworkGateOpen === undefined ? {} : { realNetworkGateOpen: input.realNetworkGateOpen }),
+    ...(input.runtimeValueGateOpen === undefined ? {} : { runtimeValueGateOpen: input.runtimeValueGateOpen }),
   });
   const generatedAt = sanitizeText(input.generatedAt ?? DEFAULT_GENERATED_AT, DEFAULT_GENERATED_AT);
   const compositionRef = sanitizeRef(input.compositionRef ?? DEFAULT_COMPOSITION_REF, DEFAULT_COMPOSITION_REF);
