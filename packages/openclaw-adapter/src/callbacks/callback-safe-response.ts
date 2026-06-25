@@ -64,6 +64,9 @@ export type OpenClawTelegramCallbackSafeResponse =
   | OpenClawTelegramCallbackPermissionDeniedResponse
   | OpenClawTelegramCallbackFailedSafeResponse;
 
+const CALLBACK_HANDLE_VALUE_PATTERN = /\b(?:hz:)?token:[A-Za-z0-9._:~-]+\b/gu;
+const RAW_CALLBACK_PAYLOAD_VALUE_PATTERN = /\bhz:token:[A-Za-z0-9._:~-]+\b/gu;
+
 function permissionDetailsRef(permission: PermissionDecision): AdapterDetailsRef | undefined {
   return permission.detailsRef ?? permission.requirement.detailsRef;
 }
@@ -100,10 +103,18 @@ function decisionCorrelationRef(
   );
 }
 
+function normalizeCallbackSafeFailureMessage(message: string): string {
+  return message
+    .replace(RAW_CALLBACK_PAYLOAD_VALUE_PATTERN, '[redacted-callback-handle]')
+    .replace(CALLBACK_HANDLE_VALUE_PATTERN, '[redacted-callback-handle]')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
 function safeFailure(error: AdapterSafeError): OpenClawTelegramCallbackSafeFailure {
   return Object.freeze({
     code: error.code,
-    message: error.message,
+    message: normalizeCallbackSafeFailureMessage(error.message),
     ...(error.retryable === undefined ? {} : { retryable: error.retryable }),
     ...(error.detailsRef === undefined ? {} : { detailsRef: error.detailsRef }),
     ...(error.correlationRef === undefined ? {} : { correlationRef: error.correlationRef }),
