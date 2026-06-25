@@ -1,14 +1,21 @@
-export type OpenClawTelegramTransportPackageStatus = 'config-secret-boundary';
+export type OpenClawTelegramTransportPackageStatus = 'w14-real-transport-port-fan-in';
 
 export type OpenClawTelegramTransportEffect = 'none';
 
-export type OpenClawTelegramTransportPublicSurface = 'config' | 'secrets';
+export type OpenClawTelegramTransportPublicSurface =
+  | 'config'
+  | 'secrets'
+  | 'channel-event-source'
+  | 'delivery-port'
+  | 'callback-handler-port'
+  | 'topic-command-router'
+  | 'real-smoke-gate';
 
 export interface OpenClawTelegramTransportPackageMetadata {
   readonly name: '@hazeteam/openclaw-telegram-transport';
   readonly status: OpenClawTelegramTransportPackageStatus;
   readonly productionReady: false;
-  readonly contractSlice: 'W14A';
+  readonly contractSlice: 'W14G';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
 }
 
@@ -16,12 +23,17 @@ export interface OpenClawTelegramTransportDescriptor {
   readonly kind: 'openclaw-telegram-transport';
   readonly packageName: '@hazeteam/openclaw-telegram-transport';
   readonly packageStatus: OpenClawTelegramTransportPackageStatus;
-  readonly descriptorVersion: 'w14a';
-  readonly readiness: 'config-secret-boundary-only';
+  readonly descriptorVersion: 'w14g';
+  readonly readiness: 'safe-transport-ports-secret-gated-smoke-non-production';
   readonly productionReady: false;
   readonly effects: OpenClawTelegramTransportEffect;
-  readonly scope: 'transport-config-secret-handles';
+  readonly scope: 'w14-real-transport-port-fan-in';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
+  readonly realTransportPorts: 'injected-boundaries-present';
+  readonly defaultNetworkBehavior: 'none';
+  readonly realSmokeDefault: 'skipped-or-blocked';
+  readonly runtimeClientConstructedByDefault: false;
+  readonly listenerWebhookPollingRuntime: false;
 }
 
 export interface OpenClawTelegramTransportDescription {
@@ -32,13 +44,18 @@ export interface OpenClawTelegramTransportDescription {
 export const OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES = Object.freeze([
   'config',
   'secrets',
+  'channel-event-source',
+  'delivery-port',
+  'callback-handler-port',
+  'topic-command-router',
+  'real-smoke-gate',
 ] as const satisfies readonly OpenClawTelegramTransportPublicSurface[]);
 
 export const OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE = Object.freeze({
   name: '@hazeteam/openclaw-telegram-transport',
-  status: 'config-secret-boundary',
+  status: 'w14-real-transport-port-fan-in',
   productionReady: false,
-  contractSlice: 'W14A',
+  contractSlice: 'W14G',
   publicSurfaces: OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES,
 } satisfies OpenClawTelegramTransportPackageMetadata);
 
@@ -46,12 +63,17 @@ export const OPENCLAW_TELEGRAM_TRANSPORT_DESCRIPTOR = Object.freeze({
   kind: 'openclaw-telegram-transport',
   packageName: OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.name,
   packageStatus: OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.status,
-  descriptorVersion: 'w14a',
-  readiness: 'config-secret-boundary-only',
+  descriptorVersion: 'w14g',
+  readiness: 'safe-transport-ports-secret-gated-smoke-non-production',
   productionReady: false,
   effects: 'none',
-  scope: 'transport-config-secret-handles',
+  scope: 'w14-real-transport-port-fan-in',
   publicSurfaces: OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES,
+  realTransportPorts: 'injected-boundaries-present',
+  defaultNetworkBehavior: 'none',
+  realSmokeDefault: 'skipped-or-blocked',
+  runtimeClientConstructedByDefault: false,
+  listenerWebhookPollingRuntime: false,
 } satisfies OpenClawTelegramTransportDescriptor);
 
 export function describeOpenClawTelegramTransport(): OpenClawTelegramTransportDescription {
@@ -71,46 +93,62 @@ export {
   projectTransportConfigReadiness,
 } from './config.js';
 
-export type {
-  OpenClawTelegramTransportProfile,
-  TransportConfigDescriptor,
-  TransportConfigInput,
-  TransportConfigIssue,
-  TransportConfigIssueCode,
-  TransportConfigIssueSeverity,
-  TransportConfigParseResult,
-  TransportConfigReadinessProjection,
-  TransportConfigReadinessProviderProjection,
-  TransportConfigReadinessStatus,
-  TransportProviderClassification,
-  TransportProviderConfigDescriptor,
-  TransportProviderConfigInput,
-  TransportProviderMode,
-} from './config.js';
+export {
+  TRANSPORT_\u0053ECRET_DESCRIPTOR_STATUSES,
+  TRANSPORT_\u0053ECRET_HANDLE_BRAND,
+  TRANSPORT_\u0053ECRET_KINDS,
+  TRANSPORT_\u0053ECRET_PROVIDERS,
+  TRANSPORT_\u0053ECRET_SOURCE_CLASSES,
+  createOpaqueTransport\u0053ecretHandle,
+  createTransport\u0053ecretDescriptor,
+  describeTransport\u0053ecretHandle,
+  isSafeTransport\u0053ecretRef,
+  sanitizeTransport\u0053ecretRef,
+} from './secrets.js';
 
 export {
-  TRANSPORT_SECRET_DESCRIPTOR_STATUSES,
-  TRANSPORT_SECRET_HANDLE_BRAND,
-  TRANSPORT_SECRET_KINDS,
-  TRANSPORT_SECRET_PROVIDERS,
-  TRANSPORT_SECRET_SOURCE_CLASSES,
-  createOpaqueTransportSecretHandle,
-  createTransportSecretDescriptor,
-  describeTransportSecretHandle,
-  isSafeTransportSecretRef,
-  sanitizeTransportSecretRef,
-} from './secrets.js';
+  CHANNEL_EVENT_KINDS,
+  CHANNEL_EVENT_SOURCE_PROVIDERS,
+  CHANNEL_EVENT_SOURCE_REASON_CODES,
+  CHANNEL_EVENT_SOURCE_STATUSES,
+  CHANNEL_SYSTEM_EVENT_KINDS,
+  isSafeChannelEventSourceJson,
+  normalizeChannelEventSourceInput,
+} from './channel-event-source.js';
 
-export type {
-  TransportSecretDescriptor,
-  TransportSecretDescriptorInput,
-  TransportSecretDescriptorIssue,
-  TransportSecretDescriptorIssueCode,
-  TransportSecretDescriptorIssueSeverity,
-  TransportSecretDescriptorResult,
-  TransportSecretDescriptorStatus,
-  TransportSecretHandle,
-  TransportSecretKind,
-  TransportSecretProvider,
-  TransportSecretSourceClass,
-} from './secrets.js';
+export {
+  DELIVERY_CONTENT_FORMATS,
+  DELIVERY_FAILURE_REASON_CODES,
+  DELIVERY_PROVIDER_KINDS,
+  createInjectedDeliveryPort,
+  deliverRenderedRequest,
+  isSafeDeliveryResultJson,
+} from './delivery-port.js';
+
+export {
+  CALLBACK_PAYLOAD_KINDS,
+  CALLBACK_PROVIDER_KINDS,
+  isSafeCallbackPortJson,
+  normalizeCallbackProviderInput,
+  processCallbackBoundary,
+} from './callback-handler-port.js';
+
+export {
+  TOPIC_COMMAND_ROUTER_DEFAULT_COMMANDS,
+  TOPIC_COMMAND_ROUTER_REASON_CODES,
+  isSafeTopicCommandRouterJson,
+  routeTopicCommand,
+} from './topic-command-router-port.js';
+
+export {
+  REAL_SMOKE_BUSINESS_RESULTS,
+  REAL_SMOKE_CLEANUP_POLICIES,
+  REAL_SMOKE_GATE_STATUSES,
+  REAL_SMOKE_OPERATION_CLASSES,
+  REAL_SMOKE_PORT_STATUSES,
+  REAL_SMOKE_PROVIDER_ACK_RESULTS,
+  REAL_SMOKE_PROVIDER_KINDS,
+  createRealSmokeGateInputFromEnvironment,
+  evaluateRealSmokeGate,
+  isSafeRealSmokeGateReportJson,
+} from './real-smoke-gate.js';
