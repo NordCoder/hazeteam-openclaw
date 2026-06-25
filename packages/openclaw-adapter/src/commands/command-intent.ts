@@ -25,24 +25,28 @@ import type { CommandDescriptor, CommandDescriptorSet } from './command-descript
 
 const ADAPTER_COMMAND_INTENT_KIND = 'adapter-command-intent' as const;
 const ADAPTER_COMMAND_INTENT_SOURCE = 'openclaw-adapter-inbound' as const;
-const CORE_HOST_ACTION_TARGET = 'core-host-action' as const;
-const ADAPTER_CALLBACK_ACTION_TARGET = 'adapter-callback-action' as const;
-const ADAPTER_SYSTEM_EVENT_TARGET = 'adapter-system-event' as const;
+const HOST_ACTION_TARGET = 'host-action' as const;
+const USER_INTENT_TARGET = 'user-intent' as const;
 const SUBMIT_HOST_ACTION_METHOD = 'submitHostAction' as const;
-const NO_FACADE_METHOD = 'none' as const;
+const SUBMIT_USER_INTENT_METHOD = 'submitUserIntent' as const;
 const MAX_COMMAND_ARGUMENTS_LENGTH = 2_048;
 const SAFE_COMMAND_LOOKUP_PATTERN = /^[a-z][a-z0-9_-]*$/u;
 
-export type AdapterCommandIntentRef = `command-intent:${string}`;
+export type AdapterCommandIntentRef = AdapterOperationRef;
 export type AdapterCommandIntentKind = typeof ADAPTER_COMMAND_INTENT_KIND;
 export type AdapterCommandIntentSource = typeof ADAPTER_COMMAND_INTENT_SOURCE;
-export type AdapterCommandIntentTarget =
-  | typeof CORE_HOST_ACTION_TARGET
-  | typeof ADAPTER_CALLBACK_ACTION_TARGET
-  | typeof ADAPTER_SYSTEM_EVENT_TARGET;
+export type AdapterCommandIntentTarget = typeof HOST_ACTION_TARGET | typeof USER_INTENT_TARGET;
 export type AdapterCommandIntentFacadeMethod =
   | typeof SUBMIT_HOST_ACTION_METHOD
-  | typeof NO_FACADE_METHOD;
+  | typeof SUBMIT_USER_INTENT_METHOD;
+
+export type AdapterCommandIntentDataValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly AdapterCommandIntentDataValue[]
+  | { readonly [key: string]: AdapterCommandIntentDataValue };
 
 export interface AdapterCommandIntentCompositionInput {
   readonly mappedEvent: OpenClawMappedInboundEvent;
@@ -63,6 +67,12 @@ export interface AdapterCommandIntentBase {
   readonly target: AdapterCommandIntentTarget;
   readonly facadeMethod: AdapterCommandIntentFacadeMethod;
   readonly actionKind: string;
+  readonly commandName: string;
+  readonly commandKind?: string;
+  readonly text?: string;
+  readonly argumentRefs?: readonly string[];
+  readonly resourceRef?: string;
+  readonly data?: AdapterCommandIntentDataValue;
   readonly idempotencyKey?: AdapterIdempotencyKey;
   readonly actorRef?: ActorRef;
   readonly occurredAt?: string;
@@ -84,26 +94,32 @@ export interface AdapterParsedCommandIntent {
 
 export interface AdapterHostMessageIntent extends AdapterCommandIntentBase {
   readonly sourceEventKind: 'message';
-  readonly target: typeof CORE_HOST_ACTION_TARGET;
+  readonly target: typeof HOST_ACTION_TARGET;
   readonly facadeMethod: typeof SUBMIT_HOST_ACTION_METHOD;
   readonly actionKind: 'message';
+  readonly commandName: 'message';
+  readonly commandKind: 'adapter.message';
   readonly message: AdapterMessageIntentPayload;
 }
 
 export interface AdapterHostCommandIntent extends AdapterCommandIntentBase {
   readonly sourceEventKind: 'message';
-  readonly target: typeof CORE_HOST_ACTION_TARGET;
+  readonly target: typeof HOST_ACTION_TARGET;
   readonly facadeMethod: typeof SUBMIT_HOST_ACTION_METHOD;
   readonly actionKind: 'command';
+  readonly commandKind: 'adapter.command';
   readonly message: AdapterMessageIntentPayload;
   readonly command: AdapterParsedCommandIntent;
 }
 
 export interface AdapterCallbackActionIntent extends AdapterCommandIntentBase {
   readonly sourceEventKind: 'callback';
-  readonly target: typeof ADAPTER_CALLBACK_ACTION_TARGET;
-  readonly facadeMethod: typeof NO_FACADE_METHOD;
+  readonly target: typeof USER_INTENT_TARGET;
+  readonly facadeMethod: typeof SUBMIT_USER_INTENT_METHOD;
   readonly actionKind: 'callback-action';
+  readonly commandName: 'callback-action';
+  readonly commandKind: 'adapter.callback-action';
+  readonly resourceRef: string;
   readonly callback: {
     readonly callbackRef: string;
     readonly permissionRequired: true;
@@ -113,9 +129,11 @@ export interface AdapterCallbackActionIntent extends AdapterCommandIntentBase {
 
 export interface AdapterSystemEventIntent extends AdapterCommandIntentBase {
   readonly sourceEventKind: 'system';
-  readonly target: typeof ADAPTER_SYSTEM_EVENT_TARGET;
-  readonly facadeMethod: typeof NO_FACADE_METHOD;
+  readonly target: typeof USER_INTENT_TARGET;
+  readonly facadeMethod: typeof SUBMIT_USER_INTENT_METHOD;
   readonly actionKind: 'system-event';
+  readonly commandName: 'system-event';
+  readonly commandKind: 'adapter.system-event';
   readonly system: {
     readonly systemEventKind: OpenClawMappedInboundSystemEvent['dispatch']['systemEventKind'];
   };
@@ -129,8 +147,22 @@ export type AdapterCommandIntent =
 
 export type AdapterCommandIntentCompositionResult = AdapterOperationResult<AdapterCommandIntent>;
 
+type AdapterBaseIntentFields = Omit<
+  AdapterCommandIntentBase,
+  | 'sourceEventKind'
+  | 'target'
+  | 'facadeMethod'
+  | 'actionKind'
+  | 'commandName'
+  | 'commandKind'
+  | 'text'
+  | 'argumentRefs'
+  | 'resourceRef'
+  | 'data'
+>;
+
 function createIntentRef(operationRef: AdapterOperationRef): AdapterCommandIntentRef {
-  return `command-intent:${operationRef.slice('operation:'.length)}` as AdapterCommandIntentRef;
+  return operationRef;
 }
 
 function normalizeOptionalCommandText(
@@ -221,9 +253,7 @@ function getPermissionRequirement(event: OpenClawMappedInboundEvent): Permission
   }
 }
 
-function createBaseIntentFields(
-  event: OpenClawMappedInboundEvent,
-): Omit<AdapterCommandIntentBase, 'sourceEventKind' | 'target' | 'facadeMethod' | 'actionKind'> {
+function createBaseIntentFields(event: OpenClawMappedInboundEvent): AdapterBaseIntentFields {
   const permissionRequirement = getPermissionRequirement(event);
 
   return Object.freeze({
@@ -272,6 +302,10 @@ function safeFailure(
   );
 }
 
+function createAttachmentArgumentRefs(message: AdapterMessageIntentPayload): readonly string[] | undefined {
+  return message.attachments.length === 0 ? undefined : Object.freeze([...message.attachments]);
+}
+
 function composeMessageIntent(
   event: OpenClawMappedInboundMessage,
   commandSet: CommandDescriptorSet | undefined,
@@ -279,15 +313,20 @@ function composeMessageIntent(
 ): AdapterCommandIntentCompositionResult {
   const message = createMessagePayload(event);
   const parsedCommand = parseSlashCommand(event.dispatch.text);
+  const argumentRefs = createAttachmentArgumentRefs(message);
 
   if (parsedCommand === undefined) {
     return adapterOk(
       Object.freeze({
         ...createBaseIntentFields(event),
         sourceEventKind: 'message',
-        target: CORE_HOST_ACTION_TARGET,
+        target: HOST_ACTION_TARGET,
         facadeMethod: SUBMIT_HOST_ACTION_METHOD,
         actionKind: 'message',
+        commandName: 'message',
+        commandKind: 'adapter.message',
+        ...(message.text === undefined ? {} : { text: message.text }),
+        ...(argumentRefs === undefined ? {} : { argumentRefs }),
         message,
       }),
       context,
@@ -306,9 +345,13 @@ function composeMessageIntent(
     Object.freeze({
       ...createBaseIntentFields(event),
       sourceEventKind: 'message',
-      target: CORE_HOST_ACTION_TARGET,
+      target: HOST_ACTION_TARGET,
       facadeMethod: SUBMIT_HOST_ACTION_METHOD,
       actionKind: 'command',
+      commandName: parsedCommand.commandName,
+      commandKind: 'adapter.command',
+      ...(parsedCommand.argumentsText === undefined ? {} : { text: parsedCommand.argumentsText }),
+      ...(argumentRefs === undefined ? {} : { argumentRefs }),
       message,
       command: Object.freeze({
         commandName: parsedCommand.commandName,
@@ -330,9 +373,12 @@ function composeCallbackActionIntent(
     Object.freeze({
       ...createBaseIntentFields(event),
       sourceEventKind: 'callback',
-      target: ADAPTER_CALLBACK_ACTION_TARGET,
-      facadeMethod: NO_FACADE_METHOD,
+      target: USER_INTENT_TARGET,
+      facadeMethod: SUBMIT_USER_INTENT_METHOD,
       actionKind: 'callback-action',
+      commandName: 'callback-action',
+      commandKind: 'adapter.callback-action',
+      resourceRef: event.dispatch.callbackId,
       callback: Object.freeze({
         callbackRef: event.dispatch.callbackId,
         permissionRequired: true,
@@ -350,9 +396,11 @@ function composeSystemEventIntent(
     Object.freeze({
       ...createBaseIntentFields(event),
       sourceEventKind: 'system',
-      target: ADAPTER_SYSTEM_EVENT_TARGET,
-      facadeMethod: NO_FACADE_METHOD,
+      target: USER_INTENT_TARGET,
+      facadeMethod: SUBMIT_USER_INTENT_METHOD,
       actionKind: 'system-event',
+      commandName: 'system-event',
+      commandKind: 'adapter.system-event',
       system: Object.freeze({
         systemEventKind: event.dispatch.systemEventKind,
       }),
