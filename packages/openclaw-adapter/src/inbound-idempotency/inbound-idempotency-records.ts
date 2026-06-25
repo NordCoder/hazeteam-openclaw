@@ -307,6 +307,18 @@ function validateEventSpecificRefs(input: {
   }
 }
 
+function validateNormalizedEventSpecificRefs(input: {
+  readonly eventKind: InboundIdempotencyEventKind;
+  readonly messageRef: InboundIdempotencyMessageRef | undefined;
+  readonly callbackRef: InboundIdempotencyCallbackRef | undefined;
+}): void {
+  validateEventSpecificRefs({
+    eventKind: input.eventKind,
+    ...(input.messageRef === undefined ? {} : { messageRef: input.messageRef }),
+    ...(input.callbackRef === undefined ? {} : { callbackRef: input.callbackRef }),
+  });
+}
+
 function createFingerprintFromSafeRefs(input: {
   readonly eventRef: InboundIdempotencyEventRef;
   readonly idempotencyRef: AdapterIdempotencyKey;
@@ -351,7 +363,7 @@ export function createInboundIdempotencyFingerprint(
   const messageRef = normalizeOptionalSafeInboundRef<InboundIdempotencyMessageRef>(input.messageRef, 'Inbound idempotency messageRef');
   const callbackRef = normalizeOptionalSafeInboundRef<InboundIdempotencyCallbackRef>(input.callbackRef, 'Inbound idempotency callbackRef');
 
-  validateEventSpecificRefs({ eventKind, messageRef, callbackRef });
+  validateNormalizedEventSpecificRefs({ eventKind, messageRef, callbackRef });
 
   return createFingerprintFromSafeRefs({
     eventRef,
@@ -398,7 +410,7 @@ export function normalizeInboundIdempotencyRecord(
   const correlationRef = normalizeCorrelationRef(input.correlationRef, `${label} correlationRef`);
   const error = input.error === undefined ? undefined : normalizeSafeError(input.error as AdapterSafeError);
 
-  validateEventSpecificRefs({ eventKind, messageRef, callbackRef });
+  validateNormalizedEventSpecificRefs({ eventKind, messageRef, callbackRef });
 
   if (status === 'reserved' && (lastOutcomeRef !== undefined || processedRef !== undefined || failureRef !== undefined || error !== undefined)) {
     throw new TypeError(`${label} reserved records must not include terminal outcome fields.`);
