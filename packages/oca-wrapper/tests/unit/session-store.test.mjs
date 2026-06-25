@@ -262,15 +262,14 @@ test('store does not expose mutable internal arrays', () => {
   assertSafeEnvelope(fetched);
 });
 
-test('unsafe public field names and neutral invalid values are rejected without public exposure', () => {
+test('invalid required session ref is rejected without public exposure', () => {
   const store = createInMemoryOcaSessionStore();
   const invalidMarker = 'synthetic-invalid-marker';
   const result = store.create({
     idempotencyRef: 'idempotency:request-mike',
     session: {
       ...sessionInput('mike'),
-      summary: 'Synthetic invalid summary marker.',
-      [fromCodes([114, 97, 119, 76, 111, 103])]: invalidMarker,
+      sessionRef: invalidMarker,
     },
   });
 
