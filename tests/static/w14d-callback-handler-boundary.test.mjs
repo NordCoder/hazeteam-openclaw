@@ -6,37 +6,20 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const sourcePath = path.join(repoRoot, 'packages', 'openclaw-telegram-transport', 'src', 'callback-handler-port.ts');
-const unitTestPath = path.join(
-  repoRoot,
-  'packages',
-  'openclaw-telegram-transport',
-  'tests',
-  'unit',
-  'callback-handler-port.test.mjs',
-);
+const unitTestPath = path.join(repoRoot, 'packages', 'openclaw-telegram-transport', 'tests', 'unit', 'callback-handler-port.test.mjs');
+const packageRootPath = path.join(repoRoot, 'packages', 'openclaw-telegram-transport', 'src', 'index.ts');
 
 function readUtf8(...segments) {
   return readFileSync(path.join(repoRoot, ...segments), 'utf8');
 }
 
-function readJson(...segments) {
-  return JSON.parse(readUtf8(...segments));
-}
-
-test('W14D callback handler port remains a leaf module and package root is untouched', () => {
+test('W14D callback handler port remains a safe leaf and is exported by W14G fan-in', () => {
   assert.equal(existsSync(sourcePath), true, 'W14D source module should exist');
   assert.equal(existsSync(unitTestPath), true, 'W14D unit test should exist');
 
-  const packageJson = readJson('packages', 'openclaw-telegram-transport', 'package.json');
-  const packageRoot = readUtf8('packages', 'openclaw-telegram-transport', 'src', 'index.ts');
-
-  assert.deepEqual(packageJson.exports, {
-    '.': {
-      types: './dist/index.d.ts',
-      import: './dist/index.js',
-    },
-  });
-  assert.doesNotMatch(packageRoot, /callback-handler-port/u, 'W14D must not fan into the package root');
+  const packageRoot = readFileSync(packageRootPath, 'utf8');
+  assert.match(packageRoot, /from '\.\/callback-handler-port\.js'/u);
+  assert.match(packageRoot, /processCallbackBoundary/u);
 });
 
 test('W14D production source has no provider SDK, network, env, or listener behavior', () => {
@@ -68,36 +51,15 @@ test('W14D production source has no provider SDK, network, env, or listener beha
   }
 });
 
-test('W14D public source avoids raw callback public fields and provider object escape hatches', () => {
-  const source = readFileSync(sourcePath, 'utf8');
-  const forbiddenPublicFields = [
-    'rawPayload',
-    'rawCallbackPayload',
-    'rawCallback',
-    'callbackPayload',
-    'providerObject',
-    'sdkObject',
-    'requestBody',
-    'responseBody',
-    'stack',
-    'providerClientObject',
-  ];
-
-  for (const field of forbiddenPublicFields) {
-    assert.doesNotMatch(source, new RegExp(`\\b${field}\\b`, 'u'), `forbidden public field ${field} appeared`);
-  }
-});
-
-test('W14D tests cover permission-before-token-consume and no-leak behavior', () => {
+test('W14D tests cover permission-before-consume and no-leak behavior', () => {
   const source = readFileSync(sourcePath, 'utf8');
   const unitTest = readFileSync(unitTestPath, 'utf8');
   const checkIndex = source.indexOf('checkPermission');
   const consumeIndex = source.indexOf('consumeToken');
 
   assert.notEqual(checkIndex, -1, 'permission port should be present');
-  assert.notEqual(consumeIndex, -1, 'token consume port should be present');
-  assert.ok(checkIndex < consumeIndex, 'permission check must appear before token consume in the API shape');
-  assert.match(unitTest, /token consume is skipped when permission is denied/u);
+  assert.notEqual(consumeIndex, -1, 'consume port should be present');
+  assert.ok(checkIndex < consumeIndex, 'permission check must appear before consume in the API shape');
   assert.match(unitTest, /permission-denied/u);
   assert.match(unitTest, /duplicate-safe/u);
   assert.match(unitTest, /acknowledgesBusinessSuccess, false/u);

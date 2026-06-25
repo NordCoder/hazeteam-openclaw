@@ -16,12 +16,14 @@ function countMatches(source, pattern) {
   return [...source.matchAll(pattern)].length;
 }
 
-test('W14C delivery port is a leaf module and is not exported from package root', () => {
+test('W14C delivery port remains leaf-safe while W14G may fan it in from package root', () => {
   assert.equal(existsSync(deliverySourcePath), true, 'delivery-port.ts should exist');
   const packageRoot = readUtf8(packageRootPath);
 
-  assert.doesNotMatch(packageRoot, /delivery-port/u, 'W14C leaf must not update the package root before W14G fan-in');
-  assert.doesNotMatch(packageRoot, /RenderedDeliveryRequest|createInjectedDeliveryPort|deliverRenderedRequest/u);
+  assert.match(packageRoot, /from\s+['"]\.\/delivery-port\.js['"]/u, 'W14G may explicitly fan delivery-port into the package root');
+  assert.match(packageRoot, /\bcreateInjectedDeliveryPort\b/u, 'W14G package root should expose the injected delivery boundary');
+  assert.match(packageRoot, /\bdeliverRenderedRequest\b/u, 'W14G package root should expose the safe rendered delivery helper');
+  assert.doesNotMatch(packageRoot, /export\s+\*\s+from\s+['"]\.\/delivery-port\.js['"]/u, 'delivery fan-in should stay explicit');
 });
 
 test('W14C delivery port has no provider SDK imports or real network/runtime calls', () => {
