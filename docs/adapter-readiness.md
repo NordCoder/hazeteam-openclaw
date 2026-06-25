@@ -2,133 +2,201 @@
 
 ## 1. Purpose
 
-`hazeteam-core` is a transport-neutral core package. External adapter packages translate external events into public core calls and translate safe core outputs back into external delivery operations.
+This document defines the CD11.2 readiness ladder for the OpenClaw/Telegram adapter track. It is release-facing vocabulary for classifying evidence, limitations, and gates.
 
-For step-by-step adapter package design, implementation, testing, and release guidance, start with the [Adapter Authoring Guide](adapter-authoring/README.md). The final adapter release checklist is [Adapter Handoff Package](release/adapter-handoff.md). Adapter packages should use that handoff document as the pre-implementation and pre-release checklist.
+The active target is adapter readiness for real-system integration, not production deployment. OCA, Codex, LifeOS, and domain/product overlays remain parked until that adapter gate is actually met.
 
-## 2. Core owns
+## 2. Current repository posture
 
-Core owns domain-neutral refs, validation, envelopes, approval state, presentation outbox state, action-token state, runtime queue semantics, workflow state, lifecycle state, diagnostics, and host facade contracts.
+The current repository must not claim any of the following:
 
-Core code stays transport-neutral and deterministic. It exposes ports, validators, serializers, readiness metadata, and in-memory test implementations, but it does not connect to external systems by itself.
+- `adapter-ready-for-real-system-integration`;
+- `adapter-real-integration-ready`;
+- `production-ready`.
 
-## 3. External adapter owns
+The current repository may contain safe adapter contracts, plugin-runtime shells, Telegram transport surfaces, deterministic fakes, fake/inert OCA wrapper surfaces, and descriptor-only LifeOS/domain surfaces. Those surfaces do not by themselves prove adapter-ready-for-real-system-integration.
 
-External adapters own real delivery/callback/transport, external message parsing, external channel/conversation IDs, durable integration stores when needed, deployment wiring, and product/domain behavior.
+## 3. Readiness levels
 
-Durable implementations remain outside core. S61C or future adapter packages may provide them externally and inject them behind public contracts.
+### 3.1 `contract-ready`
 
-## 4. Adapter flow sketch
+A component is `contract-ready` when public contracts exist and can be reviewed safely without real provider execution.
 
-S60 final facade is now composed through `createCoreInteractionHost`.
+Required evidence:
 
-```text
-external inbound message
--> resolve/create host session binding
--> HostInboundAction or UserIntent facade input
--> AgentControlHost.dispatch through S60C
--> HostOutboundItem / PresentationOutboxItem
--> external delivery
--> action token verify/consume for external callback
--> UserIntent
--> approval/runtime/execution
--> status/health through S60D
-```
+- stable public DTOs, refs, result envelopes, descriptors, and error/status vocabulary;
+- declared no-leak boundaries for provider payloads, callback payloads, runtime objects, secrets, paths, stacks, clients, logs, and diffs;
+- static boundary tests for the relevant public surface;
+- unit tests for local normalization, validation, invalid inputs, and safe failure categories;
+- package docs that state current support and non-goals;
+- no required real network, provider SDK/client, credential value, deployment process, durable backend, or sidecar.
 
-Adapters should not submit direct execution requests or mutate runtime/workflow state outside public ports.
+This level is not enough for real-system integration.
 
-## 5. Port readiness diagnostics
+### 3.2 `fake-e2e-ready`
 
-S61B exposes `getPortReadiness(input?)` on the composed facade. The method returns a S59 public envelope with descriptive readiness metadata over the ports supplied to `createCoreInteractionHost(options)`.
+A component is `fake-e2e-ready` when deterministic fake flows prove its public package-root behavior without secrets or network.
 
-Readiness is descriptive only. It does not create durable implementations, open external connections, validate external infrastructure, or change store behavior. Missing required ports are safe diagnostic state, not construction-time exceptions.
+Required evidence:
 
-## 6. Presentation flow
+- package-root import is side-effect-free;
+- fake or injected ports drive the complete path through public package roots;
+- inbound fake E2E covers provider-shaped input normalization into safe command or intent output;
+- outbound fake E2E covers adapter/core output through rendering, delivery request construction, and provider-ack normalization;
+- callback fake E2E covers callback input normalization, permission-before-token-consume, safe decision/result output, replay denial, and unsafe input rejection;
+- durable fake E2E covers idempotency, replay, topic binding, callback-token lifecycle, delivery attempts, correlation, and readiness snapshots where relevant;
+- readiness aggregation fake E2E covers config, credentials posture, core facade, transport, stores, runtime shell, smoke state, and production-claim status;
+- no-leak assertions cover public outputs, readiness, smoke summaries, rendered delivery descriptors, callback results, errors, examples, and docs snippets;
+- provider acknowledgement remains separate from business success;
+- default CI and default `npm run check` remain no-network and secret-free.
 
-Adapter responsibilities:
+This is the minimum confidence level for the adapter foundation, but it is still not a real-provider pass.
 
-1. list or receive a pending presentation outbox item through the composed facade or S60B operations;
-2. claim the item for external delivery;
-3. map the item payload to an external message;
-4. issue a presentation action token for each external action;
-5. include only the token id and safe adapter-owned callback data in the external action payload;
-6. mark delivered or failed after external delivery;
-7. verify and consume the token when the callback returns;
-8. map the verified callback back to `UserIntent`;
-9. submit the intent through the facade inbound operation.
+### 3.3 `secret-gated-ready`
 
-The presentation outbox delivery pump owns the `pending -> delivering -> sent/failed` delivery lifecycle. The presentation action token verifier is independent from that lifecycle and does not change outbox retry, failure, or dead-letter behavior.
+A component is `secret-gated-ready` when a narrow real edge can be attempted only under explicit operator-controlled gates.
 
-S60B/S60C/S60D remain independent operation modules under the final facade.
+Required evidence:
 
-## 7. Session binding flow
+- real execution is opt-in and never part of default CI;
+- library packages do not read `process.env` directly for secrets;
+- credential/runtime values are resolved through injected interfaces or deployment-owned edge code;
+- public output distinguishes secret handle, credential ref, resolved runtime-only value, and redacted descriptor;
+- smoke reports are redacted, status-precise, and no-leak tested;
+- blocked and skipped smoke states are reported honestly and are not counted as provider passes;
+- a passed smoke states exactly which narrow provider edge it proves.
 
-```text
-external channel/conversation
--> resolve or create host session binding
--> produce HostSessionRef + workspaceRef + agentRef
--> dispatch HostInboundAction
--> reuse binding for later callbacks/messages
-```
+This level can support adapter-real-integration planning, but it is not production readiness.
 
-External session binding is tracked by the host session-binding surface and keeps this mapping domain-neutral.
+### 3.4 `adapter-ready-for-real-system-integration`
 
-For production adapter guidance on external conversation mapping, missing/disabled bindings, callback binding, delivery target derivation, and durable binding storage, see [Session Binding Guide](adapter-authoring/session-binding-guide.md).
+The adapter is `adapter-ready-for-real-system-integration` when the repository is ready to be wired into a real host/system under explicit gates while still avoiding production-readiness overclaims.
 
-## 8. Action token flow
+Required evidence:
 
-```text
-issue token bound to workspace/outbox/approval/action
--> include token id in external action/callback payload
--> verify without mutation
--> consume once
--> deny replay, expired token, and binding mismatch
--> submit validated UserIntent
-```
+1. Plugin runtime profile/readiness registry is public and tested.
+2. OpenClaw adapter fake E2E covers inbound, outbound, callback, rendering, delivery, storage, approval boundaries, and core public facade integration.
+3. Telegram transport fake E2E covers safe event normalization, routing tuple authority, delivery acknowledgement normalization, callback normalization, and no-leak output.
+4. Durable adapter-state contracts and fakes cover topic bindings, callback tokens, delivery attempts, idempotency/replay, correlation, and readiness snapshots.
+5. Runtime value boundary distinguishes secret handles, credential refs, resolved secret values, runtime-only values, and public redacted descriptors.
+6. Secret-gated smoke is opt-in, redacted, status-precise, and excluded from default CI.
+7. Default `npm run check` remains no-network and secret-free.
+8. Static tests protect real boundaries without freezing temporary topology.
+9. Documentation and release notes state the exact real behavior proven and the remaining limitations.
+10. OCA, LifeOS, sidecar, deployment runtime, and production durable backend remain future unless explicitly implemented and tested by assigned later slices.
 
-Parsing alone is not authorization; callback-token verification and consume happen through S60B operations or the composed S60 facade.
+This gate does not require a production daemon, webhook server, polling loop, sidecar, production durable backend, or product-layer behavior.
 
-For adapter callback ordering, permission-before-consume guidance, replay handling, and opaque callback payload rules, see [Action Tokens and Callbacks Guide](adapter-authoring/action-tokens-and-callbacks-guide.md).
+### 3.5 `adapter-real-integration-ready`
 
-## 9. Runtime flow
+`adapter-real-integration-ready` is release-gate vocabulary for the same milestone as `adapter-ready-for-real-system-integration`.
 
-The runtime queue owns job lifecycle. `drainRuntimeOnce` is deterministic and single-step. Core does not provide a production runtime loop owner; deployment-specific timing belongs outside core.
+Use this wording only when writing a release classifier or final readiness report. It requires the same evidence as `adapter-ready-for-real-system-integration`, plus a final evidence table that names the passing checks, skipped/blocked checks, remaining limitations, and downstream unlock decision.
 
-For runtime bridge, workflow status, approval routing, and external orchestrator guidance, see [Runtime, Workflow, and Approval Guide](adapter-authoring/runtime-workflow-approval-guide.md).
+Only the assigned release-closure work may make the final `adapter-real-integration-ready` claim.
 
-## 10. Safe serialization rules
+### 3.6 `production-ready`
 
-Public serialized outputs must not expose host filesystem details, storage roots, private runtime backing objects, or internal execution context details that reveal storage layout.
+A component is `production-ready` only after production runtime behavior and operations have been implemented, tested, and documented.
 
-Adapters should use public serializers, public refs, and adapter-facing envelopes. Before logging or returning a core operation result, an external adapter should wrap raw `Result<T>` values with `serializeResultEnvelope(result, safeSerializer)` unless the facade or operation module already returned a `CoreApiEnvelope<T>`. See [Public Result and Error Envelopes](foundation/public-result-error-envelopes.md).
+Required evidence:
 
-For production redaction, health/logging/metrics safety, and release security review rules, see [Security and Redaction Guide](adapter-authoring/security-redaction-guide.md) and [Testing and Certification Guide](adapter-authoring/testing-and-certification-guide.md).
+- at least one production transport mode is implemented and tested;
+- production credential loading/resolution exists in an explicit deployment/runtime edge;
+- durable backend, idempotency, replay, delivery/callback lifecycle, backup/restore, migration, and recovery behavior are tested;
+- health/readiness endpoint or OpenClaw diagnostic surface is implemented;
+- operator documentation, security documentation, known limitations, and release notes are current;
+- appropriate real smoke passes in the intended environment;
+- security/no-leak gates pass.
 
-## 11. S62B executable generic adapter acceptance
+The W16-W18 adapter-readiness track must not claim production readiness unless a later prompt explicitly reassigns that target and supplies the required evidence.
 
-S62B adds an executable deterministic acceptance suite at `tests/acceptance/generic-external-adapter-flow.test.mjs`.
+## 4. Required future evidence categories
 
-The suite uses the S62 generic external adapter simulator, `createCoreInteractionHost`, and in-memory core dependencies only. It exercises the adapter-facing flow end-to-end without a real external adapter, real transport, external-service binding, callback endpoint, durable implementation, daemon, or scheduler.
+The future adapter-ready gate must include these evidence categories:
 
-External adapter packages can use this suite as a contract reference for the public facade boundary:
+| Evidence category | Purpose |
+|---|---|
+| Package-root no-side-effect matrix | Proves public entrypoints can be imported without network, secret reads, client construction, listener startup, store connection, or process supervision. |
+| Fake E2E matrix | Proves inbound, outbound, callback, durable, readiness, and failure paths through public package roots using deterministic fakes. |
+| Readiness aggregation | Produces a unified safe summary across plugin runtime, OpenClaw adapter, Telegram transport, credentials posture, core facade, durable stores, smoke state, and production-claim status. |
+| Durable state fakes | Prove topic binding, callback token, delivery attempt, inbound idempotency, replay, correlation, and readiness snapshot contracts without production storage. |
+| No-leak matrix | Proves public outputs, errors, docs examples, smoke output, readiness output, delivery descriptors, callback results, and serialized summaries do not expose forbidden raw or secret material. |
+| Opt-in redacted smoke | Proves the real edge is disabled by default, explicit when enabled, redacted in output, precise in status, and honest about skipped/blocked cases. |
 
-- inbound external message mapping into a safe `HostInboundAction` submission;
-- presentation outbox listing, claim, fake external rendering, and delivered marking;
-- action-token issue, verify, consume, replay denial, and mismatch denial;
-- direct execution denial on the adapter-facing user-intent path;
-- safe not-configured runtime/status/health envelopes when deterministic runtime readers are not injected.
+No single category substitutes for another. A missing category keeps the repository below adapter-ready-for-real-system-integration.
 
-The acceptance suite asserts `contractVersion: "core.v1"`, public envelope shape, JSON safety, no raw storage/path roots, no provider/transport payload leakage, and no raw error stack leakage.
+## 5. Real smoke status rules
 
-Production adapter delivery, external I/O, callback routing endpoints, external retry orchestration, and deployment scheduling remain outside core.
+Real smoke is not a default check and must never require secrets or network during `npm run check`.
 
-## 12. Known follow-up slices
+Valid release-facing smoke status vocabulary:
 
-- S61 port injection readiness
-- S62 generic external adapter simulator
-- S62B executable generic external adapter acceptance suite
-- S63 release handoff
+- `skipped`;
+- `blocked-missing-profile`;
+- `blocked-missing-secret`;
+- `blocked-missing-port`;
+- `blocked-network-gate-closed`;
+- `ready-to-run`;
+- `passed`;
+- `failed-safe`.
 
-These slices define the remaining adapter-readiness hardening work after the composed S60 facade. S63 adapter handoff is the final release package for adapter authors. It links the S60 facade, S61 port-injection inventory, S62 simulator reference, safe serialization rules, non-goals, and final checklist in one place.
+Only `passed` can be counted as a provider-edge pass, and only for the narrow edge that was executed. `skipped`, `blocked-*`, and `ready-to-run` are not passes.
 
-Use [Adapter Handoff Package](release/adapter-handoff.md) as the release checklist before implementing an external adapter or certifying adapter-facing core changes. Use [Adapter Implementation Roadmap](adapter-authoring/adapter-implementation-roadmap.md) and the [Adapter Design](adapter-authoring/checklists/adapter-design-checklist.md), [Adapter PR](adapter-authoring/checklists/adapter-pr-checklist.md), and [Adapter Release](adapter-authoring/checklists/adapter-release-checklist.md) checklists to plan and review external adapter packages.
+Smoke output must not expose resolved tokens, credentials, endpoints, raw provider payloads, raw callback payloads, provider clients, SDK handles, stack traces, raw logs, raw diffs, command output, or filesystem paths.
+
+## 6. Default check discipline
+
+Default repository checks must remain deterministic, no-network, and secret-free.
+
+Default checks may include static, unit, acceptance, fake E2E, and no-leak tests. They must not:
+
+- require real Telegram/OpenClaw credentials;
+- call real providers;
+- read deployment secrets from library package roots;
+- construct production provider clients by default;
+- start listener, webhook, polling, daemon, sidecar, or production store processes.
+
+Gated real smoke may be run separately and reported separately. A blocked or skipped real smoke is safe posture but not a pass.
+
+## 7. Parked overlays are not readiness evidence
+
+OCA, Codex, LifeOS, and domain/product overlays are parked downstream overlays until the adapter-ready gate passes.
+
+The following are not evidence for adapter readiness:
+
+- fake/inert OCA wrapper behavior;
+- descriptor-only LifeOS/domain package surfaces;
+- product-specific agent definitions;
+- product-specific command catalogs;
+- domain-specific policy expansion;
+- sidecar or deployment plans without implemented and tested adapter evidence.
+
+These overlays may be documented as parked, but they must not be used to satisfy plugin runtime composition, Telegram transport E2E, adapter-wide readiness aggregation, durable adapter-state, no-leak, real-smoke, or production gates.
+
+## 8. Negative readiness claims
+
+The adapter is not ready for real-system integration if any of the following are true:
+
+- fake E2E is missing for inbound, outbound, or callback paths;
+- durable state fakes are missing for adapter-owned lifecycle contracts;
+- package-root import can call network, read secrets, construct clients, start listeners, or connect stores;
+- public outputs can include raw provider payloads, raw callback payloads, raw paths, raw logs, raw diffs, tokens, credentials, stack traces, endpoints, chat IDs, thread IDs, provider clients, SDK handles, or runtime-only values;
+- secret-gated smoke reports skipped or blocked as passed;
+- docs claim production listener, webhook, polling, sidecar, deployment runtime, durable backend, OCA execution, or LifeOS behavior that current source and tests do not prove.
+
+## 9. Release classifier rule
+
+Wave 1 documentation may define the readiness ladder and required evidence. It must not make the final adapter-ready or production-ready claim.
+
+A later final readiness report must classify the repository using one of:
+
+- `not-ready`;
+- `contract-ready`;
+- `fake-e2e-ready`;
+- `secret-gated-ready`;
+- `adapter-ready-for-real-system-integration`;
+- `adapter-real-integration-ready`;
+- `production-ready`.
+
+The final classification must be backed by an evidence table and must treat skipped/blocked real smoke as not passed.
