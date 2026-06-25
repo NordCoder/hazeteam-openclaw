@@ -377,7 +377,7 @@ function normalizeComponentReport(
     required,
     summary: sanitizeReadinessText(component.summary ?? defaultSummary(status, required)),
     code: sanitizeReadinessCode(component.code ?? defaultCode(status, required)),
-    checkedAt: sanitizeReadinessText(component.checkedAt ?? generatedAt, DEFAULT_CHECKED_AT),
+    checkedAt: sanitizeReadinessText(component.checkedAt ?? generatedAt, generatedAt),
     ...(detailsRef === undefined ? {} : { detailsRef }),
     ...(correlationRef === undefined ? {} : { correlationRef }),
   } satisfies PluginReadinessComponentReport);
