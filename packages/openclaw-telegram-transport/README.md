@@ -1,87 +1,39 @@
 # @hazeteam/openclaw-telegram-transport
 
-## W14A status
+## W14G status
 
-This package currently implements only the W14A transport configuration and credential-reference boundary for future Telegram/OpenClaw transport ports.
+This package now fans in the W14A-F safe transport surfaces through the package root. It exposes configuration descriptors, redacted credential-reference helpers, channel-event normalization, injected delivery and callback boundaries, topic command routing, and the opt-in real-smoke gate.
 
-It is not a real transport runtime. It does not import provider SDKs, construct provider clients, open listeners, register webhooks, poll Telegram or OpenClaw, deliver messages, acknowledge callbacks, route commands, execute callbacks, or run real smoke behavior.
+The package is not production ready. The public package descriptor keeps `productionReady: false`, `effects: "none"`, `defaultNetworkBehavior: "none"`, and `realSmokeDefault: "skipped-or-blocked"`.
 
 ## Public surfaces
 
-The W14A public surface is intentionally small:
+The package root exposes these safe surfaces:
 
-- `config` parses caller-provided unknown input into bounded, JSON-serializable, redacted transport configuration and readiness descriptors.
-- `secrets` models safe credential descriptors and opaque runtime-only credential handles.
+- `config` for caller-provided transport configuration and readiness descriptors.
+- `secrets` for redacted credential refs and opaque runtime-only handles.
+- `channel-event-source` for safe Telegram/OpenClaw channel event normalization.
+- `delivery-port` for an injected delivery boundary and safe delivery results.
+- `callback-handler-port` for callback normalization, permission checks, and token consume ordering.
+- `topic-command-router` for safe command routing by binding authority.
+- `real-smoke-gate` for opt-in smoke readiness classification.
 
-Production code in this package does not read deployment variables directly. A future deployment edge may read a secret store or process configuration and then pass only safe refs into this package.
+These exports are descriptors, factories, evaluators, and no-leak helpers over already-implemented W14 leaves. W14G does not add new feature behavior.
 
-## Config model
+## Runtime posture
 
-The parser accepts caller-provided input shaped around a profile and provider entries. The provider entries may describe Telegram and OpenClaw mode, a safe credential ref, source class, and a safe transport ref.
+Default build, check, and test flows do not require real credentials and do not perform real network calls. The package root does not construct provider SDK clients, read `process.env`, open listeners, register webhooks, start polling, run daemons, deliver messages by default, execute callbacks by default, execute commands, or run smoke execution.
 
-Supported profiles:
+Real smoke is opt-in and secret-gated. A skipped or blocked real-smoke report is intentional safety behavior, not proof of a successful real provider run. Missing credentials, missing profile gates, closed network gates, unsafe operation classes, or missing injected ports remain skipped or blocked by design.
 
-- `test`
-- `dry-run`
-- `real-smoke`
-- `production`
+Provider acknowledgement is not business success. Delivery, callback, and smoke outputs keep provider acknowledgement separate from delivery completion, callback business acceptance, and smoke business result.
 
-Supported provider modes:
+## Callback and topic-routing invariants
 
-- `disabled`
-- `dry-run`
-- `real`
+Callback handling preserves permission-before-token-consume. If permission fails, token consume must not run.
 
-Real mode is still side-effect free in W14A. A real provider with a missing or invalid credential ref is projected as blocked by secret. A real provider with a configured credential ref is only configuration-ready; no SDK/client/network object is created.
+Topic routing authority is the tuple `channelRef+chatRef+threadRef`. Topic title is display metadata only and must not be used as routing authority.
 
-## Safe credential descriptors
+## Explicit non-goals
 
-A safe credential descriptor may expose:
-
-- provider kind, such as Telegram or OpenClaw;
-- credential kind, such as `telegram-bot-token` or `openclaw-api-token`;
-- safe `secretRef` value, such as `secret:telegram:production-bot`;
-- source class, such as `secret-manager`, `injected`, `env`, `file`, or `unknown`;
-- redacted status.
-
-A safe credential descriptor must not expose the credential value, private endpoint, local path, raw deployment config, raw provider payload, provider client object, stack trace, or raw environment name.
-
-## Opaque handles
-
-`createOpaqueTransportSecretHandle` creates a runtime-only handle around a safe descriptor. The handle is not JSON serializable and is not a provider client. It exists so later W14 leaves can keep credential material behind a narrow boundary when real provider factories are explicitly scoped.
-
-## Example
-
-~~~js
-import { parseTransportConfig } from '@hazeteam/openclaw-telegram-transport';
-
-const result = parseTransportConfig({
-  profile: 'real-smoke',
-  providers: {
-    telegram: {
-      mode: 'real',
-      credentialRef: 'secret:telegram:production-bot',
-      sourceClass: 'secret-manager',
-    },
-    openclaw: {
-      mode: 'real',
-      credentialRef: 'secret:openclaw:production-api',
-      sourceClass: 'secret-manager',
-    },
-  },
-});
-
-console.log(result.readiness);
-~~~
-
-The readiness output remains bounded and redacted. It reports `willCallRemote: false` in W14A.
-
-## Later real smoke prerequisites
-
-Later real-smoke work would need an explicit smoke profile plus redacted credential refs for:
-
-- Telegram bot credential;
-- OpenClaw API credential;
-- any future webhook signing credential if callback smoke is in scope.
-
-W14A only models these refs. It does not load the values and does not perform smoke execution.
+W14G does not implement a production listener, webhook, polling daemon, production provider runtime, production credential loader, deployment runtime, OCA wrapper mechanics, domain product packages, sidecar behavior, or W15 behavior.
