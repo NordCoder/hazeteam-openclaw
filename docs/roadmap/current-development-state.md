@@ -1,6 +1,6 @@
 # Current development state
 
-This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation and the W13 OpenClaw plugin runtime shell fan-in.
+This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation, the W13 OpenClaw plugin runtime shell fan-in, and the W14A transport config/secret-handle boundary.
 
 ## Repository role
 
@@ -20,14 +20,15 @@ Read in this order:
 4. `docs/README.md`
 5. `docs/development/core-integration.md` for W12 and later core-integration work
 6. `packages/openclaw-plugin-runtime/README.md` for W13 and later plugin-runtime work
-7. `docs/core-context.md`
-8. `docs/architecture/adapter-worker-onboarding.md`
-9. `docs/architecture/core-boundary.md`
-10. `docs/architecture/openclaw-telegram-adapter.md`
-11. `docs/architecture/parallel-execution-and-fanin.md`
-12. `docs/roadmap/implementation-waves.md`
-13. `docs/roadmap/file-ownership-matrix.md`
-14. The assigned source and tests.
+7. `packages/openclaw-telegram-transport/README.md` for W14 and later transport work
+8. `docs/core-context.md`
+9. `docs/architecture/adapter-worker-onboarding.md`
+10. `docs/architecture/core-boundary.md`
+11. `docs/architecture/openclaw-telegram-adapter.md`
+12. `docs/architecture/parallel-execution-and-fanin.md`
+13. `docs/roadmap/implementation-waves.md`
+14. `docs/roadmap/file-ownership-matrix.md`
+15. The assigned source and tests.
 
 Also read the authoritative `hazeteam-core` adapter authoring docs from `NordCoder/hazeteam-core` on the pinned or assigned core ref when a phase touches core integration. Start at:
 
@@ -95,13 +96,23 @@ The W13 package is fake/dry-run capable only. It reports `productionReady: false
 
 W13 does not implement real OpenClaw SDK/client wiring, Telegram listener, webhook, polling loop, callback endpoint, network delivery, OCA runtime/session behavior, production credential loading, sidecar support, production durable infrastructure, production deployment runtime, production HTTP readiness endpoint, or product-layer behavior.
 
+## Current W14A transport config boundary
+
+W14A introduces `packages/openclaw-telegram-transport` as the transport package area for later real Telegram/OpenClaw transport leaves.
+
+The W14A package is config-only and side-effect free. It parses caller-provided unknown input into bounded, deterministic, JSON-serializable transport config and readiness descriptors; models redacted Telegram/OpenClaw credential refs; and provides opaque runtime-only credential handles that are not JSON serializable.
+
+W14A readiness distinguishes configured, missing, disabled, degraded, and blocked-by-secret states. It keeps `willCallRemote: false`, `effects: "none"`, and `productionReady: false` in public descriptors.
+
+W14A does not implement real provider SDK/client imports, provider client construction, credential value loading, network calls, listener/webhook/polling loops, delivery execution, callback execution, command routing, real smoke execution, OCA mechanics, domain packages, sidecar support, or deployment runtime behavior.
+
 ## Next major implementation direction
 
-The next major implementation direction after W13F should remain contract-led and explicit about readiness level.
+The next major implementation direction after W14A should remain contract-led and explicit about readiness level.
 
-Future work may move toward real transport ports, runtime capabilities, OCA wrapper capability, domain packages, sidecar support, or deployment/runtime operations only when a phase prompt explicitly scopes those behaviors, lists allowed files, adds tests, and preserves the `hazeteam-core` transport-neutral boundary.
+Future W14 leaves may add real transport ports only within their own scoped files and behind the W14A redacted config/credential boundary. W14B-W14F remain unimplemented until explicitly assigned. Shared exports, docs aggregation, and cross-leaf static consolidation remain fan-in responsibilities.
 
-Do not treat W12 integration proof or the W13 plugin runtime shell as permission to add production runtime behavior opportunistically.
+Do not treat W12 integration proof, the W13 plugin runtime shell, or the W14A config boundary as permission to add production runtime behavior opportunistically.
 
 ## Preserved limitations
 
