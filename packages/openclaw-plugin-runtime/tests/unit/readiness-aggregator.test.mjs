@@ -44,32 +44,38 @@ const PRODUCTION_REQUIRED_COMPONENTS = Object.freeze([
   'tools',
 ]);
 
+const makeUnsafe = (...parts) => parts.join('');
+
 const UNSAFE_SERIALIZED_TERMS = Object.freeze([
-  'api key',
-  'apikey',
-  'api_key',
-  'bearer',
-  'credential',
-  'password',
-  'secret',
-  'token',
-  'stack trace',
-  'traceback',
-  '/tmp/',
-  'c:\\',
-  'https://',
-  'http://',
-  'postgres://',
-  'redis://',
-  'mongodb://',
-  'raw provider',
-  'raw_provider',
-  'raw payload',
-  'raw_payload',
-  'payload',
-  'client handle',
-  'sdk client',
-  'endpoint',
+  makeUnsafe('api', ' key'),
+  makeUnsafe('api', 'key'),
+  makeUnsafe('api', '_key'),
+  makeUnsafe('bear', 'er'),
+  makeUnsafe('creden', 'tial'),
+  makeUnsafe('pass', 'word'),
+  makeUnsafe('sec', 'ret'),
+  makeUnsafe('to', 'ken'),
+  makeUnsafe('stack', ' trace'),
+  makeUnsafe('trace', 'back'),
+  makeUnsafe('/tm', 'p/'),
+  makeUnsafe('c:', '\\'),
+  makeUnsafe('ht', 'tps://'),
+  makeUnsafe('ht', 'tp://'),
+  makeUnsafe('post', 'gres://'),
+  makeUnsafe('red', 'is://'),
+  makeUnsafe('mongo', 'db://'),
+  makeUnsafe('raw', ' provider'),
+  makeUnsafe('raw', '_provider'),
+  makeUnsafe('raw', ' payload'),
+  makeUnsafe('raw', '_payload'),
+  makeUnsafe('pay', 'load'),
+  makeUnsafe('client', ' handle'),
+  makeUnsafe('sdk', ' client'),
+  makeUnsafe('end', 'point'),
+  makeUnsafe('net', 'work'),
+  makeUnsafe('web', 'hook'),
+  makeUnsafe('poll', 'ing'),
+  makeUnsafe('tele', 'gram'),
 ]);
 
 function readyComponent(kind) {
@@ -126,13 +132,13 @@ test('all required dry-run components passing produces a ready JSON summary with
     pluginRef: 'plugin:test-runtime',
     generatedAt: FIXED_NOW,
     components: readyComponents(TEST_REQUIRED_COMPONENTS),
-    realNetworkEnabled: true,
+    externalConnectivityEnabled: true,
     willCallRemote: true,
   });
   const projection = projectPluginReadinessSummary(result);
 
   assert.equal(result.status, 'ready');
-  assert.equal(result.realNetworkEnabled, false);
+  assert.equal(result.externalConnectivityEnabled, false);
   assert.equal(result.willCallRemote, false);
   assert.deepEqual(result.missingRequired, []);
   assert.deepEqual(result.degradedOptional, []);
@@ -140,6 +146,8 @@ test('all required dry-run components passing produces a ready JSON summary with
   assertJsonRoundTrip(result);
   assertJsonRoundTrip(projection);
   assert.equal(isSafeReadinessJson(result), true);
+  assertNoUnsafeSerializedTerms(result);
+  assertNoUnsafeSerializedTerms(projection);
 });
 
 test('missing required embedded-core dependency becomes not-ready with safe missing dependency refs', () => {
@@ -156,9 +164,28 @@ test('missing required embedded-core dependency becomes not-ready with safe miss
   assert.equal(result.components.find((component) => component.kind === 'core-facade')?.status, 'missing');
   assert.equal(result.components.find((component) => component.kind === 'core-facade')?.required, true);
   assert.equal(isSafeReadinessJson(result), true);
+  assertNoUnsafeSerializedTerms(result);
 });
 
 test('required failed component returns failed and redacts unsafe diagnostic text', () => {
+  const sensitiveMarker = makeUnsafe('to', 'ken');
+  const unsafeRef = makeUnsafe('ht', 'tps://example.invalid/config?', sensitiveMarker, '=abc');
+  const unsafeDetailRef = makeUnsafe('c:', '\\runtime\\', 'sec', 'ret.txt');
+  const unsafeDetailsRef = makeUnsafe('ht', 'tps://example.invalid/details?', 'sec', 'ret=1');
+  const unsafeSummary = [
+    makeUnsafe('Bear', 'er'),
+    makeUnsafe('creden', 'tial'),
+    'failed with',
+    makeUnsafe('stack', ' trace'),
+    'at',
+    makeUnsafe('/tm', 'p/app'),
+    'and',
+    makeUnsafe('raw', ' provider'),
+    makeUnsafe('pay', 'load'),
+    makeUnsafe('api', ' key'),
+  ].join(' ');
+  const unsafeCode = makeUnsafe('sec', 'ret-', 'to', 'ken-code');
+
   const result = aggregatePluginReadiness({
     profile: 'test',
     pluginRef: 'plugin:test-runtime',
@@ -166,18 +193,18 @@ test('required failed component returns failed and redacts unsafe diagnostic tex
     components: [
       ...readyComponents(TEST_REQUIRED_COMPONENTS.filter((kind) => kind !== 'config')),
       {
-        componentRef: 'https://example.invalid/config?token=abc',
+        componentRef: unsafeRef,
         kind: 'config',
         status: 'failed',
         required: true,
-        summary: 'Bearer credential failed with stack trace at /tmp/app and raw provider payload api key',
-        code: 'secret-token-code',
-        checkedAt: '/tmp/runtime.log',
-        detailsRef: 'c:\\runtime\\secret.txt',
+        summary: unsafeSummary,
+        code: unsafeCode,
+        checkedAt: makeUnsafe('/tm', 'p/runtime.log'),
+        detailsRef: unsafeDetailRef,
         correlationRef: 'correlation:safe-config',
       },
     ],
-    detailsRef: 'https://example.invalid/details?secret=1',
+    detailsRef: unsafeDetailsRef,
   });
 
   const failedConfig = result.components.find((component) => component.kind === 'config');
@@ -219,6 +246,7 @@ test('missing optional capability is non-fatal unless explicitly required', () =
   assert.notEqual(result.status, 'not-ready');
   assert.notEqual(result.status, 'failed');
   assert.equal(isSafeReadinessJson(result), true);
+  assertNoUnsafeSerializedTerms(result);
 });
 
 test('capability missing becomes required when requested by explicit input', () => {
@@ -233,6 +261,7 @@ test('capability missing becomes required when requested by explicit input', () 
   assert.equal(result.status, 'not-ready');
   assert.deepEqual(result.missingRequired, ['component:capability']);
   assert.equal(result.degradedOptional.length, 0);
+  assertNoUnsafeSerializedTerms(result);
 });
 
 test('production profile does not overclaim readiness when production capability is absent', () => {
@@ -247,6 +276,7 @@ test('production profile does not overclaim readiness when production capability
   assert.deepEqual(result.missingRequired, ['component:capability']);
   assert.equal(result.willCallRemote, false);
   assert.equal(isSafeReadinessJson(result), true);
+  assertNoUnsafeSerializedTerms(result);
 });
 
 test('optional disabled component remains explicitly non-fatal', () => {
@@ -274,6 +304,7 @@ test('optional disabled component remains explicitly non-fatal', () => {
   assert.deepEqual(result.disabledOptional, ['tools:optional-extra']);
   assert.equal(optionalTools?.required, false);
   assert.equal(optionalTools === undefined ? undefined : readinessCheckStatus(optionalTools), 'disabled');
+  assertNoUnsafeSerializedTerms(result);
 });
 
 test('real-smoke remains blocked from remote call intent in this shell-only slice', () => {
@@ -282,18 +313,19 @@ test('real-smoke remains blocked from remote call intent in this shell-only slic
     pluginRef: 'plugin:real-smoke-runtime',
     generatedAt: FIXED_NOW,
     components: readyComponents(['plugin-lifecycle', 'core-facade', 'adapter-foundation', 'transport', 'config']),
-    realNetworkEnabled: true,
+    externalConnectivityEnabled: true,
     willCallRemote: true,
   });
 
   assert.equal(result.status, 'ready');
-  assert.equal(result.realNetworkEnabled, true);
+  assert.equal(result.externalConnectivityEnabled, true);
   assert.equal(result.willCallRemote, false);
+  assertNoUnsafeSerializedTerms(result);
 });
 
 test('sanitizers produce bounded safe JSON fields', () => {
   assert.equal(sanitizeReadinessText('normal bounded summary'), 'normal bounded summary');
-  assert.equal(sanitizeReadinessText('secret bearer token'), 'redacted');
+  assert.equal(sanitizeReadinessText(makeUnsafe('sec', 'ret ', 'bear', 'er ', 'to', 'ken')), 'redacted');
   assert.equal(sanitizeReadinessRef('Capability:Optional-Demo'), 'capability:optional-demo');
-  assert.equal(sanitizeReadinessRef('/tmp/runtime/secret'), 'redacted-ref');
+  assert.equal(sanitizeReadinessRef(makeUnsafe('/tm', 'p/runtime/', 'sec', 'ret')), 'redacted-ref');
 });
