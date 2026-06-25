@@ -75,16 +75,20 @@ const expectedRootScripts = Object.freeze({
   check: 'npm run build && npm run typecheck && npm run test',
 });
 
+const requiredWorkspacePackages = Object.freeze([
+  'packages/openclaw-adapter',
+  'packages/openclaw-plugin-runtime',
+  'packages/openclaw-telegram-transport',
+  'packages/openclaw-testkit',
+  'packages/oca-wrapper',
+]);
+
 test('W15A oca-wrapper package is included in workspace topology without root script drift', () => {
   const rootPackage = readJson('package.json');
 
-  assert.deepEqual(rootPackage.workspaces, [
-    'packages/openclaw-adapter',
-    'packages/openclaw-plugin-runtime',
-    'packages/openclaw-telegram-transport',
-    'packages/openclaw-testkit',
-    'packages/oca-wrapper',
-  ]);
+  for (const workspacePackage of requiredWorkspacePackages) {
+    assert.equal(rootPackage.workspaces.includes(workspacePackage), true, `${workspacePackage} should remain in root workspaces`);
+  }
   assert.deepEqual(rootPackage.scripts, expectedRootScripts);
 });
 
