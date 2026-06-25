@@ -24,12 +24,9 @@ function readPresentationSource() {
   return readText('packages', 'oca-wrapper', 'src', 'presentation.ts');
 }
 
-test('W15F presentation leaf exists without package-root fan-in', () => {
+test('W15F presentation leaf exists', () => {
   assertFile('packages', 'oca-wrapper', 'src', 'presentation.ts');
   assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'presentation.test.mjs');
-
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-  assert.equal(indexSource.includes('presentation'), false, 'W15H owns oca-wrapper package-root fan-in');
 });
 
 test('W15F unit tests import built dist files only', () => {
@@ -48,9 +45,6 @@ test('W15F presentation imports only the local W15B session model leaf', () => {
   assert.doesNotMatch(source, /from\s+['"]\.\.\//u, 'presentation must not import sibling packages');
 });
 
-test('W15F presentation keeps package-root and noop boundaries clean', () => {
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-
-  assert.equal(indexSource.includes('presentation'), false);
+test('W15F presentation keeps noop boundary clean', () => {
   assert.equal(existsSync(repoPath('__noop__')), false);
 });
