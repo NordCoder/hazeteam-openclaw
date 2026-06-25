@@ -349,17 +349,17 @@ function normalizeOperationRef(input: unknown, label: string): AdapterOperationR
   return parsed.ref as AdapterOperationRef;
 }
 
-function normalizeOptionalCorrelationRef(input: unknown, label: string): AdapterCorrelationRef | undefined {
-  if (input === undefined) {
-    return undefined;
-  }
-
+function normalizeCorrelationRef(input: unknown, label: string): AdapterCorrelationRef {
   const parsed = parseOpenClawAdapterRef(input);
   if (parsed?.kind !== 'correlation') {
     throw new TypeError(`${label} must be a safe correlation ref.`);
   }
 
   return parsed.ref as AdapterCorrelationRef;
+}
+
+function normalizeOptionalCorrelationRef(input: unknown, label: string): AdapterCorrelationRef | undefined {
+  return input === undefined ? undefined : normalizeCorrelationRef(input, label);
 }
 
 function safeRefValue(input: string, label: string): string {
@@ -472,7 +472,6 @@ function validateDeliveryRequest(request: TelegramDeliveryRequest): void {
 function createRequestSnapshot(request: TelegramDeliveryRequest): DeliveryAttemptRequestSnapshot {
   validateDeliveryRequest(request);
   const deliveryRef = normalizeOperationRef(request.deliveryRef, 'Delivery attempt request deliveryRef');
-  const deliveryTargetRef = createDeliveryAttemptTargetRef(`${operationRefValue(deliveryRef)}.target`);
   const content = request.content;
   assertPlainObject(content, 'Delivery attempt request content');
   if (content.format !== 'plain' && content.format !== 'markdown' && content.format !== 'html') {
@@ -481,7 +480,7 @@ function createRequestSnapshot(request: TelegramDeliveryRequest): DeliveryAttemp
 
   return safeRecord(
     {
-      deliveryTargetRef,
+      deliveryTargetRef: createDeliveryAttemptTargetRef(`${operationRefValue(deliveryRef)}.target`),
       contentKind: 'text' as const,
       contentFormat: content.format,
       hasActionButtons: (content.buttonGroups?.length ?? 0) > 0,
@@ -506,6 +505,7 @@ function validateDeliverySuccess(result: TelegramDeliverySuccess): AdapterOperat
   if (result.ok !== true) {
     throw new TypeError('Delivery attempt success result must have ok=true.');
   }
+
   createTelegramExternalMessageRef({
     target: {
       channelId: result.externalMessageRef.channelId,
@@ -539,11 +539,11 @@ function validateDeliveryFailure(result: TelegramDeliveryFailure): {
 
   const error = normalizeSafeError(result.error);
   const retryable = result.retryable ?? error.retryable ?? false;
-  return {
+  return Object.freeze({
     deliveryRef: normalizeOperationRef(result.deliveryRef, 'Delivery attempt failure deliveryRef'),
     error,
     retryEligibility: retryable ? 'eligible' : 'not-eligible',
-  };
+  });
 }
 
 function acknowledgementStatusFromFailure(error: TelegramDeliverySafeError): DeliveryProviderAcknowledgementStatus {
@@ -617,7 +617,6 @@ export function createDeliveryProviderAcknowledgementRecord(
 
   if (input.result.ok === true) {
     const deliveryRef = validateDeliverySuccess(input.result);
-    const externalMessageRef = createDeliveryExternalMessageRef(`${operationRefValue(deliveryRef)}.external`);
     return safeRecord(
       {
         schemaVersion: DELIVERY_ATTEMPT_RECORD_SCHEMA_VERSION,
@@ -631,7 +630,7 @@ export function createDeliveryProviderAcknowledgementRecord(
         idempotencyKey,
         providerAcknowledgementStatus: 'accepted' as const,
         acceptedByProvider: true,
-        externalMessageRef,
+        externalMessageRef: createDeliveryExternalMessageRef(`${operationRefValue(deliveryRef)}.external`),
         retryEligibility: 'not-eligible' as const,
         businessResultStatus: 'not-evaluated' as const,
         shouldMarkDelivered: false as const,
@@ -781,6 +780,9 @@ export function normalizeDeliveryAttemptRecord(input: unknown): DeliveryAttemptR
 
     const request = input.request;
     assertPlainObject(request, 'Delivery attempt record request');
+    const correlationRef = input.correlationRef === undefined
+      ? undefined
+      : normalizeCorrelationRef(input.correlationRef, 'Delivery attempt record correlationRef');
 
     return safeRecord(
       {
@@ -813,9 +815,7 @@ export function normalizeDeliveryAttemptRecord(input: unknown): DeliveryAttemptR
           : { providerAcknowledgementStatus: input.providerAcknowledgementStatus as DeliveryProviderAcknowledgementStatus }),
         businessResultStatus: businessResultStatus as DeliveryBusinessResultStatus,
         retryEligibility: normalizeRetryEligibility(input.retryEligibility),
-        ...(input.correlationRef === undefined
-          ? {}
-          : { correlationRef: normalizeOptionalCorrelationRef(input.correlationRef, 'Delivery attempt record correlationRef') }),
+        ...(correlationRef === undefined ? {} : { correlationRef }),
         createdAtIso: normalizeIsoTimestamp(input.createdAtIso, 'Delivery attempt record createdAtIso'),
         updatedAtIso: normalizeIsoTimestamp(input.updatedAtIso, 'Delivery attempt record updatedAtIso'),
       },
