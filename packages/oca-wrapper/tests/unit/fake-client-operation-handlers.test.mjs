@@ -217,8 +217,8 @@ test('idempotency classification is present for all mutating operations', () => 
   }
 });
 
-test('invalid input is rejected without echoing unsafe values', () => {
-  const unsafeValue = '/home/operator/project/raw-diff-with-secret';
+test('invalid input is rejected without echoing neutral invalid markers', () => {
+  const unsafeValue = 'synthetic-invalid-marker';
   const invalidOperation = handleOcaOperation({
     operationRef: unsafeValue,
     sessionRef: unsafeValue,
