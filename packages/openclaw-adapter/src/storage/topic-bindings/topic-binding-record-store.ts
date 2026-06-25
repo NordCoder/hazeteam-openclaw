@@ -172,6 +172,10 @@ export function createTopicBindingRecordStore(input: {
       }
 
       if (existingByRef !== null) {
+        if (createTopicBindingKeyId(existingByRef.bindingKey) !== bindingKeyId) {
+          return conflict('binding-key-conflict', candidate, existingByRef);
+        }
+
         if (recordsAreEqual(existingByRef, candidate)) {
           return replayed(existingByRef);
         }
