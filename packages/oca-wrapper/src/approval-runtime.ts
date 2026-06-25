@@ -134,31 +134,40 @@ export function handleOcaApprovalRuntimeToolRequest(
   }
 
   const context = normalized.value;
-  const baseInput = buildOperationInput(context.input);
-
-  if ('approvalDecision' in context.input) {
-    const decision = normalizeApprovalDecision(context.input.approvalDecision, context);
-    if (!decision.ok) {
-      return invalidRuntimeResult(
-        'invalid-approval',
-        decision.issues,
-        context.operationRef,
-        context.policy,
-        context.idempotencyRef,
-        context.requestRef,
-      );
-    }
+  if ('approved' in context.input) {
+    return invalidRuntimeResult(
+      'invalid-approval',
+      Object.freeze([issue('invalid-approval', 'approvalDecision', 'Approval requires an explicit safe decision object.')]),
+      context.operationRef,
+      context.policy,
+      context.idempotencyRef,
+      context.requestRef,
+    );
   }
 
   if (context.policy.approval === 'read-only') {
-    return resultFromHandler(handleOcaOperation(baseInput, dependencies), context, 'not-required');
+    if ('approvalDecision' in context.input) {
+      const decision = normalizeApprovalDecision(context.input.approvalDecision, context);
+      if (!decision.ok) {
+        return invalidRuntimeResult(
+          'invalid-approval',
+          decision.issues,
+          context.operationRef,
+          context.policy,
+          context.idempotencyRef,
+          context.requestRef,
+        );
+      }
+    }
+
+    return resultFromHandler(handleOcaOperation(buildOperationInput(context.input), dependencies), context, 'not-required');
   }
 
-  const blocked = handleOcaOperation(baseInput, dependencies);
-  if (blocked.status === 'invalid-input') {
+  const preApproval = handleOcaOperation(buildOperationInput(context.input), dependencies);
+  if (preApproval.status === 'invalid-input') {
     return invalidRuntimeResult(
       'invalid-operation',
-      operationIssues(blocked.issues),
+      operationIssues(preApproval.issues),
       context.operationRef,
       context.policy,
       context.idempotencyRef,
@@ -183,8 +192,7 @@ export function handleOcaApprovalRuntimeToolRequest(
     );
   }
 
-  const approvedInput = buildOperationInput(context.input, true);
-  return resultFromHandler(handleOcaOperation(approvedInput, dependencies), context, 'approved', requirement);
+  return resultFromHandler(handleOcaOperation(buildOperationInput(context.input, true), dependencies), context, 'approved', requirement);
 }
 
 export function isSafeOcaApprovalRuntimeJson(value: unknown): boolean {
@@ -208,8 +216,7 @@ function normalizeRuntimeToolRequest(input: unknown):
     return Object.freeze({ ok: false, issues: Object.freeze([issue('not-object', 'request', 'Runtime tool request must be a safe object.')]) });
   }
 
-  const unsafeKey = firstUnsafePublicKey(input);
-  if (unsafeKey !== undefined) {
+  if (firstUnsafePublicKey(input) !== undefined) {
     return Object.freeze({ ok: false, issues: Object.freeze([issue('invalid-field', 'request', 'Runtime tool request contains an unsafe public field.')]) });
   }
 
@@ -278,6 +285,10 @@ function normalizeApprovalDecision(
     if (!ALLOWED_DECISION_KEYS.includes(key)) {
       return Object.freeze({ ok: false, issues: Object.freeze([issue('invalid-approval', 'approvalDecision', 'Approval decision contains an unsupported public field.')]) });
     }
+  }
+
+  if (context.policy.approval === 'read-only') {
+    return Object.freeze({ ok: false, issues: Object.freeze([issue('invalid-approval', 'approvalDecision', 'Approval decision is not required for read-only operation.')]) });
   }
 
   const requirement = buildApprovalRequirementDescriptor(context);
@@ -424,11 +435,25 @@ function buildRequirementRef(context: NormalizedRuntimeToolRequest): OcaApproval
     context.policy.idempotency,
     context.idempotencyRef ?? 'none',
     context.requestRef ?? 'none',
+    ...safeRefFingerprintParts(context.input),
   ].join('|');
   const operationName = context.operationRef.slice(context.operationRef.lastIndexOf('.') + 1);
   const checksum = checksumSafe(body).toString(16).padStart(4, '0');
 
   return `approval-requirement:${operationName}-${checksum}` as OcaApprovalRequirementRef;
+}
+
+function safeRefFingerprintParts(input: Record<string, unknown>): readonly string[] {
+  const parts: string[] = [];
+
+  for (const field of OCA_REF_FIELDS) {
+    const value = input[field];
+    if (typeof value === 'string' && isSafeOcaRefLike(value)) {
+      parts.push(`${field}=${value}`);
+    }
+  }
+
+  return Object.freeze(parts);
 }
 
 function buildOperationInput(input: Record<string, unknown>, approved?: true): Record<string, unknown> {
@@ -451,13 +476,51 @@ function collectSafeRefs(input: Record<string, unknown>): OcaApprovalRuntimeSafe
   const refs: MutableRuntimeSafeRefs = {};
 
   for (const field of OCA_REF_FIELDS) {
-    const value = input[field];
-    if (typeof value === 'string' && isSafeOcaRefLike(value)) {
-      refs[field] = value as OcaApprovalRuntimeSafeRefs[typeof field];
-    }
+    copySafeRef(refs, field, input[field]);
   }
 
   return Object.freeze(refs);
+}
+
+function copySafeRef(target: MutableRuntimeSafeRefs, field: RuntimeRefField, value: unknown): void {
+  if (typeof value !== 'string' || !isSafeOcaRefLike(value)) {
+    return;
+  }
+
+  if (field === 'sessionRef') {
+    target.sessionRef = value as OcaApprovalRuntimeSafeRefs['sessionRef'];
+    return;
+  }
+  if (field === 'taskRef') {
+    target.taskRef = value as OcaApprovalRuntimeSafeRefs['taskRef'];
+    return;
+  }
+  if (field === 'worktreeRef') {
+    target.worktreeRef = value as OcaApprovalRuntimeSafeRefs['worktreeRef'];
+    return;
+  }
+  if (field === 'branchRef') {
+    target.branchRef = value as OcaApprovalRuntimeSafeRefs['branchRef'];
+    return;
+  }
+  if (field === 'outputRef') {
+    target.outputRef = value as OcaApprovalRuntimeSafeRefs['outputRef'];
+    return;
+  }
+  if (field === 'logRef') {
+    target.logRef = value as OcaApprovalRuntimeSafeRefs['logRef'];
+    return;
+  }
+  if (field === 'diffRef') {
+    target.diffRef = value as OcaApprovalRuntimeSafeRefs['diffRef'];
+    return;
+  }
+  if (field === 'artifactRef') {
+    target.artifactRef = value as OcaApprovalRuntimeSafeRefs['artifactRef'];
+    return;
+  }
+
+  target.reviewRef = value as OcaApprovalRuntimeSafeRefs['reviewRef'];
 }
 
 function operationIssues(issues: readonly OcaOperationPublicIssue[]): readonly OcaApprovalRuntimePublicIssue[] {
@@ -711,7 +774,7 @@ const OCA_REF_FIELDS = Object.freeze([
   'reviewRef',
 ] as const satisfies readonly RuntimeRefField[]);
 
-const OCA_REF_PREFIXES = Object.freeze([
+const OCA_REF_PREFIXES: readonly string[] = Object.freeze([
   'oca-session:',
   'oca-task:',
   'oca-worktree:',
@@ -723,7 +786,7 @@ const OCA_REF_PREFIXES = Object.freeze([
   'oca-review:',
 ]);
 
-const ALLOWED_DECISION_KEYS = Object.freeze([
+const ALLOWED_DECISION_KEYS: readonly string[] = Object.freeze([
   'kind',
   'approved',
   'requirementRef',
