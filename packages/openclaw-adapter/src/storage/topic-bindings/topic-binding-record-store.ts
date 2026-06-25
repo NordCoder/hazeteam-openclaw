@@ -87,6 +87,13 @@ function normalizeMaybeRecord(input: TopicBindingRecord | null | undefined): Top
   return input === null || input === undefined ? null : normalizeTopicBindingRecord(input);
 }
 
+function normalizePersistedRecord(
+  persistedRecord: TopicBindingRecord | void,
+  fallbackRecord: TopicBindingRecord,
+): TopicBindingRecord {
+  return persistedRecord === undefined ? fallbackRecord : normalizeTopicBindingRecord(persistedRecord);
+}
+
 function normalizeRecordList(input: readonly TopicBindingRecord[]): readonly TopicBindingRecord[] {
   if (!Array.isArray(input)) {
     throw new TypeError('Topic binding record list must be an array.');
@@ -185,13 +192,13 @@ export function createTopicBindingRecordStore(input: {
         }
 
         const persistedRecord = await records.put(candidate);
-        const normalizedPersistedRecord = normalizeMaybeRecord(persistedRecord) ?? candidate;
+        const normalizedPersistedRecord = normalizePersistedRecord(persistedRecord, candidate);
 
         return updated(normalizedPersistedRecord, existingByRef);
       }
 
       const persistedRecord = await records.put(candidate);
-      const normalizedPersistedRecord = normalizeMaybeRecord(persistedRecord) ?? candidate;
+      const normalizedPersistedRecord = normalizePersistedRecord(persistedRecord, candidate);
 
       return created(normalizedPersistedRecord);
     },
