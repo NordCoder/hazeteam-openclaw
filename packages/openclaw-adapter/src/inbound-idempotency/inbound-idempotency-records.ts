@@ -3,6 +3,7 @@ import { isAdapterIdempotencyKey } from '../contracts/idempotency.js';
 import {
   parseOpenClawAdapterRef,
   type AdapterCorrelationRef,
+  type AdapterDetailsRef,
 } from '../contracts/refs.js';
 import {
   createAdapterSafeError,
@@ -217,6 +218,19 @@ function normalizeCorrelationRef(input: unknown, label: string): AdapterCorrelat
   return parsed.ref as AdapterCorrelationRef;
 }
 
+function normalizeDetailsRef(input: unknown, label: string): AdapterDetailsRef | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+
+  const parsed = parseOpenClawAdapterRef(input);
+  if (parsed?.kind !== 'details' || containsForbiddenStringPart(parsed.ref)) {
+    throw new TypeError(`${label} must be a safe details ref.`);
+  }
+
+  return parsed.ref as AdapterDetailsRef;
+}
+
 function normalizeInboundIdempotencyRef(input: unknown, eventKind: InboundIdempotencyEventKind): AdapterIdempotencyKey {
   if (!isAdapterIdempotencyKey(input)) {
     throw new TypeError('Inbound idempotency idempotencyRef must be a safe adapter idempotency ref.');
@@ -264,13 +278,14 @@ function normalizeSafeError(input: AdapterSafeError): AdapterSafeError {
     throw new TypeError('Inbound idempotency safe error retryable must be a boolean.');
   }
 
+  const detailsRef = normalizeDetailsRef(input.detailsRef, 'Inbound idempotency safe error detailsRef');
   const correlationRef = normalizeCorrelationRef(input.correlationRef, 'Inbound idempotency safe error correlationRef');
 
   return createAdapterSafeError({
     code: input.code as AdapterSafeError['code'],
     message: sanitizeSafeInboundText(input.message),
     ...(input.retryable === undefined ? {} : { retryable: input.retryable }),
-    ...(input.detailsRef === undefined ? {} : { detailsRef: normalizeSafeInboundRef(input.detailsRef, 'Inbound idempotency safe error detailsRef') as AdapterSafeError['detailsRef'] }),
+    ...(detailsRef === undefined ? {} : { detailsRef }),
     ...(correlationRef === undefined ? {} : { correlationRef }),
   });
 }
