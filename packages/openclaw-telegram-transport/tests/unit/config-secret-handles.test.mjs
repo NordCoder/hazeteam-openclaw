@@ -66,6 +66,10 @@ test('valid real config creates redacted descriptors without remote effects', ()
     result.descriptor.providers.map((provider) => provider.secretDescriptor.status),
     ['configured-redacted', 'configured-redacted'],
   );
+  assert.deepEqual(
+    result.descriptor.providers.map((provider) => provider.runtimeBehavior),
+    ['descriptor-only', 'descriptor-only'],
+  );
   assert.equal(isSafeTransportConfigJson(result.descriptor), true);
   assertNoLeak(result, PROTECTED_TERMS);
 });
@@ -97,7 +101,7 @@ test('missing real transport credential blocks safely without throwing', () => {
   assert.equal(telegram.classification, 'missing-secret');
   assert.equal(telegram.readiness, 'blocked-by-secret');
   assert.equal(telegram.secretDescriptor.status, 'missing');
-  assert.equal(telegram.providerClient, 'not-constructed');
+  assert.equal(telegram.runtimeBehavior, 'descriptor-only');
   assertNoLeak(result, PROTECTED_TERMS);
 });
 
