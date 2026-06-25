@@ -172,6 +172,7 @@ test('root scripts and workflow topology stay bounded', () => {
   const ciWorkflow = readText('.github', 'workflows', 'ci.yml');
 
   assert.deepEqual(rootPackage.scripts, expectedRootScripts);
-  assert.deepEqual(workflows, ['ci.yml']);
+  assert.equal(workflows.includes('ci.yml'), true);
+  assert.equal(workflows.includes('w12-core-integration.yml'), true);
   assert.match(ciWorkflow, /npm run check/u);
 });

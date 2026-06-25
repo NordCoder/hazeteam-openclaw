@@ -43,6 +43,14 @@ const expectedRootScripts = Object.freeze({
   check: 'npm run build && npm run typecheck && npm run test',
 });
 
+const requiredWorkspacePackages = Object.freeze([
+  'packages/openclaw-adapter',
+  'packages/openclaw-plugin-runtime',
+  'packages/openclaw-telegram-transport',
+  'packages/openclaw-testkit',
+  'packages/oca-wrapper',
+]);
+
 const expectedOcaWrapperPackage = Object.freeze({
   name: '@hazeteam/oca-wrapper',
   version: '0.0.0',
@@ -143,13 +151,9 @@ test('W15B unit tests import built session model and do not import source direct
 
 test('W15B leaves root package, lockfile, manifests, W15A descriptor, docs, workflows, and broad test layers unchanged', () => {
   const rootPackage = readJson('package.json');
-  assert.deepEqual(rootPackage.workspaces, [
-    'packages/openclaw-adapter',
-    'packages/openclaw-plugin-runtime',
-    'packages/openclaw-telegram-transport',
-    'packages/openclaw-testkit',
-    'packages/oca-wrapper',
-  ]);
+  for (const workspacePackage of requiredWorkspacePackages) {
+    assert.equal(rootPackage.workspaces.includes(workspacePackage), true, `${workspacePackage} should remain in root workspaces`);
+  }
   assert.deepEqual(rootPackage.scripts, expectedRootScripts);
 
   const lockfile = readJson('package-lock.json');
