@@ -160,7 +160,7 @@ export interface ChannelEventSourceNormalizeResult {
 
 interface NormalizedCommandParts {
   readonly name: string;
-  readonly args?: string;
+  readonly args: string | undefined;
 }
 
 interface UnsupportedFieldSummary {
@@ -287,7 +287,7 @@ function safeRef(prefix: string, value: unknown): string | undefined {
     return undefined;
   }
 
-  return identifier.startsWith(`${prefix}:`) ? identifier : `${prefix}:${identifier}`;
+  return identifier.startsWith(prefix + ':') ? identifier : prefix + ':' + identifier;
 }
 
 function normalizeProvider(value: unknown): ChannelEventSourceProvider | undefined {
@@ -369,18 +369,18 @@ function parseCommandParts(value: string): NormalizedCommandParts | undefined {
   const trimmed = value.trim();
   const withoutPrefix = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
   const match = /^(?<name>[a-z][a-z0-9_]{0,31})(?:\s+(?<args>.*))?$/iu.exec(withoutPrefix);
-  const name = match?.groups?.name;
 
+  if (match === null) {
+    return undefined;
+  }
+
+  const name = match.groups?.name;
   if (name === undefined || !SAFE_COMMAND_PATTERN.test(name)) {
     return undefined;
   }
 
   const args = match.groups?.args?.trim();
-  if (args === undefined || args === '') {
-    return Object.freeze({ name: name.toLowerCase() });
-  }
-
-  return Object.freeze({ name: name.toLowerCase(), args });
+  return Object.freeze({ name: name.toLowerCase(), args: args === '' ? undefined : args } satisfies NormalizedCommandParts);
 }
 
 function projectCommand(
@@ -403,7 +403,7 @@ function projectCommand(
 
   const base = {
     descriptorKind: 'channel-event-command-projection',
-    commandRef: `${providerKind}-command:${parsed.name}`,
+    commandRef: providerKind + '-command:' + parsed.name,
     commandName: parsed.name,
     source: typeof record.command === 'string' ? 'explicit-field' : 'text-prefix',
     routingAuthority: false,
@@ -448,7 +448,7 @@ function collectUnsupportedFields(record: Record<string, unknown>, issues: Chann
     }
   }
 
-  return Object.freeze({ unsupportedFieldCount, redactedFieldCount });
+  return Object.freeze({ unsupportedFieldCount, redactedFieldCount } satisfies UnsupportedFieldSummary);
 }
 
 function createAckDecision(required: boolean, reasonCode: ChannelEventSourceReasonCode): ChannelEventProviderAckDecision {
@@ -532,10 +532,10 @@ function requiredRef(
 }
 
 function optionalRef(value: unknown, prefix: string, fallback: string): string {
-  return safeRef(prefix, value) ?? `${prefix}:${fallback}`;
+  return safeRef(prefix, value) ?? prefix + ':' + fallback;
 }
 
-function omittedEvent(): undefined {
+function missingEvent(): undefined {
   return undefined;
 }
 
@@ -558,7 +558,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'missing-transport-config',
       providerKind,
       providerDescriptor: undefined,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'missing-transport-config'),
       issues,
     });
@@ -569,7 +569,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
 
   if (!config.ok) {
     issues.push(
-      createIssue('invalid-transport-config', 'blocked', `transport:${providerKind}`, 'Transport config is not ready for channel events'),
+      createIssue('invalid-transport-config', 'blocked', 'transport:' + providerKind, 'Transport config is not ready for channel events'),
     );
     return createResult({
       ok: false,
@@ -577,7 +577,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'invalid-transport-config',
       providerKind,
       providerDescriptor,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'invalid-transport-config'),
       issues,
     });
@@ -585,7 +585,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
 
   if (providerDescriptor === undefined || providerDescriptor.mode === 'disabled' || providerDescriptor.readiness === 'disabled') {
     issues.push(
-      createIssue('ignored-provider-disabled', 'info', `transport:${providerKind}`, 'Provider is disabled for channel events'),
+      createIssue('ignored-provider-disabled', 'info', 'transport:' + providerKind, 'Provider is disabled for channel events'),
     );
     return createResult({
       ok: false,
@@ -593,7 +593,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'ignored-provider-disabled',
       providerKind,
       providerDescriptor,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'ignored-provider-disabled'),
       issues,
     });
@@ -607,7 +607,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'invalid-provider-input',
       providerKind,
       providerDescriptor,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'invalid-provider-input'),
       issues,
     });
@@ -623,7 +623,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'ignored-event',
       providerKind,
       providerDescriptor,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createAckDecision(requiresProviderAck, 'ignored-event'),
       issues,
     });
@@ -631,26 +631,24 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
 
   const eventKind = normalizeEventKind(eventRecord.eventKind);
   if (eventKind === undefined) {
-    issues.push(
-      createIssue('unsupported-event-kind', 'warning', 'channel-event-source', 'Unsupported event kind was rejected safely'),
-    );
+    issues.push(createIssue('unsupported-event-kind', 'warning', 'channel-event-source', 'Unsupported event kind was rejected safely'));
     return createResult({
       ok: false,
       status: 'unsupported',
       reasonCode: 'unsupported-event-kind',
       providerKind,
       providerDescriptor,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createAckDecision(requiresProviderAck, 'unsupported-event-kind'),
       issues,
     });
   }
 
-  const componentRef = `${providerKind}:channel-event`;
-  const channelRef = requiredRef(eventRecord, 'channelId', `${providerKind}-channel`, issues, componentRef);
-  const chatRef = requiredRef(eventRecord, 'chatId', `${providerKind}-chat`, issues, componentRef);
-  const threadRef = requiredRef(eventRecord, 'threadId', `${providerKind}-thread`, issues, componentRef);
-  const messageRef = requiredRef(eventRecord, 'messageId', `${providerKind}-message`, issues, componentRef);
+  const componentRef = providerKind + ':channel-event';
+  const channelRef = requiredRef(eventRecord, 'channelId', providerKind + '-channel', issues, componentRef);
+  const chatRef = requiredRef(eventRecord, 'chatId', providerKind + '-chat', issues, componentRef);
+  const threadRef = requiredRef(eventRecord, 'threadId', providerKind + '-thread', issues, componentRef);
+  const messageRef = requiredRef(eventRecord, 'messageId', providerKind + '-message', issues, componentRef);
 
   if (channelRef === undefined || chatRef === undefined || threadRef === undefined || messageRef === undefined) {
     return createResult({
@@ -659,7 +657,7 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
       reasonCode: 'invalid-provider-input',
       providerKind,
       providerDescriptor,
-      event: omittedEvent(),
+      event: missingEvent(),
       providerAck: createNoAckDecision(requiresProviderAck, 'invalid-provider-input'),
       issues,
     });
@@ -671,12 +669,12 @@ export function normalizeChannelEventSourceInput(input: ChannelEventSourceNormal
   const text = projectSafeText(eventRecord.text, issues, componentRef);
   const command = projectCommand(eventRecord, text, providerKind, issues, componentRef);
   const topicDisplay = projectDisplayTitle(eventRecord.topicTitle, issues, componentRef);
-  const callbackRef = eventKind === 'callback' ? optionalRef(eventRecord.callbackId, `${providerKind}-callback`, 'unavailable') : undefined;
+  const callbackRef = eventKind === 'callback' ? optionalRef(eventRecord.callbackId, providerKind + '-callback', 'unavailable') : undefined;
   const systemKind = eventKind === 'system' ? normalizeSystemKind(eventRecord.systemKind) : undefined;
-  const eventId = safeRef(`${providerKind}-event`, eventRecord.eventId);
+  const eventId = safeRef(providerKind + '-event', eventRecord.eventId);
   const stableInput = [providerKind, eventKind, channelRef, chatRef, threadRef, messageRef, callbackRef ?? '', systemKind ?? ''].join('|');
-  const eventRef = eventId ?? `channel-event:${deterministicHash(stableInput)}`;
-  const idempotencyKey = `channel-event-idem:${deterministicHash(`${eventRef}|${stableInput}`)}`;
+  const eventRef = eventId ?? 'channel-event:' + deterministicHash(stableInput);
+  const idempotencyKey = 'channel-event-idem:' + deterministicHash(eventRef + '|' + stableInput);
 
   const baseEvent = {
     descriptorKind: 'openclaw-telegram-channel-event',
