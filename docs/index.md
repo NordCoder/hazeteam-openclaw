@@ -1,69 +1,72 @@
 # Documentation index
 
-## Current foundation scope
+## Current adapter-first scope
 
-`hazeteam-openclaw` is an external OpenClaw/Telegram adapter and plugin foundation over stable `hazeteam-core`. The current foundation documents safe adapter contracts, fake-first composition, injected boundary shells, durable adapter-owned store shells, OpenClaw-facing integration shells, the W9 secret-gated smoke posture, W12 integration proof wiring against pinned `hazeteam-core` public APIs with fake adapter edges, the W13 OpenClaw plugin runtime shell package, and the W14A OpenClaw/Telegram transport config and credential-reference boundary package.
+`hazeteam-openclaw` is an external OpenClaw/Telegram adapter repository over stable `hazeteam-core`.
 
-This index is a navigation fan-in for the W10 release-hardening documents, W11 consistency cleanup state, W12 core integration status, W13 plugin runtime shell status, and W14A transport config boundary status. It does not certify a production OpenClaw, Telegram, OCA, or product runtime.
+The active contract pack is `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`. CD11.2 makes the current priority explicit: finish the generic OpenClaw/Telegram adapter until it is ready for real-system integration before advancing OCA, LifeOS, domain-product overlays, sidecar behavior, deployment runtime, production provider runtime, or real-system integration work.
+
+The current repository includes W12 public-core integration proof wiring, W13 plugin-runtime shell surfaces, W14 Telegram/OpenClaw transport safe port surfaces, and W15 fake/inert OCA plus descriptor-only LifeOS/domain overlay surfaces.
+
+This index does not certify adapter-ready-for-real-system-integration or production readiness. Existing OCA and LifeOS/domain files are parked downstream overlays and are not adapter-readiness evidence. Skipped or blocked real smoke is not a real-provider pass.
+
+## Status and package map
+
+- [`README.md`](../README.md) — root project status, active CD11.2 contract pack, current priority, package map, and preserved limitations.
+- [`docs/README.md`](README.md) — documentation index, worker reading order, and repo role.
+- [`docs/roadmap/current-development-state.md`](roadmap/current-development-state.md) — worker-facing current handoff for W16 and later adapter-readiness work.
+- [`docs/roadmap/w16a6-audit-consolidation.md`](roadmap/w16a6-audit-consolidation.md) — Wave 0 audit consolidation and Wave 1 launch context.
+- [`packages/openclaw-adapter/README.md`](../packages/openclaw-adapter/README.md) — safe adapter foundation package posture.
+- [`packages/openclaw-testkit/README.md`](../packages/openclaw-testkit/README.md) — deterministic fake/testkit package posture.
+- [`packages/openclaw-plugin-runtime/README.md`](../packages/openclaw-plugin-runtime/README.md) — W13 fake/dry-run-capable runtime shell posture.
+- [`packages/openclaw-telegram-transport/README.md`](../packages/openclaw-telegram-transport/README.md) — W14 safe transport port posture and real-smoke classification.
+- [`packages/oca-wrapper/README.md`](../packages/oca-wrapper/README.md) — W15 fake/inert OCA overlay posture and parked downstream status.
+- [`packages/domain-lifeos/README.md`](../packages/domain-lifeos/README.md) — descriptor-only LifeOS/domain fixture posture and parked downstream status.
+
+## Development context
+
+- [`docs/development/core-integration.md`](development/core-integration.md) — W12 pinned core ref, public import policy, local packed-core install strategy, script/CI fan-in, and integration-proof status boundary.
+- [`docs/architecture/core-boundary.md`](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
+- [`docs/architecture/openclaw-telegram-adapter.md`](architecture/openclaw-telegram-adapter.md) — target OpenClaw Telegram flow, topic model, callback model, and fake-first rule.
+- [`docs/architecture/adapter-worker-onboarding.md`](architecture/adapter-worker-onboarding.md) — worker-facing mental model for layers, current stage, fake-first progression, leaf slices, and fan-in slices.
+- [`docs/architecture/parallel-execution-and-fanin.md`](architecture/parallel-execution-and-fanin.md) — conflict-free worker scheduling rules.
+- [`docs/architecture/testing-strategy.md`](architecture/testing-strategy.md) — static, contract, fan-in snapshot, fake integration, fake E2E, no-leak, durable, and real-smoke layers.
+- [`docs/adapter-authoring/README.md`](adapter-authoring/README.md) — imported core guidance for adapter package boundaries, flows, safety rules, blueprints, and certification checklists.
 
 ## Release-hardening map
 
-- [`packages/openclaw-plugin-runtime/README.md`](../packages/openclaw-plugin-runtime/README.md) — W13 package-root public surface, fake/dry-run runtime-shell status, safety posture, and explicit limitations.
-- [`packages/openclaw-telegram-transport/README.md`](../packages/openclaw-telegram-transport/README.md) — W14A package-root public surface for side-effect-free transport config parsing, redacted credential descriptors, opaque credential handles, safety posture, and explicit limitations.
-- [`docs/development/core-integration.md`](development/core-integration.md) — W12 pinned core ref, public import policy, local packed-core install strategy, script/CI fan-in, and integration-proof status boundary.
+Release classifier docs are intentionally linked here but not modified by W16B. W16D owns readiness ladder and release classifier wording.
+
 - [`docs/deployment/config-readiness-health-credentials.md`](deployment/config-readiness-health-credentials.md) — configuration assumptions, readiness semantics, health evidence, and credential-handling posture for the current foundation.
 - [`docs/operations/migration-backup-replay.md`](operations/migration-backup-replay.md) — migration, backup, restore, replay, and recovery assumptions around injected durable stores and safe records.
-- [`docs/release/release-checklist.md`](release/release-checklist.md) — pre-release checks, static and acceptance gates, W12 core integration release gate, security/no-leak review, and merge/release gates.
-- [`docs/release/known-limitations.md`](release/known-limitations.md) — current limitations, W12 fake-edge integration-proof boundary, W13 plugin-runtime shell boundary, W14A config-only transport boundary, future work, and risk notes that must remain visible until implemented by explicit future slices.
-- [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) — conflict-aware implementation roadmap, phase sequence, parallel leaf policy, and fan-in rules.
+- [`docs/release/release-checklist.md`](release/release-checklist.md) — release checks, static and acceptance gates, security/no-leak review, and merge/release gates.
+- [`docs/release/known-limitations.md`](release/known-limitations.md) — unsupported production capabilities and future-work boundaries that must remain visible until implemented by explicit future slices.
+- [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) — implementation roadmap, phase sequence, parallel leaf policy, and fan-in rules.
+- [`docs/roadmap/file-ownership-matrix.md`](roadmap/file-ownership-matrix.md) — file ownership and conflict-avoidance table.
 
-## W13 plugin-runtime shell posture
+## Current foundation posture
 
-Use [`packages/openclaw-plugin-runtime/README.md`](../packages/openclaw-plugin-runtime/README.md) before W13 or later plugin-runtime work. W13A introduced the package skeleton. W13B through W13E added no-effect lifecycle, tool registry, capability registry, and readiness modules. W13F fans those leaves into the package root and adds cross-leaf smoke coverage.
+Use this status when orienting future workers:
 
-The W13 package is a safe, fake/dry-run-capable runtime shell. It does not include real provider wiring, runtime execution, credentials, transport delivery, OCA mechanics, sidecar behavior, deployment runtime, or a production readiness endpoint.
+- W12/W13/W14/W15 work is merged historical foundation, not adapter-ready or production-ready certification.
+- Default build/check/test paths are no-secret and no-network by design.
+- Real smoke remains opt-in and status-classified. Skipped or blocked smoke must be reported honestly and must not be counted as a pass.
+- OCA and LifeOS/domain packages are parked downstream overlays until adapter-ready-for-real-system-integration.
+- Fake/inert OCA and descriptor-only LifeOS surfaces must not be used as adapter-readiness evidence.
 
-## W14A transport config boundary posture
+## Preserved limitations
 
-Use [`packages/openclaw-telegram-transport/README.md`](../packages/openclaw-telegram-transport/README.md) before W14 or later transport work. W14A introduces the transport package only as a side-effect-free configuration and credential-reference boundary for later real Telegram/OpenClaw transport leaves.
-
-The W14A package parses caller-provided unknown input into safe JSON-serializable config/readiness descriptors, models redacted credential refs for Telegram/OpenClaw credentials, and exposes opaque runtime-only credential handles. It does not load credential values, instantiate provider clients, import provider SDKs, call remote systems, listen for updates, register webhooks, poll providers, deliver messages, acknowledge callbacks, route commands, or run real smoke behavior.
-
-## Deployment and credential posture
-
-Start with [`docs/deployment/config-readiness-health-credentials.md`](deployment/config-readiness-health-credentials.md) when reviewing how the adapter foundation treats configuration, readiness, health evidence, and credentials.
-
-The current foundation uses injected ports, facades, safe DTOs, safe refs, and safe readiness/result summaries. It does not include a production credential loader, production OpenClaw SDK/client wiring, or a production HTTP health endpoint.
-
-## W12 core integration posture
-
-Use [`docs/development/core-integration.md`](development/core-integration.md) before W12 or later core-integration work. W12 integration-proof status depends on installing a locally packed `hazeteam-core` tarball from the pinned ref and passing the W12 script/CI gate. It is not a real transport, sidecar, credential, durable backend, or production runtime certification.
-
-## Operations and recovery posture
-
-Use [`docs/operations/migration-backup-replay.md`](operations/migration-backup-replay.md) for operator-facing assumptions about durable store records, migration safety, backup/restore consistency, replay expectations, and recovery failure modes.
-
-The current foundation defines safe record shapes and validation expectations behind injected durable boundaries. It does not include a migration CLI, backup CLI, restore command, replay runtime, concrete storage engine, queue, scheduler, or recovery worker.
-
-## Release checklist and limitations
-
-Use [`docs/release/release-checklist.md`](release/release-checklist.md) before release review to confirm build/test/check posture, static and acceptance gates, W12 core integration proof gate, no-leak requirements, and merge/release gates.
-
-Use [`docs/release/known-limitations.md`](release/known-limitations.md) to keep unsupported production capabilities visible. Known limitations must not be removed from release-facing docs until current source, tests, and an explicit implementation slice prove the capability exists.
-
-## Roadmap and future work
-
-Use [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) for sequencing, dependency, and fan-in policy.
-
-The following are not included in the current foundation, W12 integration proof, W13 plugin-runtime shell, or W14A transport config boundary:
+The current repository does not include:
 
 - production OpenClaw SDK/client wiring;
 - production Telegram/OpenClaw network integration;
-- production credential loading;
-- production HTTP health/readiness endpoint;
-- packaged migration, backup, restore, or replay tooling;
-- replay runtime or real remote smoke execution;
+- Telegram listener, webhook server, callback HTTP endpoint, polling loop, or daemon;
+- production credential loader;
+- production provider runtime;
 - sidecar support;
-- OCA, Codex, LifeOS, or other future product-layer implementations.
+- deployment runtime;
+- production durable backend;
+- real OCA client execution;
+- LifeOS or domain-product behavior.
 
 Future slices may add those capabilities only when explicitly scoped, implemented in production source, covered by tests, and kept outside `hazeteam-core` transport-neutral boundaries.

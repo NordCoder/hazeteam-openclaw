@@ -2,6 +2,8 @@
 
 `@hazeteam/oca-wrapper` is the fake/inert W15 OCA runtime capability package.
 
+Under `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`, OCA is a parked downstream overlay. It must not be advanced until the generic OpenClaw/Telegram adapter reaches adapter-ready-for-real-system-integration, except for explicitly assigned docs-only parked-status wording or narrow compile/test safety fixes.
+
 W15H fans the already implemented W15 OCA wrapper leaves into the package root. The package remains non-production-ready: default behavior is fake, approval-aware, credential-free, and network-free.
 
 ## What exists after W15H
@@ -13,6 +15,12 @@ W15H fans the already implemented W15 OCA wrapper leaves into the package root. 
 - approval-runtime tool integration that blocks approval-required operations before execution and executes only after an explicit safe approval decision;
 - presentation/topic descriptors for safe session status, summaries, action buttons, and approval cards;
 - package-root exports from `./dist/index.js` for the W15 public leaves.
+
+## Adapter-readiness classification
+
+These exported surfaces are fake/inert overlay evidence only. They are not evidence that the generic OpenClaw/Telegram adapter is ready for real-system integration.
+
+Do not treat OCA session descriptors, fake client handlers, fake approval paths, topic cards, or capability descriptors as proof of production OCA execution, real provider behavior, Telegram transport readiness, adapter fake E2E completion, or release readiness.
 
 ## Explicit non-goals
 

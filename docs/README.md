@@ -2,26 +2,36 @@
 
 ## Status
 
-`hazeteam-openclaw` is an external OpenClaw-native adapter, plugin, and product integration repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, Codex, and LifeOS behavior must not be treated as generic core semantics.
+`hazeteam-openclaw` is an external OpenClaw-native adapter and integration repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, Codex, and LifeOS behavior must not be treated as generic core semantics.
 
-Current repository status: the W10 release-hardened adapter foundation is present with W11 test/docs/status consistency cleanup, W12 core integration fan-in, W13 OpenClaw plugin runtime shell fan-in, and W14A transport config/secret-handle boundary work applied. It includes safe adapter contracts, DTO boundaries, deterministic testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable adapter store shells, OpenClaw integration shells, W9 secret-gated smoke posture, W10 release-hardening docs, W11 release-gate/static-boundary consistency updates, W12 script/CI wiring for pinned `hazeteam-core` public API integration tests with fake adapter edges, the W13 plugin-runtime package root exposing safe lifecycle, tool registry, capability registry, and readiness surfaces, and the W14A transport package root for side-effect-free config and redacted credential descriptors.
+Active contract pack: `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`.
 
-W12 integration-proof status depends on installing `hazeteam-core` from a locally packed tarball built at the pinned ref and passing the W12 integration gate. W12 does not make the repository production runtime ready.
+Current project priority: finish the generic OpenClaw/Telegram adapter until it is ready for real-system integration. OCA, LifeOS, domain products, sidecar work, deployment runtime, production provider runtime, and product-layer behavior are parked downstream overlays until that adapter gate is met.
 
-W13 plugin-runtime status is a safe, fake/dry-run-capable runtime shell. It adds package-root exports and no-effect public helpers for plugin lifecycle, tool registry descriptors, runtime capability registry descriptors, and readiness aggregation. W13 does not make the repository production provider/runtime ready.
+Current repository status includes W12/W13/W14/W15 historical foundation work:
 
-W14A transport status is a side-effect-free configuration and credential-reference boundary only. It adds redacted descriptors and opaque runtime-only credential handles for later real Telegram/OpenClaw transport leaves. W14A does not load credential values, construct provider clients, call networks, listen for updates, deliver messages, handle callbacks, route commands, or run real smoke.
+- W12 public-core integration proof wiring against pinned `hazeteam-core` public APIs and fake adapter edges.
+- W13 OpenClaw plugin runtime shell package with safe lifecycle, tool registry, capability registry, and readiness helper surfaces.
+- W14 OpenClaw/Telegram transport package with safe config and credential-reference descriptors, channel-event normalization, injected delivery, callback boundary, topic command routing, and opt-in real-smoke classification.
+- W15 fake/inert OCA wrapper surfaces and descriptor-only LifeOS domain fixture surfaces.
 
-No current docs should imply production readiness. There is still no real OpenClaw SDK wiring, Telegram listener/webhook/callback endpoint, OCA implementation, Codex/LifeOS product implementation, production credential loader, production durable backend, sidecar support, production HTTP readiness endpoint, or production runtime deployment.
+This repository is not adapter-ready-for-real-system-integration and is not production-ready. Existing fake/inert OCA surfaces and descriptor-only LifeOS/domain surfaces are not adapter-readiness evidence. Skipped or blocked real smoke is not a successful real-provider pass.
 
-Further implementation must follow the contract pack and conflict-aware parallel roadmap: implementation leaves use disjoint files, sibling branches stay isolated, and shared barrels/static/export snapshots are handled by explicit fan-in slices.
+No current docs should imply production readiness. There is still no production OpenClaw SDK/client wiring, Telegram listener/webhook/callback endpoint, polling daemon, production credential loader, production durable backend, sidecar support, deployment runtime, production provider runtime, real OCA client execution, or LifeOS/domain product behavior.
+
+Further implementation must follow the CD11.2 contract pack and conflict-aware parallel roadmap: implementation leaves use assigned ownership, sibling branches stay isolated, and shared vocabulary/export/release-classifier surfaces are handled only by explicitly assigned slices.
 
 ## Documentation index
 
-- [Documentation index](index.md) — foundation, W12 integration, W13 plugin-runtime shell, and W14A transport config boundary map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
-- [Current development state](roadmap/current-development-state.md) — short W10/W11/W12/W13/W14A-oriented handoff for continuing from current `main`; identifies the completed foundation, consistency cleanup, W12 integration-proof baseline, W13 plugin-runtime shell fan-in, W14A config/secret boundary, and preserved limitations.
+- [Documentation index](index.md) — CD11.2 adapter-first map for current status, package posture, and preserved limitations.
+- [Current development state](roadmap/current-development-state.md) — current handoff for continuing from current `main`; identifies W12/W13/W14/W15 historical foundation, parked overlays, and preserved limitations.
+- [W16A6 audit consolidation](roadmap/w16a6-audit-consolidation.md) — Wave 0 gap map and Wave 1 context.
+- [`@hazeteam/openclaw-adapter` package README](../packages/openclaw-adapter/README.md) — safe adapter foundation surfaces and explicit non-production limits.
+- [`@hazeteam/openclaw-testkit` package README](../packages/openclaw-testkit/README.md) — deterministic fake/testkit surfaces and fake-only limits.
 - [`@hazeteam/openclaw-plugin-runtime` package README](../packages/openclaw-plugin-runtime/README.md) — W13 package-root public surface, fake/dry-run runtime-shell status, safety posture, and explicit limitations.
-- [`@hazeteam/openclaw-telegram-transport` package README](../packages/openclaw-telegram-transport/README.md) — W14A package-root public surface for config parsing, redacted credential descriptors, opaque credential handles, safety posture, and explicit limitations.
+- [`@hazeteam/openclaw-telegram-transport` package README](../packages/openclaw-telegram-transport/README.md) — W14 package-root public surface, transport safety posture, real-smoke classification, and explicit limitations.
+- [`@hazeteam/oca-wrapper` package README](../packages/oca-wrapper/README.md) — W15 fake/inert OCA overlay status, parked downstream classification, and explicit non-goals.
+- [`domain-lifeos` package README](../packages/domain-lifeos/README.md) — descriptor-only LifeOS fixture status, parked downstream classification, and explicit non-goals.
 - [W12 core integration development contract](development/core-integration.md) — pinned `hazeteam-core` ref, public export inventory, local packed-core install strategy, root integration script, cross-repo CI strategy, and static private-import boundary foundation.
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
@@ -40,27 +50,26 @@ Further implementation must follow the contract pack and conflict-aware parallel
 ## Reading order for workers
 
 1. Assigned phase prompt and Hazeteam OpenClaw Workflow Manifest.
-2. Required contract docs from `hazeteam-openclaw-contract-pack-cd10.zip`.
-3. [Documentation index](index.md)
-4. [Current development state](roadmap/current-development-state.md)
-5. [W12 core integration development contract](development/core-integration.md) for W12 and later core-integration work
-6. [`@hazeteam/openclaw-plugin-runtime` package README](../packages/openclaw-plugin-runtime/README.md) for W13 and later plugin-runtime work
-7. [`@hazeteam/openclaw-telegram-transport` package README](../packages/openclaw-telegram-transport/README.md) for W14 and later transport work
-8. [Core context digest](core-context.md)
-9. [Adapter authoring guide](adapter-authoring/README.md)
-10. [Core boundary](architecture/core-boundary.md)
-11. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
-12. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
-13. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
-14. [Implementation waves](roadmap/implementation-waves.md)
-15. [File ownership matrix](roadmap/file-ownership-matrix.md)
-16. Source and tests in the assigned allowed area.
+2. Required contract docs from `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`.
+3. [W16A6 audit consolidation](roadmap/w16a6-audit-consolidation.md) when working on W16 or later adapter-readiness reset slices.
+4. [Documentation index](index.md).
+5. [Current development state](roadmap/current-development-state.md).
+6. Package README for the assigned package area.
+7. [Core context digest](core-context.md).
+8. [Adapter authoring guide](adapter-authoring/README.md).
+9. [Core boundary](architecture/core-boundary.md).
+10. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md).
+11. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md).
+12. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md).
+13. [Implementation waves](roadmap/implementation-waves.md).
+14. [File ownership matrix](roadmap/file-ownership-matrix.md).
+15. Source and tests in the assigned allowed area.
 
 ## Relationship to `hazeteam-core` docs
 
 The authoritative adapter/core contract lives in `NordCoder/hazeteam-core` on the assigned or pinned core ref, especially under `docs/adapter-authoring/**`, `docs/public-api-map.md`, `docs/adapter-readiness.md`, `docs/release/adapter-handoff.md`, and `docs/host/core-interaction-facade.md`.
 
-This repository keeps a local digest in [core-context.md](core-context.md) so implementation workers can work from explicit, versioned repo-local context instead of hidden chat context. The digest is not a replacement for the current contract pack or core docs. When behavior is unclear, inspect the assigned contract docs and the relevant `hazeteam-core` docs, public barrels, source, and tests as reference.
+This repository keeps a local digest in [core-context.md](core-context.md) so implementation workers can work from explicit, versioned repo-local context instead of hidden chat context. The digest is not a replacement for the current CD11.2 contract pack or core docs. When behavior is unclear, inspect the assigned contract docs and the relevant `hazeteam-core` docs, public barrels, source, and tests as reference.
 
 The directly imported adapter authoring references needed by this repository are mirrored locally under `docs/adapter-authoring/`, plus the linked supporting docs under `docs/host/`, `docs/release/`, and `docs/testing/`.
 
@@ -72,4 +81,4 @@ If a required symbol is not publicly exported, treat it as a core API gap. Do no
 
 ## Repo role
 
-This repository may own OpenClaw/Telegram adapter contracts, fakes, topic binding, event mapping, renderer, delivery, callbacks, runtime bridge, approval bridge, durable adapter stores, W13 plugin-runtime shell contracts, W14A transport config/credential descriptors, future real OpenClaw wiring, deployment docs, and future product layers. It must not move OpenClaw, Telegram, OCA, Codex, LifeOS, deployment, or credential semantics into `hazeteam-core`.
+This repository may own OpenClaw/Telegram adapter contracts, fakes, topic binding, event mapping, renderer, delivery, callbacks, runtime bridge, approval bridge, durable adapter stores, W13 plugin-runtime shell contracts, W14 transport config and safe port descriptors, future real OpenClaw wiring, deployment docs, and future product overlays. It must not move OpenClaw, Telegram, OCA, Codex, LifeOS, deployment, or credential semantics into `hazeteam-core`.
