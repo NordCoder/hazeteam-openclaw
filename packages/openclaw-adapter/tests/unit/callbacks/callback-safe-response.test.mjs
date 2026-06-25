@@ -170,7 +170,7 @@ test('callback safe response redacts dependency failure messages that mention op
   assert.equal(response.status, 'failed-safe');
   assert.equal(response.tokenConsumed, false);
   assert.equal(response.failure.code, 'conflict');
-  assert.equal(response.failure.message, 'Replay rejected for [redacted-callback-handle] and [redacted-callback-handle]');
+  assert.equal(response.failure.message, 'Replay rejected for [redacted-callback-handle] and [redacted-callback-handle].');
   assert.equal(response.detailsRef, 'details:replay-rejected');
   assert.equal('tokenRef' in response, false);
   assertNoCallbackHandleLeak(response);
