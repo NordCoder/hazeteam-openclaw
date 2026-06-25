@@ -16,6 +16,7 @@ import {
 import type {
   AdapterCoreFacadeMethodName,
   AdapterCoreHostBoundary,
+  AdapterCoreHostFactoryInput,
   AdapterCoreHostFactoryMetadata,
   AdapterCoreHostFactoryMetadataInput,
   AdapterCoreHostPortName,
@@ -104,10 +105,19 @@ function createDescriptor(input: {
   });
 }
 
+function createHostFactoryInput(input: AdapterHostCommandFacadeInput): AdapterCoreHostFactoryInput {
+  return Object.freeze({
+    ...(input.facade === undefined ? {} : { facade: input.facade }),
+    ...(input.ports === undefined ? {} : { ports: input.ports }),
+    ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
+    ...(input.context === undefined ? {} : { context: input.context }),
+  });
+}
+
 export function describeAdapterHostCommandFacade(
   input: AdapterHostCommandFacadeInput = {},
 ): AdapterOperationResult<AdapterHostCommandFacadeDescriptor> {
-  const hostResult = createAdapterCoreHostFactory(input);
+  const hostResult = createAdapterCoreHostFactory(createHostFactoryInput(input));
   if (!hostResult.ok) {
     return hostResult;
   }
@@ -121,7 +131,7 @@ export function describeAdapterHostCommandFacade(
 export function createAdapterHostCommandFacade(
   input: AdapterHostCommandFacadeInput = {},
 ): AdapterHostCommandFacadeResult {
-  const hostResult = createAdapterCoreHostFactory(input);
+  const hostResult = createAdapterCoreHostFactory(createHostFactoryInput(input));
   if (!hostResult.ok) {
     return adapterErr(hostResult.error, input.context);
   }
