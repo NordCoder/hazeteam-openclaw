@@ -89,7 +89,7 @@ export interface TransportProviderConfigDescriptor {
   readonly issueCount: number;
   readonly effects: 'none';
   readonly willCallRemote: false;
-  readonly providerClient: 'not-constructed';
+  readonly runtimeBehavior: 'descriptor-only';
 }
 
 export interface TransportConfigDescriptor {
@@ -279,7 +279,7 @@ function normalizeProviderMode(
     return 'disabled';
   }
 
-  const fallback = record.enabled === true ? defaultModeForProfile(profile) : defaultModeForProfile(profile);
+  const fallback = defaultModeForProfile(profile);
   const mode = normalizeOneOf(record.mode, TRANSPORT_PROVIDER_MODES, fallback);
 
   if (record.mode !== undefined && mode !== record.mode) {
@@ -318,7 +318,7 @@ function absentProviderDescriptor(provider: TransportSecretProvider): TransportP
     issueCount: 0,
     effects: 'none',
     willCallRemote: false,
-    providerClient: 'not-constructed',
+    runtimeBehavior: 'descriptor-only',
   } satisfies TransportProviderConfigDescriptor);
 }
 
@@ -420,7 +420,7 @@ function normalizeProviderConfig(
       issueCount: issues.length,
       effects: 'none',
       willCallRemote: false,
-      providerClient: 'not-constructed',
+      runtimeBehavior: 'descriptor-only',
     } satisfies TransportProviderConfigDescriptor),
     issues: Object.freeze([...issues]),
   });
