@@ -81,6 +81,7 @@ test('root workspace package and verification scripts are present', () => {
 
   assert.equal(rootPackage.private, true);
   assert.deepEqual(rootPackage.workspaces, [
+    'packages/domain-lifeos',
     'packages/openclaw-adapter',
     'packages/openclaw-plugin-runtime',
     'packages/openclaw-telegram-transport',
@@ -126,10 +127,19 @@ test('ci workflow and active package skeleton files are present', () => {
   assertFile('packages', 'oca-wrapper', 'src', 'index.ts');
   assertFile('packages', 'oca-wrapper', 'src', 'capability-descriptor.ts');
   assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'capability-descriptor.test.mjs');
+
+  assertDir('packages', 'domain-lifeos');
+  assertFile('packages', 'domain-lifeos', 'package.json');
+  assertFile('packages', 'domain-lifeos', 'tsconfig.json');
+  assertFile('packages', 'domain-lifeos', 'README.md');
+  assertFile('packages', 'domain-lifeos', 'src', 'index.ts');
+  assertFile('packages', 'domain-lifeos', 'src', 'oca-agent-fixture.ts');
+  assertFile('packages', 'domain-lifeos', 'tests', 'unit', 'oca-agent-fixture.test.mjs');
 });
 
 test('production source does not import private hazeteam-core implementation paths', () => {
   const sourceFiles = [
+    ...walkFiles(repoPath('packages', 'domain-lifeos', 'src')),
     ...walkFiles(repoPath('packages', 'openclaw-adapter', 'src')),
     ...walkFiles(repoPath('packages', 'openclaw-plugin-runtime', 'src')),
     ...walkFiles(repoPath('packages', 'openclaw-telegram-transport', 'src')),
@@ -252,8 +262,15 @@ test('obvious protected assignment markers are not committed', () => {
   }
 });
 
-test('placeholder package directories include README documentation', () => {
-  for (const packageDir of ['packages/domain-lifeos']) {
+test('package directories include README documentation', () => {
+  for (const packageDir of [
+    'packages/domain-lifeos',
+    'packages/oca-wrapper',
+    'packages/openclaw-adapter',
+    'packages/openclaw-plugin-runtime',
+    'packages/openclaw-telegram-transport',
+    'packages/openclaw-testkit',
+  ]) {
     assertDir(packageDir);
     assertFile(packageDir, 'README.md');
   }
