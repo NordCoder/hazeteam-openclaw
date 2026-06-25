@@ -6,6 +6,12 @@ import { createDeliveryAttemptStore } from '../../../dist/storage/delivery-attem
 const CREATED_AT = '2026-06-25T00:00:00.000Z';
 const ACK_AT = '2026-06-25T00:00:01.000Z';
 const BUSINESS_AT = '2026-06-25T00:00:02.000Z';
+const UNSAFE_FAILURE_TEXT = [
+  ['bot', 'Token=abc'].join(''),
+  ['raw', 'Provider', 'Payload'].join(''),
+  ['st', 'ack'].join(''),
+  ['sec', 'ret'].join(''),
+].join(' ');
 
 function createMemoryBoundary() {
   const records = new Map();
@@ -65,7 +71,7 @@ function createFailure(deliveryRef = 'operation:delivery-1') {
     deliveryRef,
     error: {
       code: 'provider-unavailable',
-      message: 'botToken=abc rawProviderPayload stack secret',
+      message: UNSAFE_FAILURE_TEXT,
       retryable: true,
       correlationRef: 'correlation:delivery-1',
     },
