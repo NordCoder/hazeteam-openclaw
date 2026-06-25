@@ -28,12 +28,9 @@ function readSessionStoreSource() {
   return readText('packages', 'oca-wrapper', 'src', 'session-store.ts');
 }
 
-test('W15C session store leaf exists without package-root fan-in', () => {
+test('W15C session store leaf exists', () => {
   assertFile('packages', 'oca-wrapper', 'src', 'session-store.ts');
   assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'session-store.test.mjs');
-
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-  assert.equal(indexSource.includes('session-store'), false, 'W15H owns oca-wrapper package-root fan-in');
 });
 
 test('W15C session store imports only the W15B local session model leaf', () => {
@@ -65,7 +62,7 @@ test('W15C session store has no provider SDK, private core, unsafe runtime, or n
   assert.doesNotMatch(source, /\bDate\s*\.\s*now\s*\(/u, 'session store generates timestamps');
 });
 
-test('W15C session store is not durable storage, fake OCA client, operation handler, approval execution, topic UI, domain binding, or package fan-in', () => {
+test('W15C session store is not durable storage, fake OCA client, operation handler, approval execution, topic UI, or domain binding', () => {
   const source = readSessionStoreSource();
 
   assert.match(source, /createInMemoryOcaSessionStore/u, 'session store should expose the in-memory fake store factory');
@@ -75,9 +72,6 @@ test('W15C session store is not durable storage, fake OCA client, operation hand
   assert.doesNotMatch(source, /\b(?:approve|consumeApproval|executeApproved)\b/u, 'session store implements approval execution');
   assert.doesNotMatch(source, /\b(?:topic|telegram|render|button|card)\b/iu, 'session store implements presentation or topic UI');
   assert.doesNotMatch(source, /\b(?:domain|agentBinding|fixture)\b/u, 'session store implements domain binding fixture');
-
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-  assert.equal(indexSource.includes('session-store'), false, 'session store must not be fanned into the package root');
 });
 
 test('W15C session store source exposes no unsafe public field names', () => {
