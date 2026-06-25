@@ -4,11 +4,13 @@
 
 `hazeteam-openclaw` is an external OpenClaw-native adapter, plugin, and product integration repository over `hazeteam-core`. It is not `hazeteam-core`, and OpenClaw, Telegram, OCA, Codex, and LifeOS behavior must not be treated as generic core semantics.
 
-Current repository status: the W10 release-hardened adapter foundation is present with W11 test/docs/status consistency cleanup, W12 core integration fan-in, and W13 OpenClaw plugin runtime shell fan-in applied. It includes safe adapter contracts, DTO boundaries, deterministic testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable adapter store shells, OpenClaw integration shells, W9 secret-gated smoke posture, W10 release-hardening docs, W11 release-gate/static-boundary consistency updates, W12 script/CI wiring for pinned `hazeteam-core` public API integration tests with fake adapter edges, and the W13 plugin-runtime package root exposing safe lifecycle, tool registry, capability registry, and readiness surfaces.
+Current repository status: the W10 release-hardened adapter foundation is present with W11 test/docs/status consistency cleanup, W12 core integration fan-in, W13 OpenClaw plugin runtime shell fan-in, and W14A transport config/secret-handle boundary work applied. It includes safe adapter contracts, DTO boundaries, deterministic testkit fakes, topic binding, command and rendering surfaces, host/runtime/approval/delivery/callback shells, durable adapter store shells, OpenClaw integration shells, W9 secret-gated smoke posture, W10 release-hardening docs, W11 release-gate/static-boundary consistency updates, W12 script/CI wiring for pinned `hazeteam-core` public API integration tests with fake adapter edges, the W13 plugin-runtime package root exposing safe lifecycle, tool registry, capability registry, and readiness surfaces, and the W14A transport package root for side-effect-free config and redacted credential descriptors.
 
 W12 integration-proof status depends on installing `hazeteam-core` from a locally packed tarball built at the pinned ref and passing the W12 integration gate. W12 does not make the repository production runtime ready.
 
 W13 plugin-runtime status is a safe, fake/dry-run-capable runtime shell. It adds package-root exports and no-effect public helpers for plugin lifecycle, tool registry descriptors, runtime capability registry descriptors, and readiness aggregation. W13 does not make the repository production provider/runtime ready.
+
+W14A transport status is a side-effect-free configuration and credential-reference boundary only. It adds redacted descriptors and opaque runtime-only credential handles for later real Telegram/OpenClaw transport leaves. W14A does not load credential values, construct provider clients, call networks, listen for updates, deliver messages, handle callbacks, route commands, or run real smoke.
 
 No current docs should imply production readiness. There is still no real OpenClaw SDK wiring, Telegram listener/webhook/callback endpoint, OCA implementation, Codex/LifeOS product implementation, production credential loader, production durable backend, sidecar support, production HTTP readiness endpoint, or production runtime deployment.
 
@@ -16,9 +18,10 @@ Further implementation must follow the contract pack and conflict-aware parallel
 
 ## Documentation index
 
-- [Documentation index](index.md) — foundation, W12 integration, and W13 plugin-runtime shell map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
-- [Current development state](roadmap/current-development-state.md) — short W10/W11/W12/W13-oriented handoff for continuing from current `main`; identifies the completed foundation, consistency cleanup, W12 integration-proof baseline, W13 plugin-runtime shell fan-in, and preserved limitations.
+- [Documentation index](index.md) — foundation, W12 integration, W13 plugin-runtime shell, and W14A transport config boundary map for deployment posture, operations, release gates, known limitations, and roadmap pointers.
+- [Current development state](roadmap/current-development-state.md) — short W10/W11/W12/W13/W14A-oriented handoff for continuing from current `main`; identifies the completed foundation, consistency cleanup, W12 integration-proof baseline, W13 plugin-runtime shell fan-in, W14A config/secret boundary, and preserved limitations.
 - [`@hazeteam/openclaw-plugin-runtime` package README](../packages/openclaw-plugin-runtime/README.md) — W13 package-root public surface, fake/dry-run runtime-shell status, safety posture, and explicit limitations.
+- [`@hazeteam/openclaw-telegram-transport` package README](../packages/openclaw-telegram-transport/README.md) — W14A package-root public surface for config parsing, redacted credential descriptors, opaque credential handles, safety posture, and explicit limitations.
 - [W12 core integration development contract](development/core-integration.md) — pinned `hazeteam-core` ref, public export inventory, local packed-core install strategy, root integration script, cross-repo CI strategy, and static private-import boundary foundation.
 - [Core context digest](core-context.md) — local summary of the `hazeteam-core` boundary future workers must read before implementation.
 - [Core boundary](architecture/core-boundary.md) — ownership split between `hazeteam-core`, `hazeteam-openclaw`, and the OpenClaw platform.
@@ -42,15 +45,16 @@ Further implementation must follow the contract pack and conflict-aware parallel
 4. [Current development state](roadmap/current-development-state.md)
 5. [W12 core integration development contract](development/core-integration.md) for W12 and later core-integration work
 6. [`@hazeteam/openclaw-plugin-runtime` package README](../packages/openclaw-plugin-runtime/README.md) for W13 and later plugin-runtime work
-7. [Core context digest](core-context.md)
-8. [Adapter authoring guide](adapter-authoring/README.md)
-9. [Core boundary](architecture/core-boundary.md)
-10. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
-11. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
-12. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
-13. [Implementation waves](roadmap/implementation-waves.md)
-14. [File ownership matrix](roadmap/file-ownership-matrix.md)
-15. Source and tests in the assigned allowed area.
+7. [`@hazeteam/openclaw-telegram-transport` package README](../packages/openclaw-telegram-transport/README.md) for W14 and later transport work
+8. [Core context digest](core-context.md)
+9. [Adapter authoring guide](adapter-authoring/README.md)
+10. [Core boundary](architecture/core-boundary.md)
+11. [OpenClaw Telegram adapter architecture](architecture/openclaw-telegram-adapter.md)
+12. [Adapter worker onboarding](architecture/adapter-worker-onboarding.md)
+13. [Parallel execution and fan-in policy](architecture/parallel-execution-and-fanin.md)
+14. [Implementation waves](roadmap/implementation-waves.md)
+15. [File ownership matrix](roadmap/file-ownership-matrix.md)
+16. Source and tests in the assigned allowed area.
 
 ## Relationship to `hazeteam-core` docs
 
@@ -68,4 +72,4 @@ If a required symbol is not publicly exported, treat it as a core API gap. Do no
 
 ## Repo role
 
-This repository may own OpenClaw/Telegram adapter contracts, fakes, topic binding, event mapping, renderer, delivery, callbacks, runtime bridge, approval bridge, durable adapter stores, W13 plugin-runtime shell contracts, future real OpenClaw wiring, deployment docs, and future product layers. It must not move OpenClaw, Telegram, OCA, Codex, LifeOS, deployment, or credential semantics into `hazeteam-core`.
+This repository may own OpenClaw/Telegram adapter contracts, fakes, topic binding, event mapping, renderer, delivery, callbacks, runtime bridge, approval bridge, durable adapter stores, W13 plugin-runtime shell contracts, W14A transport config/credential descriptors, future real OpenClaw wiring, deployment docs, and future product layers. It must not move OpenClaw, Telegram, OCA, Codex, LifeOS, deployment, or credential semantics into `hazeteam-core`.
