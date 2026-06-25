@@ -1,29 +1,30 @@
 # @hazeteam/oca-wrapper
 
-`@hazeteam/oca-wrapper` is the W15A descriptor-only package for the future OCA runtime capability.
+`@hazeteam/oca-wrapper` is the fake/inert W15 OCA runtime capability package.
 
-W15A only adds safe package metadata, operation metadata, and a registry-compatible capability descriptor that can be registered with the existing OpenClaw plugin runtime capability registry. The package is non-production-ready and the default posture is fake/dry-run with no remote effects.
+W15H fans the already implemented W15 OCA wrapper leaves into the package root. The package remains non-production-ready: default behavior is fake, approval-aware, credential-free, and network-free.
 
-## What exists in W15A
+## What exists after W15H
 
-- a real workspace package at `packages/oca-wrapper`;
-- a side-effect-free capability descriptor for `oca-wrapper`;
-- registry-compatible operation refs such as `hazeteam.oca.start-session`, `hazeteam.oca.get-status`, and `hazeteam.oca.review-submit`;
-- pure operation descriptors with read-only versus approval-required classifications;
-- a safe JSON assertion helper for public descriptor output;
-- unit coverage proving the descriptor can be registered with the existing runtime capability registry.
+- safe package metadata, operation metadata, and a registry-compatible capability descriptor for `oca-wrapper`;
+- safe OCA session refs, lifecycle state, normalization, and JSON safety checks;
+- an in-memory session store boundary for deterministic fake readiness tests;
+- fake OCA client and operation handlers for bounded read-only and approval-gated operation envelopes;
+- approval-runtime tool integration that blocks approval-required operations before execution and executes only after an explicit safe approval decision;
+- presentation/topic descriptors for safe session status, summaries, action buttons, and approval cards;
+- package-root exports from `./dist/index.js` for the W15 public leaves.
 
 ## Explicit non-goals
 
-W15A does not implement real OCA execution. It also does not implement an OCA session model, session store, fake OCA client, operation handlers, approval execution flow, presentation UI, topic UI, domain binding fixture, production runtime behavior, real credential loading, or provider SDK wiring.
+W15H does not implement production OCA runtime behavior, real OCA client execution, real credential loading, real approval token consume, sidecar behavior, deployment runtime, provider SDK wiring, or `hazeteam-core` changes.
 
-The operation descriptors are pure data. They do not contain handlers, executable callbacks, provider objects, runtime handles, command payloads, process identifiers, or branch values derived from user text.
+The exported surfaces are pure/fake readiness surfaces. They do not contain provider objects, runtime handles, executable provider callbacks, raw command payloads, process identifiers, or branch values derived from user text.
 
 ## Default safety posture
 
-Default build, typecheck, and unit/static tests require no credentials and perform no network calls. Loading the descriptor does not read environment variables, read files, construct clients, start sessions, create child processes, register tools globally, or mutate core/plugin state.
+Default build, typecheck, unit, and static tests require no credentials and perform no network calls. Importing the package root does not read environment variables, read files, construct clients, create session stores, start sessions, create child processes, register tools globally, call approval execution, or mutate core/plugin state.
 
-Public descriptor output must remain JSON-serializable and no-leak safe. It must not expose raw logs, raw diffs, raw output, raw filesystem paths, raw provider payloads, secrets, credentials, stack traces, endpoints, process identifiers, SDK clients, or client handles.
+Public outputs must remain JSON-serializable and no-leak safe. They must not expose raw logs, raw diffs, raw output, raw filesystem paths, raw provider payloads, secrets, credentials, stack traces, endpoints, process identifiers, SDK clients, or client handles.
 
 ## Registry projection
 
@@ -37,4 +38,4 @@ The exported `getOcaWrapperCapabilityDescriptor()` value is intended for the exi
 - `requirement`: `optional`
 - `executionPosture`: `fake`
 
-This descriptor is readiness evidence for fake capability registration only. It is not proof of real OCA runtime execution.
+This descriptor and the W15H fan-in tests are fake readiness evidence only. They are not proof of real OCA runtime execution.

@@ -31,14 +31,10 @@ function readSources() {
   }));
 }
 
-test('W15D fake client and operation handler leaf files exist without package-root fan-in', () => {
+test('W15D fake client and operation handler leaf files exist', () => {
   assertFile('packages', 'oca-wrapper', 'src', 'fake-client.ts');
   assertFile('packages', 'oca-wrapper', 'src', 'operation-handlers.ts');
   assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'fake-client-operation-handlers.test.mjs');
-
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-  assert.equal(indexSource.includes('fake-client'), false, 'W15H owns oca-wrapper package-root fan-in');
-  assert.equal(indexSource.includes('operation-handlers'), false, 'W15H owns oca-wrapper package-root fan-in');
 });
 
 test('W15D source has no provider, private core, runtime, network, or filesystem imports', () => {
