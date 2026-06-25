@@ -5,7 +5,7 @@ import {
   createAdapterCommandFacade,
   submitAdapterCommandIntent,
   summarizeAdapterCommandFacadeReadiness,
-} from '../../dist/commands/index.js';
+} from '../../dist/commands/command-facade.js';
 import {
   createAdapterHostCommandFacade,
   describeAdapterHostCommandFacade,
@@ -33,6 +33,42 @@ function createIntent(overrides = {}) {
     correlationRef: 'correlation:cmd-1',
     detailsRef: 'details:cmd-1',
     data: Object.freeze({ safe: 'value' }),
+    ...overrides,
+  });
+}
+
+function createW17B1ShapedIntent(overrides = {}) {
+  return Object.freeze({
+    kind: 'adapter-command-intent',
+    intentRef: 'operation:w17b1-status',
+    source: 'openclaw-adapter-inbound',
+    sourceEventKind: 'message',
+    operationRef: 'operation:w17b1-status',
+    correlationRef: 'correlation:w17b1-status',
+    workspaceRef: 'workspace:w17b1-workspace',
+    agentRef: 'agent:w17b1-agent',
+    actorRef: 'actor:w17b1-actor',
+    hostSessionRef: 'host-session:w17b1-session',
+    routingRef: 'topic-binding:w17b1-binding',
+    target: 'host-action',
+    facadeMethod: 'submitHostAction',
+    actionKind: 'command',
+    commandName: 'status',
+    commandKind: 'adapter.command',
+    text: 'now',
+    message: Object.freeze({
+      text: '/status now',
+      attachments: Object.freeze([]),
+      sourceMessageRef: 'w17b1-message-id',
+    }),
+    command: Object.freeze({
+      commandName: 'status',
+      argumentsText: 'now',
+    }),
+    permissionRequirement: Object.freeze({
+      action: 'send-message',
+      resourceRef: 'topic-binding:w17b1-binding',
+    }),
     ...overrides,
   });
 }
@@ -69,6 +105,46 @@ test('adapter command facade invokes only the selected injected public core meth
   assert.equal(calls[0].input.kind, 'adapter-command-intent');
   assert.equal(calls[0].input.text, 'hello command');
   assert.equal(calls[0].input.commandName, 'start');
+});
+
+test('adapter command facade structurally accepts repaired W17B1 command intent output', async () => {
+  const calls = [];
+  const facade = Object.freeze({
+    submitHostAction(input, context) {
+      calls.push({ input, context });
+      return Object.freeze({
+        ok: true,
+        value: Object.freeze({
+          status: 'accepted',
+          resultRef: 'core-result:w17b1-status',
+          correlationRef: input.correlationRef,
+        }),
+      });
+    },
+    submitUserIntent() {
+      throw new Error('wrong method');
+    },
+  });
+
+  const result = await submitAdapterCommandIntent({
+    facade,
+    intent: createW17B1ShapedIntent(),
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.value.status, 'accepted');
+  assert.equal(result.value.intentRef, 'operation:w17b1-status');
+  assert.equal(result.value.target, 'host-action');
+  assert.equal(result.value.commandName, 'status');
+  assert.equal(result.value.correlationRef, 'correlation:w17b1-status');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].input.kind, 'adapter-command-intent');
+  assert.equal(calls[0].input.intentRef, 'operation:w17b1-status');
+  assert.equal(calls[0].input.target, 'host-action');
+  assert.equal(calls[0].input.commandName, 'status');
+  assert.equal(calls[0].input.commandKind, 'adapter.command');
+  assert.equal(calls[0].input.text, 'now');
+  assert.equal(calls[0].input.workspaceRef, 'workspace:w17b1-workspace');
 });
 
 test('adapter command facade fails safely when core output is malformed or unsafe', async () => {
