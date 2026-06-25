@@ -26,13 +26,10 @@ function approvalRuntimeSource() {
   return readText(...sourceSegments);
 }
 
-test('W15E approval runtime leaf file exists without package-root fan-in', () => {
+test('W15E approval runtime leaf file exists', () => {
   assertFile(...sourceSegments);
   assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'approval-runtime.test.mjs');
   assertFile('tests', 'static', 'w15e-oca-approval-runtime-tool-integration-boundary.test.mjs');
-
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-  assert.equal(indexSource.includes('approval-runtime'), false, 'W15H owns oca-wrapper package-root fan-in');
 });
 
 test('W15E approval runtime imports only safe local W15 leaf modules', () => {
