@@ -1,292 +1,174 @@
-# Implementation roadmap v2 — conflict-aware parallel plan
+# CD11.2 implementation waves — max-parallel adapter readiness
 
 ## Purpose
 
-This roadmap maximizes parallel worker execution while preventing merge conflicts. Parallelism is decided by two graphs:
+This roadmap is the repository-facing W16-W18 execution plan for CD11.2. It replaces the older historical S00/W3-W10 planning view for current Worker launch purposes.
 
-1. **Dependency graph** — what a slice semantically needs.
-2. **File conflict graph** — what files a slice may edit.
+The active objective is to make the generic OpenClaw/Telegram adapter ready for real-system integration. This is not a production-readiness claim and does not unlock OCA, LifeOS, sidecar, deployment runtime, production provider runtime, or product-domain behavior.
 
-A slice is parallel-safe only when both are true:
+## Operating rules
 
-- it does not depend on unmerged sibling branch files;
-- its allowed files do not overlap with another running slice.
+Run slices in parallel only when all of these are true:
 
-Shared barrels, public export snapshots, and global static boundaries are not edited by ordinary implementation slices. They are handled by explicit **fan-in** slices.
+- changed files are disjoint or explicitly section-reserved;
+- the Worker does not depend on unmerged sibling branch code;
+- package-root edits are explicitly reserved;
+- global docs and release classifier files are explicitly reserved;
+- default checks remain no-network and no-secret;
+- OCA and LifeOS remain parked downstream overlays.
 
-## Always-on rules
+Fan-in is optional. Use fan-in only for actual shared-file conflicts, release classification, root script/workflow changes, broad static topology changes, or package-root export conflicts that were not reserved up front.
 
-Default forbidden shared files for ordinary implementation slices:
+## Reservation policy summary
 
-```text
-packages/openclaw-adapter/src/index.ts
-packages/openclaw-adapter/src/contracts/index.ts
-packages/openclaw-testkit/src/index.ts
-packages/openclaw-adapter/tests/unit/public-barrel-contracts.test.mjs
-tests/static/repository-boundary.test.mjs
-```
+- Package roots such as `packages/*/src/index.ts` default to no edit.
+- Local barrels under owned directories are preferred for Wave 2 implementation lanes.
+- Root scripts, `package.json`, `package-lock.json`, and `.github/workflows/**` are serialized surfaces.
+- Package READMEs are per-package shared docs and require explicit reservation.
+- Global release classifier files are serialized; only release-closure Workers may make final readiness claims.
+- Acceptance Workers must each own one unique acceptance file.
+- Static tests protect durable invariants, not temporary topology.
 
-Only a slice explicitly named `fan-in`, `export`, `snapshot`, or `boundary` may edit these shared files.
+See `docs/roadmap/file-ownership-matrix.md` and `docs/roadmap/cd11.2-worker-ownership-matrix.md` for the detailed ownership matrix.
 
-## S00 — foundation
+## Wave 0 — audit baseline
 
-Status: merged.
+Status: complete through W16A6 consolidation.
 
-- S00A — workspace, package skeleton, tooling, CI, first static boundary.
-- S00B — architecture docs, ADRs, roadmap, local core context digest.
+| Slice | Shape | Owned area | Output |
+|---|---|---|---|
+| W16A1 | audit | `packages/openclaw-adapter/**` | inventory report |
+| W16A2 | audit | `packages/openclaw-plugin-runtime/**` | inventory report |
+| W16A3 | audit | `packages/openclaw-telegram-transport/**` | inventory report |
+| W16A4 | audit | `tests/**`, `.github/**`, root scripts | inventory report |
+| W16A5 | audit | `docs/**`, package READMEs | inventory report |
+| W16A6 | coordination | `docs/roadmap/w16a6-audit-consolidation.md` | consolidated audit artifact |
 
-Parallelism: S00A/S00B can run in parallel because S00B is docs-only and S00A owns package/tooling files.
+Wave 0 produced evidence and gap mapping only. It did not implement runtime behavior.
 
-Fan-in: not required.
+## Wave 1 — contract and status reset
 
-## S01 — shared adapter contracts
+Status: current parallel docs wave.
 
-Status: merged.
+| Slice | Shape | Primary owned area | Shared-file posture | Blocks |
+|---|---|---|---|---|
+| W16B — Project Status Reset Docs | contract | adapter-first status/current-state docs | reserved docs only | W17 prompts that rely on status docs |
+| W16C — Runtime Topology Alignment | contract | topology/runtime architecture docs | reserved architecture docs only | W17A/W17B/W17C-W17F topology prompts |
+| W16D — Readiness Ladder Integration | contract | readiness ladder and release vocabulary docs | release vocabulary reservation only | W17F/W18E readiness prompts |
+| W16E — Worker Ownership Matrix | contract/coordination | ownership/shared-file docs | ownership docs only | all W17/W18 file reservations |
+| W16F — Static Boundary Cleanup Plan | contract/coordination | static-boundary planning docs | no test edits unless assigned | W17H/W18E static prompts |
 
-Adds shared adapter-owned refs, operation context, safe errors/results, and initial public barrels.
+Wave 1 may update docs but must not add runtime behavior, source behavior, package metadata, tests, CI, package roots, provider wiring, deployment runtime, or product overlays unless an individual prompt explicitly reserves that surface.
 
-Parallelism: one slice, because it establishes the shared contract namespace.
+## Wave 2 — maximum parallel implementation lanes
 
-## S02 — first adapter contract batch
+Goal: fake-complete, no-leak, no-default-network adapter foundation. Wave 2 does not implement production runtime.
 
-Status: merged.
+### Runtime lane
 
-Historical note: S02A/S02B/S02C were semantically parallel but touched shared files. Future waves must avoid this pattern.
+| Slice | Shape | Primary package | Primary ownership | Package-root policy |
+|---|---|---|---|---|
+| W17A — Plugin Runtime Composition | vertical-integration | `@hazeteam/openclaw-plugin-runtime` | `packages/openclaw-plugin-runtime/**` | may edit `packages/openclaw-plugin-runtime/src/index.ts` only if the prompt reserves the root/export slot |
 
-- S02A — channel event contracts.
-- S02B — delivery request/result contracts.
-- S02C — readiness, idempotency, permission contracts.
-- S02D — post-merge contract fan-in audit.
+W17A must not import provider SDKs, read runtime secrets, execute network calls, implement Telegram behavior, or implement OCA/LifeOS behavior.
 
-Future-equivalent pattern:
+### Adapter foundation lane
 
-```text
-S02A/S02B/S02C implementation branches:
-  may add own contract files and own unit tests only
-  must not edit shared barrels/static snapshots
+| Slice | Shape | Primary package | Primary ownership | Package-root policy |
+|---|---|---|---|---|
+| W17B1 — Adapter Inbound Composition | vertical-integration | `@hazeteam/openclaw-adapter` | mapping/command files assigned by prompt | no adapter root edit unless explicitly reserved |
+| W17B2 — Adapter Host/Command Facade | vertical-integration | `@hazeteam/openclaw-adapter` | host/runtime files assigned by prompt | no adapter root edit unless explicitly reserved |
+| W17B3 — Adapter Rendering/Delivery Composition | vertical-integration | `@hazeteam/openclaw-adapter` | rendering/delivery files assigned by prompt | no adapter root edit unless explicitly reserved |
+| W17B4 — Adapter Callback/Approval Composition | vertical-integration | `@hazeteam/openclaw-adapter` | callbacks/permissions/approvals files assigned by prompt | no adapter root edit unless explicitly reserved |
 
-S02D fan-in branch:
-  adds contracts barrel exports
-  adds public export snapshot
-  consolidates static boundaries
-```
+W17B lanes may run in parallel only if their files are isolated. They should prefer local barrels under owned directories. If more than one W17B lane needs `packages/openclaw-adapter/src/index.ts`, serialize the export slot or create a narrow package-root fan-in after safe leaves land.
 
-## Wave 3 — testkit, binding, UI descriptors
+### Telegram transport lane
 
-Run these in parallel after S02D is merged.
+| Slice | Shape | Primary package | Primary ownership | Package-root policy |
+|---|---|---|---|---|
+| W17C — Telegram Inbound Pipeline | vertical-integration | `@hazeteam/openclaw-telegram-transport` | channel event and topic routing files assigned by prompt | no telegram root edit unless explicitly reserved |
+| W17D — Telegram Outbound Delivery Pipeline | vertical-integration | `@hazeteam/openclaw-telegram-transport` | delivery port/render boundary files assigned by prompt | no telegram root edit unless explicitly reserved |
+| W17E — Telegram Callback Permission Pipeline | vertical-integration | `@hazeteam/openclaw-telegram-transport` | callback handler/permission files assigned by prompt | no telegram root edit unless explicitly reserved |
+| W17F1 — Telegram Config/Readiness Projection | vertical-integration | `@hazeteam/openclaw-telegram-transport` | config/readiness projection files assigned by prompt | no telegram root edit unless explicitly reserved |
 
-### W3A — Testkit Telegram Event Factories
+W17C-W17F1 must keep raw provider payloads quarantined, keep provider acknowledgement separate from business success, preserve permission-before-token-consume, and avoid `process.env` reads in library code.
 
-Allowed files:
+### Storage and testkit lane
 
-```text
-packages/openclaw-testkit/src/events/**
-packages/openclaw-testkit/tests/unit/events/**
-```
+| Slice | Shape | Primary packages | Primary ownership | Package-root policy |
+|---|---|---|---|---|
+| W17G1 — Topic Binding Store Contract | vertical-integration | adapter/testkit | topic binding storage/fakes assigned by prompt | no broad root edit unless explicitly reserved |
+| W17G2 — Callback Token Store Contract | vertical-integration | adapter/testkit | callback token storage/fakes assigned by prompt | no broad root edit unless explicitly reserved |
+| W17G3 — Delivery Attempt Store Contract | vertical-integration | adapter/testkit | delivery attempt storage/fakes assigned by prompt | no broad root edit unless explicitly reserved |
+| W17G4 — Inbound Idempotency Store Contract | vertical-integration | adapter/testkit | inbound idempotency storage/fakes assigned by prompt | no broad root edit unless explicitly reserved |
 
-Forbidden shared files:
+W17G lanes must not add production durable backends. They may define deterministic fakes and safe records only when assigned.
 
-```text
-packages/openclaw-testkit/src/index.ts
-packages/openclaw-adapter/src/**
-tests/static/repository-boundary.test.mjs
-```
+## Wave 2.5 — parallel acceptance matrix
 
-Goal: deterministic fake OpenClaw Telegram event factories based on S02A public contracts.
+Goal: prove the Wave 2 implementation lanes together through one acceptance concern per Worker. Acceptance Workers must not become broad fan-in Workers.
 
-### W3B — Testkit Fake Delivery / Runtime / Approval Primitives
+| Slice | Shape | Unique owned file | Implementation writes |
+|---|---|---|---|
+| W17H1 — Inbound Acceptance E2E | acceptance | `tests/acceptance/w17h1-inbound-fake-e2e.test.mjs` | no unless explicitly assigned |
+| W17H2 — Outbound Acceptance E2E | acceptance | `tests/acceptance/w17h2-outbound-fake-e2e.test.mjs` | no unless explicitly assigned |
+| W17H3 — Callback Acceptance E2E | acceptance | `tests/acceptance/w17h3-callback-permission-fake-e2e.test.mjs` | no unless explicitly assigned |
+| W17H4 — Durable Replay Acceptance E2E | acceptance | `tests/acceptance/w17h4-durable-replay-fake-e2e.test.mjs` | no unless explicitly assigned |
+| W17H5 — No-Leak Acceptance Matrix | acceptance | `tests/acceptance/w17h5-no-leak-matrix.test.mjs` | no unless explicitly assigned |
+| W17H6 — Package Root No-Side-Effect Matrix | acceptance/static | `tests/acceptance/w17h6-package-root-no-side-effect.test.mjs` | no unless explicitly assigned |
 
-Allowed files:
+Acceptance Workers must not append to one shared acceptance file in parallel. OCA/domain roots may be checked only to prove they are not adapter readiness evidence.
 
-```text
-packages/openclaw-testkit/src/fakes/**
-packages/openclaw-testkit/tests/unit/fakes/**
-```
+## Wave 3 — real-edge preparation
 
-Forbidden shared files:
+Goal: prepare explicit runtime-value, provider-client, listener, webhook, and polling boundaries without turning default code paths into production runtime.
 
-```text
-packages/openclaw-testkit/src/index.ts
-packages/openclaw-adapter/src/**
-tests/static/repository-boundary.test.mjs
-```
+| Slice | Shape | Primary ownership | Package/root policy | Notes |
+|---|---|---|---|---|
+| W18A — Runtime Value Boundary | vertical-integration | credential resolver/runtime-value interfaces assigned by prompt | no root edit unless reserved | no secret values in public outputs |
+| W18B — Provider Client Port Boundary | vertical-integration | provider client port interfaces assigned by prompt | no root edit unless reserved | no SDK/client construction in safe roots |
+| W18D — Listener/Webhook/Polling Interface Design | contract/interface | listener/webhook/polling interfaces or docs assigned by prompt | no daemon unless assigned | no production runtime |
+| W18F1 — Runtime Edge Docs Update | docs | runtime edge docs assigned by prompt | docs reservation only | no release claim |
 
-Goal: deterministic fake delivery sink, fake runtime bridge surface, fake approval source/resolver primitives. No real OpenClaw/Telegram.
+W18A, W18B, W18D, and W18F1 may run in parallel only when vocabulary and files are isolated. If W18B needs concrete W18A types, serialize W18B after W18A or assign a type-compatible local adapter explicitly.
 
-### W3C — Topic Binding Contracts + In-Memory Store
+## Wave 4 — secret-gated smoke and release closure
 
-Allowed files:
+Goal: classify the adapter honestly after Wave 2, Wave 2.5, and Wave 3 evidence. Wave 4 still does not imply production readiness.
 
-```text
-packages/openclaw-adapter/src/binding/**
-packages/openclaw-adapter/tests/unit/binding/**
-```
+| Slice | Shape | Primary ownership | Serialization |
+|---|---|---|---|
+| W18C — Secret-Gated Real Smoke Refinement | vertical-integration | smoke-local files/tests | after W18A/W18B; may run with W18E1 only if files are isolated |
+| W18E1 — Release Gate Static/CI Closure | release-closure | release gate static/CI/root script evidence | serialize root scripts, workflows, package metadata, and broad static edits |
+| W18E2 — Release Docs Closure | release-closure | final docs/current-state/limitations/package README updates | after evidence is known; serialize release classifier docs |
+| W18E3 — Final Adapter Readiness Report | release-closure | final evidence report or PR/report body | last; only slice allowed to make final adapter-ready-for-real-system-integration claim |
 
-Forbidden shared files:
+W18C skipped or blocked smoke is not a real-provider pass. W18E2 may classify only the evidence actually proven. W18E3 is the final classifier.
 
-```text
-packages/openclaw-adapter/src/index.ts
-packages/openclaw-adapter/src/contracts/index.ts
-packages/openclaw-adapter/tests/unit/public-barrel-contracts.test.mjs
-tests/static/repository-boundary.test.mjs
-```
+## Parked overlays
 
-Goal: adapter-owned topic binding key/snapshot/status and in-memory binding store shell.
+Until the adapter reaches the adapter-ready-for-real-system-integration gate, no W16-W18 slice may implement or advance:
 
-### W3D — UI Descriptor / Command Contracts
+- OCA runtime behavior;
+- real OCA client execution;
+- OCA credential loading;
+- LifeOS/domain-product behavior;
+- product-specific agent catalogs;
+- sidecar runtime;
+- production deployment runtime.
 
-Allowed files:
+Existing `packages/oca-wrapper/**` and `packages/domain-lifeos/**` files may receive compile/test/no-leak fixes or parked-status docs only when explicitly assigned. They must not be used as proof of adapter readiness.
 
-```text
-packages/openclaw-adapter/src/commands/**
-packages/openclaw-adapter/tests/unit/commands/**
-```
+## Fan-in triggers
 
-Forbidden shared files:
+Create a fan-in or serialization slice only when one of these happens:
 
-```text
-packages/openclaw-adapter/src/index.ts
-packages/openclaw-adapter/src/contracts/index.ts
-packages/openclaw-adapter/tests/unit/public-barrel-contracts.test.mjs
-tests/static/repository-boundary.test.mjs
-```
+- multiple Workers need the same package root or export slot;
+- multiple Workers need the same package README or global doc section;
+- release classifier docs require final evidence consolidation;
+- root `package.json`, `package-lock.json`, scripts, or workflows must change;
+- broad static topology tests need one coordinated cleanup;
+- acceptance evidence must be summarized after W17H1-W17H6 land.
 
-Goal: safe UI descriptor and command contract primitives. No router implementation.
-
-### W3E — Wave 3 Export / Static Fan-in
-
-Run only after W3A-W3D are merged.
-
-Allowed files:
-
-```text
-packages/openclaw-testkit/src/index.ts
-packages/openclaw-adapter/src/index.ts
-packages/openclaw-adapter/src/binding/index.ts
-packages/openclaw-adapter/src/commands/index.ts
-packages/openclaw-adapter/tests/unit/public-barrel-contracts.test.mjs
-packages/openclaw-testkit/tests/unit/public-barrel.test.mjs
-tests/static/repository-boundary.test.mjs
-tests/static/w3-fanin-boundary.test.mjs
-```
-
-Goal: expose merged Wave 3 modules, update export snapshots, and consolidate static boundaries.
-
-## Wave 4 — pure adapter behavior shells
-
-Run after W3E is merged.
-
-Parallel leaves:
-
-- W4A — Inbound Mapper
-  - allowed: `packages/openclaw-adapter/src/mapping/**`, `packages/openclaw-adapter/tests/unit/mapping/**`
-- W4B — Renderer
-  - allowed: `packages/openclaw-adapter/src/rendering/**`, `packages/openclaw-adapter/tests/unit/rendering/**`
-- W4C — Core Host Factory
-  - allowed: `packages/openclaw-adapter/src/host/**`, `packages/openclaw-adapter/tests/unit/host/**`
-- W4D — Permission Evaluator Shell
-  - allowed: `packages/openclaw-adapter/src/permissions/**`, `packages/openclaw-adapter/tests/unit/permissions/**`
-
-All W4 leaves must avoid shared barrels/static snapshots.
-
-Fan-in:
-
-- W4E — Wave 4 Export / Static Fan-in.
-
-## Wave 5 — adapter flow components
-
-Run after W4E is merged.
-
-Parallel leaves:
-
-- W5A — Delivery Pump
-  - allowed: `packages/openclaw-adapter/src/delivery/**`, `packages/openclaw-adapter/tests/unit/delivery/**`
-- W5B — Callback Token Flow
-  - allowed: `packages/openclaw-adapter/src/callbacks/**`, `packages/openclaw-adapter/tests/unit/callbacks/**`
-- W5C — Runtime Bridge
-  - allowed: `packages/openclaw-adapter/src/runtime/**`, `packages/openclaw-adapter/tests/unit/runtime/**`
-- W5D — Approval Bridge
-  - allowed: `packages/openclaw-adapter/src/approvals/**`, `packages/openclaw-adapter/tests/unit/approvals/**`
-
-Fan-in:
-
-- W5E — Wave 5 Export / Static Fan-in.
-
-## Wave 6 — fake E2E/no-leak matrix
-
-Run after W5E is merged.
-
-- W6A — Fake E2E Matrix.
-
-Parallelism: one slice, because it intentionally connects all prior components and owns acceptance fixtures.
-
-Allowed files:
-
-```text
-tests/acceptance/**
-tests/fixtures/**
-packages/openclaw-adapter/tests/integration/**
-packages/openclaw-testkit/tests/integration/**
-```
-
-Goal: fake message -> binding -> mapper -> core -> fake runtime -> outbox -> renderer -> fake delivery; callback token lifecycle; approval lifecycle; readiness/no-leak matrix.
-
-## Wave 7 — durable stores
-
-Run after W6A is merged.
-
-Parallel leaves:
-
-- W7A — Durable Topic Binding Store
-  - allowed: `packages/openclaw-adapter/src/storage/topic-binding/**`, `packages/openclaw-adapter/tests/unit/storage/topic-binding/**`
-- W7B — Durable Idempotency / Callback Replay Stores
-  - allowed: `packages/openclaw-adapter/src/storage/idempotency/**`, `packages/openclaw-adapter/src/storage/callbacks/**`, `packages/openclaw-adapter/tests/unit/storage/idempotency/**`, `packages/openclaw-adapter/tests/unit/storage/callbacks/**`
-- W7C — Durable Delivery Attempt / External Message Stores
-  - allowed: `packages/openclaw-adapter/src/storage/delivery/**`, `packages/openclaw-adapter/tests/unit/storage/delivery/**`
-- W7D — Durable Core Store Adapters
-  - allowed: `packages/openclaw-adapter/src/storage/core/**`, `packages/openclaw-adapter/tests/unit/storage/core/**`
-
-Fan-in:
-
-- W7E — Durable Store Export / Restart Matrix Fan-in.
-
-## Wave 8 — real OpenClaw wiring
-
-Run only after fake E2E/no-leak and durable store readiness are green.
-
-Parallel leaves:
-
-- W8A — Real OpenClaw Channel Event Adapter
-  - allowed: `packages/openclaw-adapter/src/openclaw/channel/**`, `packages/openclaw-adapter/tests/unit/openclaw/channel/**`
-- W8B — Real OpenClaw Delivery Adapter
-  - allowed: `packages/openclaw-adapter/src/openclaw/delivery/**`, `packages/openclaw-adapter/tests/unit/openclaw/delivery/**`
-- W8C — Real OpenClaw Runtime Bridge
-  - allowed: `packages/openclaw-adapter/src/openclaw/runtime/**`, `packages/openclaw-adapter/tests/unit/openclaw/runtime/**`
-- W8D — Real OpenClaw Approval Bridge
-  - allowed: `packages/openclaw-adapter/src/openclaw/approval/**`, `packages/openclaw-adapter/tests/unit/openclaw/approval/**`
-
-Fan-in:
-
-- W8E — OpenClaw Integration Export / Secret-Gated Smoke Fan-in.
-
-## Wave 9 — real Telegram/OpenClaw smoke
-
-- W9A — Secret-gated real smoke suite.
-
-Parallelism: one slice. It owns opt-in environment assumptions and cleanup behavior.
-
-## Wave 10 — deployment/release hardening
-
-Parallel leaves where files are disjoint:
-
-- W10A — Config, readiness, health, credential docs.
-- W10B — Migration/backup/replay operational docs.
-- W10C — Release checklist and known limitations.
-
-Fan-in:
-
-- W10D — Deployment docs index/release fan-in.
-
-## Future product layers
-
-OCA/Codex and LifeOS layers start only after adapter release hardening unless explicitly scoped as separate product branches. They must not be implemented inside generic adapter foundation slices.
+No fan-in is required merely because many Workers ran in parallel.
