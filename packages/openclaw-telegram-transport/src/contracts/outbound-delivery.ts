@@ -205,7 +205,7 @@ const UNSAFE_PUBLIC_TEXT_PATTERNS = Object.freeze([
   /(?:https?|postgres|redis|mongodb):\/\//iu,
   /(?:^|[\s"'=])(?:\/[A-Za-z0-9_.-]+\/|~\/|[A-Za-z]:\\)/u,
   /\b\d{5,}:[A-Za-z0-9_-]{3,}\b/u,
-  /\b(?:chat_id|thread_id|token|secret|credential|stack trace)\b/iu,
+  /\b(?:chat_id|thread_id|stack trace)\b/iu,
   /\bprovider(?:body|result|object|handle|client|sdk)\b/iu,
 ] as const);
 
