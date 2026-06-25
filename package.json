@@ -6,6 +6,7 @@
   "workspaces": [
     "packages/openclaw-adapter",
     "packages/openclaw-plugin-runtime",
+    "packages/openclaw-telegram-transport",
     "packages/openclaw-testkit"
   ],
   "scripts": {
