@@ -71,7 +71,12 @@ function getPermissionDetailsRef(input: {
   readonly decision?: ApprovalBridgeDecision;
   readonly detailsRef?: AdapterDetailsRef;
 }): AdapterDetailsRef | undefined {
-  return input.permission?.detailsRef ?? input.permission?.requirement.detailsRef ?? input.decision?.detailsRef ?? input.detailsRef;
+  return (
+    input.permission?.detailsRef ??
+    input.permission?.requirement.detailsRef ??
+    input.decision?.detailsRef ??
+    input.detailsRef
+  );
 }
 
 function getPermissionCorrelationRef(input: {
@@ -138,12 +143,6 @@ function createApprovalPermissionEvaluationInput(
   });
 }
 
-/**
- * Resolves an adapter approval through permission evaluation before crossing the resolver boundary.
- *
- * The resolver remains an injected boundary. This composition does not construct provider clients, read
- * environment variables, start listeners, consume callback tokens, or expose raw callback/provider data.
- */
 export async function resolveApprovalBridgeDecisionWithPermission(
   input: ComposeApprovalBridgeResolutionInput,
 ): Promise<AdapterOperationResult<ComposedApprovalBridgeResolution>> {
@@ -190,26 +189,23 @@ export async function resolveApprovalBridgeDecisionWithPermission(
   }
 
   if (!isPermissionAllowed(permission)) {
+    const detailsRef = getPermissionDetailsRef({ permission, decision, detailsRef: input.detailsRef });
+    const correlationRef = getPermissionCorrelationRef({
+      permission,
+      decision,
+      correlationRef: input.correlationRef,
+    });
+
     return approvalCompositionFailure({
       code: 'forbidden',
       message: 'Approval resolution permission denied before resolver boundary call.',
-      ...(getPermissionDetailsRef({ permission, decision, detailsRef: input.detailsRef }) === undefined
-        ? {}
-        : { detailsRef: getPermissionDetailsRef({ permission, decision, detailsRef: input.detailsRef }) }),
-      ...(getPermissionCorrelationRef({ permission, decision, correlationRef: input.correlationRef }) === undefined
-        ? {}
-        : {
-            correlationRef: getPermissionCorrelationRef({
-              permission,
-              decision,
-              correlationRef: input.correlationRef,
-            }),
-          }),
+      ...(detailsRef === undefined ? {} : { detailsRef }),
+      ...(correlationRef === undefined ? {} : { correlationRef }),
     });
   }
 
   const resolution = await resolveApprovalBridgeDecision({
-    resolver: input.resolver,
+    ...(input.resolver === undefined ? {} : { resolver: input.resolver }),
     decision,
     permissionDecision: permission,
     ...(input.context === undefined ? {} : { context: input.context }),
