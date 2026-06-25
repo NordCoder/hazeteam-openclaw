@@ -116,6 +116,24 @@ export {
   normalizeChannelEventSourceInput,
 } from './channel-event-source.js';
 
+export type {
+  ChannelEventCommandProjection,
+  ChannelEventKind,
+  ChannelEventProviderAckDecision,
+  ChannelEventProviderInputRecord,
+  ChannelEventSourceIssue,
+  ChannelEventSourceIssueSeverity,
+  ChannelEventSourceNormalizeInput,
+  ChannelEventSourceNormalizeResult,
+  ChannelEventSourceProvider,
+  ChannelEventSourceReasonCode,
+  ChannelEventSourceStatus,
+  ChannelEventSourceTransportProjection,
+  ChannelEventTopicDisplayProjection,
+  ChannelSystemEventKind,
+  SafeChannelEventDto,
+} from './channel-event-source.js';
+
 export {
   DELIVERY_CONTENT_FORMATS,
   DELIVERY_FAILURE_REASON_CODES,
@@ -123,6 +141,31 @@ export {
   createInjectedDeliveryPort,
   deliverRenderedRequest,
   isSafeDeliveryResultJson,
+} from './delivery-port.js';
+
+export type {
+  DeliveryActionButton,
+  DeliveryActionButtonGroup,
+  DeliveryBusinessStatus,
+  DeliveryContentFormat,
+  DeliveryDiagnosticCode,
+  DeliveryExternalMessageRef,
+  DeliveryFailureReasonCode,
+  DeliveryPortFailure,
+  DeliveryPortResult,
+  DeliveryPortSuccess,
+  DeliveryProviderAcknowledged,
+  DeliveryProviderAcknowledgement,
+  DeliveryProviderKind,
+  DeliveryProviderRejected,
+  DeliveryReadinessGate,
+  DeliveryReadinessProviderGate,
+  DeliverySafeError,
+  DeliveryStatus,
+  InjectedDeliveryPort,
+  RenderedDeliveryContent,
+  RenderedDeliveryRequest,
+  RenderedDeliveryTarget,
 } from './delivery-port.js';
 
 export {
@@ -133,11 +176,69 @@ export {
   processCallbackBoundary,
 } from './callback-handler-port.js';
 
+export type {
+  CallbackBoundaryPorts,
+  CallbackBoundaryResult,
+  CallbackBoundaryValue,
+  CallbackDecision,
+  CallbackDecisionStatus,
+  CallbackExpectedTokenContext,
+  CallbackExpectedTokenContextInput,
+  CallbackInputIssue,
+  CallbackInputIssueCode,
+  CallbackInputIssueSeverity,
+  CallbackPayloadKind,
+  CallbackPayloadStatus,
+  CallbackPermissionCheckInput,
+  CallbackPermissionPhase,
+  CallbackPermissionPort,
+  CallbackPermissionReasonCode,
+  CallbackPermissionResult,
+  CallbackPermissionStatus,
+  CallbackProviderInput,
+  CallbackProviderKind,
+  CallbackReplayStatus,
+  CallbackTokenConsumeInput,
+  CallbackTokenConsumePort,
+  CallbackTokenConsumeResult,
+  CallbackTokenConsumeStatus,
+  CallbackTokenVerifyInput,
+  CallbackTokenVerifyResult,
+  CallbackTokenVerifyStatus,
+  ProviderCallbackAcknowledgementDescriptor,
+  ProviderCallbackAcknowledgementStatus,
+  ProviderCallbackAcknowledgementText,
+  SafeCallbackDescriptor,
+  SafeCallbackError,
+} from './callback-handler-port.js';
+
 export {
   TOPIC_COMMAND_ROUTER_DEFAULT_COMMANDS,
   TOPIC_COMMAND_ROUTER_REASON_CODES,
   isSafeTopicCommandRouterJson,
   routeTopicCommand,
+} from './topic-command-router-port.js';
+
+export type {
+  TopicCommandBindingDescriptor,
+  TopicCommandBindingDisplay,
+  TopicCommandBindingKey,
+  TopicCommandBindingStatus,
+  TopicCommandBindingTarget,
+  TopicCommandDescriptor,
+  TopicCommandIntentDescriptor,
+  TopicCommandNamespace,
+  TopicCommandProjectionInput,
+  TopicCommandRouterDecisionKind,
+  TopicCommandRouterInput,
+  TopicCommandRouterIssue,
+  TopicCommandRouterReasonCode,
+  TopicCommandRouterResult,
+  TopicCommandRouterStatus,
+  TopicCommandRoutingAuthority,
+  TopicCommandSafeCommandSummary,
+  TopicCommandSafeEventInput,
+  TopicCommandSafeHelpDescriptor,
 } from './topic-command-router-port.js';
 
 export {
@@ -151,4 +252,20 @@ export {
   createRealSmokeGateInputFromEnvironment,
   evaluateRealSmokeGate,
   isSafeRealSmokeGateReportJson,
+} from './real-smoke-gate.js';
+
+export type {
+  RealSmokeAttemptInput,
+  RealSmokeBlockedReason,
+  RealSmokeBusinessResult,
+  RealSmokeCleanupPolicy,
+  RealSmokeConfiguredDependency,
+  RealSmokeGateEnvironmentInput,
+  RealSmokeGateInput,
+  RealSmokeGateReport,
+  RealSmokeGateStatus,
+  RealSmokeOperationClass,
+  RealSmokePortStatus,
+  RealSmokeProviderAckResult,
+  RealSmokeProviderKind,
 } from './real-smoke-gate.js';
