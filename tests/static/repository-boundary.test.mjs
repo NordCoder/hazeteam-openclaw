@@ -83,6 +83,7 @@ test('root workspace package and verification scripts are present', () => {
   assert.deepEqual(rootPackage.workspaces, [
     'packages/openclaw-adapter',
     'packages/openclaw-plugin-runtime',
+    'packages/openclaw-telegram-transport',
     'packages/openclaw-testkit',
   ]);
 
@@ -107,11 +108,22 @@ test('ci workflow and active package skeleton files are present', () => {
     assertFile(packageDir, 'src', 'index.ts');
     assertFile(packageDir, 'tests', 'unit', 'package-smoke.test.mjs');
   }
+
+  assertDir('packages', 'openclaw-telegram-transport');
+  assertFile('packages', 'openclaw-telegram-transport', 'package.json');
+  assertFile('packages', 'openclaw-telegram-transport', 'tsconfig.json');
+  assertFile('packages', 'openclaw-telegram-transport', 'README.md');
+  assertFile('packages', 'openclaw-telegram-transport', 'src', 'index.ts');
+  assertFile('packages', 'openclaw-telegram-transport', 'src', 'config.ts');
+  assertFile('packages', 'openclaw-telegram-transport', 'src', 'secrets.ts');
+  assertFile('packages', 'openclaw-telegram-transport', 'tests', 'unit', 'config-secret-handles.test.mjs');
 });
 
 test('production source does not import private hazeteam-core implementation paths', () => {
   const sourceFiles = [
     ...walkFiles(repoPath('packages', 'openclaw-adapter', 'src')),
+    ...walkFiles(repoPath('packages', 'openclaw-plugin-runtime', 'src')),
+    ...walkFiles(repoPath('packages', 'openclaw-telegram-transport', 'src')),
     ...walkFiles(repoPath('packages', 'openclaw-testkit', 'src')),
   ];
 
