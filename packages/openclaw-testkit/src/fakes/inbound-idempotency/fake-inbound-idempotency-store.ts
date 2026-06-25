@@ -143,7 +143,7 @@ export function createFakeInboundIdempotencyStore(
   }
 
   return Object.freeze({
-    reserve(input) {
+    reserve(input: Parameters<typeof createFakeInboundIdempotencyInput>[0]) {
       rejectUnsafeFakeInboundIdempotencyFields(input, 'Fake inbound idempotency reserve input');
       const prepared = createFakeInboundIdempotencyInput(input);
       const existing = records.get(prepared.idempotencyRef);
@@ -177,7 +177,7 @@ export function createFakeInboundIdempotencyStore(
       });
     },
 
-    markCompleted(input) {
+    markCompleted(input: FakeInboundIdempotencyCompletionInput) {
       rejectUnsafeFakeInboundIdempotencyFields(input, 'Fake inbound idempotency completion input');
       const idempotencyRef = sanitizeRef(input.idempotencyRef, 'Fake inbound completion idempotencyRef');
       const existing = records.get(idempotencyRef);
@@ -196,7 +196,7 @@ export function createFakeInboundIdempotencyStore(
       return completed;
     },
 
-    markFailed(input) {
+    markFailed(input: FakeInboundIdempotencyFailureInput) {
       rejectUnsafeFakeInboundIdempotencyFields(input, 'Fake inbound idempotency failure input');
       const idempotencyRef = sanitizeRef(input.idempotencyRef, 'Fake inbound failure idempotencyRef');
       const existing = records.get(idempotencyRef);
@@ -215,7 +215,7 @@ export function createFakeInboundIdempotencyStore(
       return failed;
     },
 
-    recordProcessingMarker(input) {
+    recordProcessingMarker(input: FakeInboundProcessingMarkerInput) {
       rejectUnsafeFakeInboundIdempotencyFields(input, 'Fake inbound processing marker input');
       const idempotencyRef = sanitizeRef(input.idempotencyRef, 'Fake inbound marker idempotencyRef');
       const effect = normalizeEffect(input.effect);
@@ -247,7 +247,7 @@ export function createFakeInboundIdempotencyStore(
       });
     },
 
-    get(idempotencyRef) {
+    get(idempotencyRef: string) {
       const record = records.get(sanitizeRef(idempotencyRef, 'Fake inbound get idempotencyRef'));
       return record === undefined ? null : freezeRecord(record);
     },
