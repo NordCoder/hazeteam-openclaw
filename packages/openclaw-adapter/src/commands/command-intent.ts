@@ -235,15 +235,19 @@ function createIntentContext(event: OpenClawMappedInboundEvent): AdapterOperatio
   });
 }
 
+function createCallbackPermissionRequirement(event: OpenClawMappedInboundCallback): PermissionRequirement {
+  return Object.freeze({
+    ...event.permissionRequirement,
+    resourceRef: event.dispatch.callbackId,
+  });
+}
+
 function getPermissionRequirement(event: OpenClawMappedInboundEvent): PermissionRequirement | undefined {
   switch (event.eventKind) {
     case 'message':
       return event.permissionRequirement;
     case 'callback':
-      return Object.freeze({
-        ...event.permissionRequirement,
-        resourceRef: event.dispatch.callbackId,
-      });
+      return createCallbackPermissionRequirement(event);
     case 'system':
       return undefined;
     default: {
@@ -302,8 +306,17 @@ function safeFailure(
   );
 }
 
+function createAttachmentArgumentRef(
+  attachment: OpenClawMappedInboundAttachmentRef,
+  index: number,
+): string {
+  return attachment.detailsRef ?? `attachment:${index}:${attachment.kind}`;
+}
+
 function createAttachmentArgumentRefs(message: AdapterMessageIntentPayload): readonly string[] | undefined {
-  return message.attachments.length === 0 ? undefined : Object.freeze([...message.attachments]);
+  return message.attachments.length === 0
+    ? undefined
+    : Object.freeze(message.attachments.map(createAttachmentArgumentRef));
 }
 
 function composeMessageIntent(
@@ -369,6 +382,8 @@ function composeCallbackActionIntent(
   event: OpenClawMappedInboundCallback,
   context: AdapterOperationContext,
 ): AdapterCommandIntentCompositionResult {
+  const permissionRequirement = createCallbackPermissionRequirement(event);
+
   return adapterOk(
     Object.freeze({
       ...createBaseIntentFields(event),
@@ -383,6 +398,7 @@ function composeCallbackActionIntent(
         callbackRef: event.dispatch.callbackId,
         permissionRequired: true,
       }),
+      permissionRequirement,
     }),
     context,
   );
