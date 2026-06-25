@@ -203,9 +203,25 @@ function createIntentContext(event: OpenClawMappedInboundEvent): AdapterOperatio
   });
 }
 
+function getPermissionRequirement(event: OpenClawMappedInboundEvent): PermissionRequirement | undefined {
+  switch (event.eventKind) {
+    case 'message':
+    case 'callback':
+      return event.permissionRequirement;
+    case 'system':
+      return undefined;
+    default: {
+      const _exhaustive: never = event;
+      return _exhaustive;
+    }
+  }
+}
+
 function createBaseIntentFields(
   event: OpenClawMappedInboundEvent,
 ): Omit<AdapterCommandIntentBase, 'sourceEventKind' | 'target' | 'facadeMethod' | 'actionKind'> {
+  const permissionRequirement = getPermissionRequirement(event);
+
   return Object.freeze({
     kind: ADAPTER_COMMAND_INTENT_KIND,
     intentRef: createIntentRef(event.operationRef),
@@ -220,7 +236,7 @@ function createBaseIntentFields(
     ...(event.actor === undefined ? {} : { actorRef: event.actor.actorRef }),
     ...(event.occurredAt === undefined ? {} : { occurredAt: event.occurredAt }),
     ...(event.detailsRef === undefined ? {} : { detailsRef: event.detailsRef }),
-    ...('permissionRequirement' in event ? { permissionRequirement: event.permissionRequirement } : {}),
+    ...(permissionRequirement === undefined ? {} : { permissionRequirement }),
   });
 }
 
@@ -237,13 +253,16 @@ function safeFailure(
   message: string,
   context?: AdapterOperationContext,
 ): AdapterCommandIntentCompositionResult {
+  const detailsRef = context?.detailsRef;
+  const correlationRef = context?.correlationRef;
+
   return adapterErr(
     createAdapterSafeError({
       code,
       message,
       retryable: code === 'dependency-missing',
-      ...(context?.detailsRef === undefined ? {} : { detailsRef: context.detailsRef }),
-      ...(context?.correlationRef === undefined ? {} : { correlationRef: context.correlationRef }),
+      ...(detailsRef === undefined ? {} : { detailsRef }),
+      ...(correlationRef === undefined ? {} : { correlationRef }),
     }),
     context,
   );
