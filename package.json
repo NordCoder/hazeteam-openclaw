@@ -7,7 +7,8 @@
     "packages/openclaw-adapter",
     "packages/openclaw-plugin-runtime",
     "packages/openclaw-telegram-transport",
-    "packages/openclaw-testkit"
+    "packages/openclaw-testkit",
+    "packages/oca-wrapper"
   ],
   "scripts": {
     "clean": "node scripts/clean.mjs",

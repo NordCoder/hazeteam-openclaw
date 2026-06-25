@@ -85,6 +85,7 @@ test('root workspace package and verification scripts are present', () => {
     'packages/openclaw-plugin-runtime',
     'packages/openclaw-telegram-transport',
     'packages/openclaw-testkit',
+    'packages/oca-wrapper',
   ]);
 
   for (const scriptName of ['clean', 'build', 'typecheck', 'test:static', 'test:unit', 'test', 'check']) {
@@ -117,6 +118,14 @@ test('ci workflow and active package skeleton files are present', () => {
   assertFile('packages', 'openclaw-telegram-transport', 'src', 'config.ts');
   assertFile('packages', 'openclaw-telegram-transport', 'src', 'secrets.ts');
   assertFile('packages', 'openclaw-telegram-transport', 'tests', 'unit', 'config-secret-handles.test.mjs');
+
+  assertDir('packages', 'oca-wrapper');
+  assertFile('packages', 'oca-wrapper', 'package.json');
+  assertFile('packages', 'oca-wrapper', 'tsconfig.json');
+  assertFile('packages', 'oca-wrapper', 'README.md');
+  assertFile('packages', 'oca-wrapper', 'src', 'index.ts');
+  assertFile('packages', 'oca-wrapper', 'src', 'capability-descriptor.ts');
+  assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'capability-descriptor.test.mjs');
 });
 
 test('production source does not import private hazeteam-core implementation paths', () => {
@@ -125,6 +134,7 @@ test('production source does not import private hazeteam-core implementation pat
     ...walkFiles(repoPath('packages', 'openclaw-plugin-runtime', 'src')),
     ...walkFiles(repoPath('packages', 'openclaw-telegram-transport', 'src')),
     ...walkFiles(repoPath('packages', 'openclaw-testkit', 'src')),
+    ...walkFiles(repoPath('packages', 'oca-wrapper', 'src')),
   ];
 
   for (const sourceFile of sourceFiles) {
@@ -243,7 +253,7 @@ test('obvious protected assignment markers are not committed', () => {
 });
 
 test('placeholder package directories include README documentation', () => {
-  for (const packageDir of ['packages/domain-lifeos', 'packages/oca-wrapper']) {
+  for (const packageDir of ['packages/domain-lifeos']) {
     assertDir(packageDir);
     assertFile(packageDir, 'README.md');
   }
