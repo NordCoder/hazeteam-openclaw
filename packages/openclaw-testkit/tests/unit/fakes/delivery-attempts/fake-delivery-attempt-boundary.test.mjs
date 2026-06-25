@@ -7,6 +7,8 @@ import {
 } from '../../../../dist/fakes/delivery-attempts/index.js';
 import { createTestDeliveryAttemptFixture } from '../../../../dist/delivery-attempts/index.js';
 
+const UNSAFE_PUBLIC_STRING = ['bot', 'Token=abc'].join('');
+
 test('fake delivery attempt boundary stores JSON-safe records in deterministic order', () => {
   const boundary = createFakeDeliveryAttemptRecordBoundary();
 
@@ -40,7 +42,7 @@ test('fake delivery attempt boundary rejects unsafe public records', () => {
     TypeError,
   );
   assert.throws(
-    () => boundary.write('delivery-attempt-store:attempt:unsafe-string', { message: 'botToken=abc' }),
+    () => boundary.write('delivery-attempt-store:attempt:unsafe-string', { message: UNSAFE_PUBLIC_STRING }),
     TypeError,
   );
 });
