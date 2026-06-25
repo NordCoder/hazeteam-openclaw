@@ -1,6 +1,6 @@
 # Current development state
 
-This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation and the W13A OpenClaw plugin runtime package skeleton.
+This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` after W12 core integration fan-in over the W10/W11 release-hardened adapter foundation and the W13 OpenClaw plugin runtime shell fan-in.
 
 ## Repository role
 
@@ -19,20 +19,21 @@ Read in this order:
 3. `docs/index.md`
 4. `docs/README.md`
 5. `docs/development/core-integration.md` for W12 and later core-integration work
-6. `docs/core-context.md`
-7. `docs/architecture/adapter-worker-onboarding.md`
-8. `docs/architecture/core-boundary.md`
-9. `docs/architecture/openclaw-telegram-adapter.md`
-10. `docs/architecture/parallel-execution-and-fanin.md`
-11. `docs/roadmap/implementation-waves.md`
-12. `docs/roadmap/file-ownership-matrix.md`
-13. The assigned source and tests.
+6. `packages/openclaw-plugin-runtime/README.md` for W13 and later plugin-runtime work
+7. `docs/core-context.md`
+8. `docs/architecture/adapter-worker-onboarding.md`
+9. `docs/architecture/core-boundary.md`
+10. `docs/architecture/openclaw-telegram-adapter.md`
+11. `docs/architecture/parallel-execution-and-fanin.md`
+12. `docs/roadmap/implementation-waves.md`
+13. `docs/roadmap/file-ownership-matrix.md`
+14. The assigned source and tests.
 
 Also read the authoritative `hazeteam-core` adapter authoring docs from `NordCoder/hazeteam-core` on the pinned or assigned core ref when a phase touches core integration. Start at:
 
-```text
+~~~text
 docs/adapter-authoring/README.md
-```
+~~~
 
 The local `docs/core-context.md` is a digest, not a replacement for the core docs or the current contract pack. For W12 and later, `docs/development/core-integration.md` records the pinned core ref, inspected public export inventory, private-import boundary policy, local packed-core install strategy, and W12 fan-in gate.
 
@@ -55,11 +56,7 @@ This is a foundation baseline, not a production OpenClaw/Telegram runtime.
 
 ## Completed consistency gate
 
-The completed cleanup gate is:
-
-```text
-W11 — Test and Documentation Consistency
-```
+The completed cleanup gate is W11 — Test and Documentation Consistency.
 
 W11 made the W10 foundation more honest and ready for core integration work. It removed stale status language, ensured acceptance tests are represented in the official check gate, refreshed package status metadata from skeleton to foundation semantics, and removed or narrowed obsolete historical phase-scope static checks while preserving meaningful safety boundaries.
 
@@ -88,21 +85,23 @@ W12E is the fan-in that wires the script and cross-repo CI strategy. The root sc
 
 The W12 proof remains fake-edge and real-core-public-API only. W12 does not add real OpenClaw SDK/client behavior, real Telegram listener, webhook, polling loop, callback endpoint, network delivery, database, cache, queue, scheduler, sidecar, credential loading, or product runtime behavior.
 
-## Current W13A plugin runtime skeleton
+## Current W13 plugin runtime shell
 
-W13A starts the OpenClaw plugin runtime shell as `packages/openclaw-plugin-runtime`. The package is a foundation-level workspace skeleton only. It exposes package status metadata, a static JSON-serializable descriptor, and a no-effect describe function that reports skeleton and not-production-ready posture.
+W13 introduces `packages/openclaw-plugin-runtime` as the OpenClaw plugin runtime shell package.
 
-W13A does not implement lifecycle transitions, tool registry behavior, capability registry behavior, readiness aggregation, config loading, real OpenClaw SDK behavior, Telegram transport, OCA mechanics, sidecar support, durable infrastructure, credential loading, network behavior, or product runtime behavior.
+W13A created the package skeleton and package status descriptor. W13B added a side-effect-free plugin lifecycle state machine. W13C added safe OpenClaw tool registry descriptors and validators. W13D added a runtime capability registry and readiness projection model. W13E added plugin readiness aggregation over lifecycle, core facade, adapter foundation, transport, capabilities, config, stores, and tools. W13F fans those leaves into the package root, refreshes package-level status, adds cross-leaf smoke coverage, and documents the package boundary.
 
-W13B, W13C, W13D, W13E, and W13F remain future or parallel-after-W13A implementation slices. They must keep using explicit phase prompts, disjoint branches, contract-pack boundaries, and fake-first testing until a later slice deliberately scopes broader runtime behavior.
+The W13 package is fake/dry-run capable only. It reports `productionReady: false`, `effects: "none"`, and runtime-shell status. Public outputs are intended to be JSON-serializable and no-leak safe.
+
+W13 does not implement real OpenClaw SDK/client wiring, Telegram listener, webhook, polling loop, callback endpoint, network delivery, OCA runtime/session behavior, production credential loading, sidecar support, production durable infrastructure, production deployment runtime, production HTTP readiness endpoint, or product-layer behavior.
 
 ## Next major implementation direction
 
-The next major implementation direction after W13A should remain contract-led and explicit about readiness level.
+The next major implementation direction after W13F should remain contract-led and explicit about readiness level.
 
-Future work may move toward OpenClaw plugin lifecycle, tool registry, capability registry, readiness aggregation, real transport ports, runtime capabilities, or product layers only when a phase prompt explicitly scopes those behaviors, lists allowed files, adds tests, and preserves the `hazeteam-core` transport-neutral boundary.
+Future work may move toward real transport ports, runtime capabilities, OCA wrapper capability, domain packages, sidecar support, or deployment/runtime operations only when a phase prompt explicitly scopes those behaviors, lists allowed files, adds tests, and preserves the `hazeteam-core` transport-neutral boundary.
 
-Do not treat W12 integration proof or the W13A package skeleton as permission to add production runtime behavior opportunistically.
+Do not treat W12 integration proof or the W13 plugin runtime shell as permission to add production runtime behavior opportunistically.
 
 ## Preserved limitations
 
