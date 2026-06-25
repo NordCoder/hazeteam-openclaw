@@ -7,7 +7,6 @@ import {
   normalizeTelegramOutboundOptionalSafeRef,
   type TelegramOutboundActionButton,
   type TelegramOutboundActionButtonRow,
-  type TelegramOutboundContentFormat,
   type TelegramOutboundDeliveryContent,
   type TelegramOutboundDeliveryProvider,
   type TelegramOutboundDeliveryRequest,
@@ -223,11 +222,12 @@ function normalizeContent(input: unknown): TelegramOutboundDeliveryContent | und
 export function createTelegramOutboundDeliveryRequest(
   input: TelegramOutboundDeliveryRequestInput,
 ): TelegramOutboundDeliveryRequestBuildResult {
-  if (!isOneOf(input.provider ?? 'telegram', TELEGRAM_OUTBOUND_DELIVERY_PROVIDERS)) {
+  const providerInput = input.provider ?? 'telegram';
+  if (!isOneOf(providerInput, TELEGRAM_OUTBOUND_DELIVERY_PROVIDERS)) {
     return buildFailure('invalid-delivery-request', 'Outbound delivery provider was rejected safely');
   }
 
-  const provider: TelegramOutboundDeliveryProvider = input.provider ?? 'telegram';
+  const provider: TelegramOutboundDeliveryProvider = providerInput;
   const deliveryRef = normalizeRequiredRef(input.deliveryRef);
   if (deliveryRef === undefined) {
     return buildFailure('invalid-delivery-request', 'Outbound delivery reference was rejected safely');
