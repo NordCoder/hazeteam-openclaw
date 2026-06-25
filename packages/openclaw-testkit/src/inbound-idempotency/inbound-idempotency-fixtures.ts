@@ -75,6 +75,14 @@ export interface FakeInboundIdempotencyInput {
   readonly correlationRef?: string | undefined;
 }
 
+type FakeInboundIdempotencyPreparedInput = Required<
+  Pick<
+    FakeInboundIdempotencyRecord,
+    'eventRef' | 'idempotencyRef' | 'eventKind' | 'channelRef' | 'firstSeenRef' | 'safeEventFingerprint'
+  >
+> &
+  Omit<Partial<FakeInboundIdempotencyRecord>, 'kind' | 'status' | 'safeEventFingerprint'>;
+
 function normalizeFieldName(fieldName: string): string {
   return fieldName.replace(/[^A-Za-z0-9]/gu, '').toLowerCase();
 }
@@ -172,8 +180,7 @@ function defaultFingerprint(input: {
 
 export function createFakeInboundIdempotencyInput(
   input: FakeInboundIdempotencyInput = {},
-): Required<Pick<FakeInboundIdempotencyRecord, 'eventRef' | 'idempotencyRef' | 'eventKind' | 'channelRef' | 'firstSeenRef'>> &
-  Omit<Partial<FakeInboundIdempotencyRecord>, 'kind' | 'status'> {
+): FakeInboundIdempotencyPreparedInput {
   rejectUnsafeFakeInboundIdempotencyFields(input, 'Fake inbound idempotency input');
 
   const eventKind = input.eventKind ?? 'message';
