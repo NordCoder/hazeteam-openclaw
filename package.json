@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "workspaces": [
+    "packages/domain-lifeos",
     "packages/openclaw-adapter",
     "packages/openclaw-plugin-runtime",
     "packages/openclaw-telegram-transport",
