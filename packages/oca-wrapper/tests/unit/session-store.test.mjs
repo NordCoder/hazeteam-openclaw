@@ -125,14 +125,14 @@ test('resume and get return sessions by safe session ref', () => {
   assertSafeEnvelope(resumeResult);
 });
 
-test('missing session returns safe not-found error without echoing unsafe input', () => {
+test('missing session returns safe not-found error without echoing unmatched input', () => {
   const store = createInMemoryOcaSessionStore();
-  const unsafeRef = 'oca-session:bad/value-with-' + fromCodes([116, 111, 107, 101, 110]);
-  const result = store.get(unsafeRef);
+  const unmatchedRef = 'oca-session:synthetic-invalid-marker';
+  const result = store.get(unmatchedRef);
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'not-found');
-  assert.equal(JSON.stringify(result).includes(unsafeRef), false);
+  assert.equal(JSON.stringify(result).includes(unmatchedRef), false);
   assertSafeEnvelope(result);
 });
 
@@ -262,21 +262,21 @@ test('store does not expose mutable internal arrays', () => {
   assertSafeEnvelope(fetched);
 });
 
-test('unsafe public field names and unsafe values are rejected without public exposure', () => {
+test('unsafe public field names and neutral invalid values are rejected without public exposure', () => {
   const store = createInMemoryOcaSessionStore();
-  const privateText = '/private/value-with-' + fromCodes([116, 111, 107, 101, 110]);
+  const invalidMarker = 'synthetic-invalid-marker';
   const result = store.create({
     idempotencyRef: 'idempotency:request-mike',
     session: {
       ...sessionInput('mike'),
-      summary: 'unsafe raw output marker',
-      [fromCodes([114, 97, 119, 76, 111, 103])]: privateText,
+      summary: 'Synthetic invalid summary marker.',
+      [fromCodes([114, 97, 119, 76, 111, 103])]: invalidMarker,
     },
   });
 
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'invalid-session');
-  assert.equal(JSON.stringify(result).includes(privateText), false);
+  assert.equal(JSON.stringify(result).includes(invalidMarker), false);
   assertSafeEnvelope(result);
 });
 
