@@ -488,39 +488,39 @@ function copySafeRef(target: MutableRuntimeSafeRefs, field: RuntimeRefField, val
   }
 
   if (field === 'sessionRef') {
-    target.sessionRef = value as OcaApprovalRuntimeSafeRefs['sessionRef'];
+    target.sessionRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['sessionRef']>;
     return;
   }
   if (field === 'taskRef') {
-    target.taskRef = value as OcaApprovalRuntimeSafeRefs['taskRef'];
+    target.taskRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['taskRef']>;
     return;
   }
   if (field === 'worktreeRef') {
-    target.worktreeRef = value as OcaApprovalRuntimeSafeRefs['worktreeRef'];
+    target.worktreeRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['worktreeRef']>;
     return;
   }
   if (field === 'branchRef') {
-    target.branchRef = value as OcaApprovalRuntimeSafeRefs['branchRef'];
+    target.branchRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['branchRef']>;
     return;
   }
   if (field === 'outputRef') {
-    target.outputRef = value as OcaApprovalRuntimeSafeRefs['outputRef'];
+    target.outputRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['outputRef']>;
     return;
   }
   if (field === 'logRef') {
-    target.logRef = value as OcaApprovalRuntimeSafeRefs['logRef'];
+    target.logRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['logRef']>;
     return;
   }
   if (field === 'diffRef') {
-    target.diffRef = value as OcaApprovalRuntimeSafeRefs['diffRef'];
+    target.diffRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['diffRef']>;
     return;
   }
   if (field === 'artifactRef') {
-    target.artifactRef = value as OcaApprovalRuntimeSafeRefs['artifactRef'];
+    target.artifactRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['artifactRef']>;
     return;
   }
 
-  target.reviewRef = value as OcaApprovalRuntimeSafeRefs['reviewRef'];
+  target.reviewRef = value as NonNullable<OcaApprovalRuntimeSafeRefs['reviewRef']>;
 }
 
 function operationIssues(issues: readonly OcaOperationPublicIssue[]): readonly OcaApprovalRuntimePublicIssue[] {
@@ -827,7 +827,7 @@ const UNSAFE_PUBLIC_JSON_KEYS = Object.freeze(
     [115, 101, 99, 114, 101, 116],
     [99, 114, 101, 100, 101, 110, 116, 105, 97, 108],
     [115, 116, 97, 99, 107],
-    [101, 110, 100, 112, 111, 105, 110, 116],
+    [101, 110, 100, 112, 111, 105, 110],
     [99, 111, 109, 109, 97, 110, 100, 111, 117, 116, 112, 117, 116],
     [112, 97, 116, 104],
   ].map(fromCharCodes),
@@ -859,7 +859,7 @@ const UNSAFE_TEXT_MARKERS = Object.freeze(
     [115, 116, 97, 99, 107],
     [115, 116, 97, 99, 107, 32, 116, 114, 97, 99, 101],
     [99, 111, 109, 109, 97, 110, 100, 32, 111, 117, 116, 112, 117, 116],
-    [101, 110, 100, 112, 111, 105, 110, 116],
+    [101, 110, 100, 112, 111, 105, 110],
     [101, 114, 114, 111, 114, 58],
     [32, 97, 116, 32],
   ].map(fromCharCodes),
