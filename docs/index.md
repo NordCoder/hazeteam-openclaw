@@ -2,18 +2,25 @@
 
 ## Current foundation scope
 
-`hazeteam-openclaw` is an external OpenClaw/Telegram adapter foundation over stable `hazeteam-core`. The current foundation documents safe adapter contracts, fake-first composition, injected boundary shells, durable adapter-owned store shells, OpenClaw-facing integration shells, the W9 secret-gated smoke posture, and W12 integration proof wiring against pinned `hazeteam-core` public APIs with fake adapter edges.
+`hazeteam-openclaw` is an external OpenClaw/Telegram adapter and plugin foundation over stable `hazeteam-core`. The current foundation documents safe adapter contracts, fake-first composition, injected boundary shells, durable adapter-owned store shells, OpenClaw-facing integration shells, the W9 secret-gated smoke posture, W12 integration proof wiring against pinned `hazeteam-core` public APIs with fake adapter edges, and the W13 OpenClaw plugin runtime shell package.
 
-This index is a navigation fan-in for the W10 release-hardening documents, W11 consistency cleanup state, and W12 core integration status. It does not certify a production OpenClaw/Telegram product runtime.
+This index is a navigation fan-in for the W10 release-hardening documents, W11 consistency cleanup state, W12 core integration status, and W13 plugin runtime shell status. It does not certify a production OpenClaw, Telegram, OCA, or product runtime.
 
 ## Release-hardening map
 
+- [`packages/openclaw-plugin-runtime/README.md`](../packages/openclaw-plugin-runtime/README.md) — W13 package-root public surface, fake/dry-run runtime-shell status, safety posture, and explicit limitations.
 - [`docs/development/core-integration.md`](development/core-integration.md) — W12 pinned core ref, public import policy, local packed-core install strategy, script/CI fan-in, and integration-proof status boundary.
 - [`docs/deployment/config-readiness-health-credentials.md`](deployment/config-readiness-health-credentials.md) — configuration assumptions, readiness semantics, health evidence, and credential-handling posture for the current foundation.
 - [`docs/operations/migration-backup-replay.md`](operations/migration-backup-replay.md) — migration, backup, restore, replay, and recovery assumptions around injected durable stores and safe records.
 - [`docs/release/release-checklist.md`](release/release-checklist.md) — pre-release checks, static and acceptance gates, W12 core integration release gate, security/no-leak review, and merge/release gates.
-- [`docs/release/known-limitations.md`](release/known-limitations.md) — current limitations, W12 fake-edge integration-proof boundary, future work, and risk notes that must remain visible until implemented by explicit future slices.
+- [`docs/release/known-limitations.md`](release/known-limitations.md) — current limitations, W12 fake-edge integration-proof boundary, W13 plugin-runtime shell boundary, future work, and risk notes that must remain visible until implemented by explicit future slices.
 - [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) — conflict-aware implementation roadmap, phase sequence, parallel leaf policy, and fan-in rules.
+
+## W13 plugin-runtime shell posture
+
+Use [`packages/openclaw-plugin-runtime/README.md`](../packages/openclaw-plugin-runtime/README.md) before W13 or later plugin-runtime work. W13A introduced the package skeleton. W13B through W13E added no-effect lifecycle, tool registry, capability registry, and readiness modules. W13F fans those leaves into the package root and adds cross-leaf smoke coverage.
+
+The W13 package is a safe, fake/dry-run-capable runtime shell. It does not include real provider wiring, runtime execution, credentials, transport delivery, OCA mechanics, sidecar behavior, deployment runtime, or a production readiness endpoint.
 
 ## Deployment and credential posture
 
@@ -41,7 +48,7 @@ Use [`docs/release/known-limitations.md`](release/known-limitations.md) to keep 
 
 Use [`docs/roadmap/implementation-waves.md`](roadmap/implementation-waves.md) for sequencing, dependency, and fan-in policy.
 
-The following are not included in the current foundation or W12 integration proof:
+The following are not included in the current foundation, W12 integration proof, or W13 plugin-runtime shell:
 
 - production OpenClaw SDK/client wiring;
 - production Telegram/OpenClaw network integration;
