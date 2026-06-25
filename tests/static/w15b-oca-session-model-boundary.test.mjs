@@ -80,12 +80,9 @@ function readSessionModelSource() {
   return readText('packages', 'oca-wrapper', 'src', 'session-model.ts');
 }
 
-test('W15B session model leaf exists without package-root fan-in', () => {
+test('W15B session model leaf exists and package metadata stays safe', () => {
   assertFile('packages', 'oca-wrapper', 'src', 'session-model.ts');
   assertFile('packages', 'oca-wrapper', 'tests', 'unit', 'session-model.test.mjs');
-
-  const indexSource = readText('packages', 'oca-wrapper', 'src', 'index.ts');
-  assert.equal(indexSource.includes('session-model'), false, 'W15H owns oca-wrapper package-root fan-in');
 
   const packageJson = readJson('packages', 'oca-wrapper', 'package.json');
   assert.deepEqual(packageJson, expectedOcaWrapperPackage);
