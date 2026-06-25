@@ -8,6 +8,8 @@ import {
   normalizeDeliveryAttemptRef,
   normalizeDeliveryBusinessResultRecord,
   normalizeDeliveryProviderAcknowledgementRecord,
+  updateDeliveryAttemptWithBusinessResult,
+  updateDeliveryAttemptWithProviderAcknowledgement,
   type CreateDeliveryAttemptRecordInput,
   type CreateDeliveryBusinessResultRecordInput,
   type CreateDeliveryProviderAcknowledgementRecordInput,
@@ -193,6 +195,15 @@ function assertDeliveryRefMatchesAttempt(
   }
 }
 
+function assertIdempotencyKeyMatchesAttempt(
+  attempt: DeliveryAttemptRecord | undefined,
+  idempotencyKey: AdapterIdempotencyKey,
+): void {
+  if (attempt !== undefined && attempt.idempotencyKey !== idempotencyKey) {
+    throw new TypeError('Delivery attempt store record must match the registered idempotencyKey.');
+  }
+}
+
 async function listRecords<T>(
   boundary: DeliveryAttemptRecordBoundary,
   prefix: DeliveryAttemptRecordPrefix,
@@ -295,6 +306,10 @@ export function createDeliveryAttemptStore(input: {
         inputRecord.attemptRef,
         'Delivery provider acknowledgement attemptRef',
       );
+      const idempotencyKey = normalizeIdempotencyKey(inputRecord.idempotencyKey);
+      const attempt = await readAttemptByAttemptRef(attemptRef);
+      assertIdempotencyKeyMatchesAttempt(attempt, idempotencyKey);
+
       const existing = normalizeDeliveryProviderAcknowledgementRecord(
         await boundary.read(providerAcknowledgementKey(attemptRef)),
       );
@@ -305,26 +320,13 @@ export function createDeliveryAttemptStore(input: {
       const record = createDeliveryProviderAcknowledgementRecord({
         ...inputRecord,
         attemptRef,
-        idempotencyKey: normalizeIdempotencyKey(inputRecord.idempotencyKey),
+        idempotencyKey,
       });
-      const attempt = await readAttemptByAttemptRef(attemptRef);
       assertDeliveryRefMatchesAttempt(attempt, record.deliveryRef);
 
       await boundary.write(providerAcknowledgementKey(attemptRef), record);
       if (attempt !== undefined) {
-        const updatedAttempt = {
-          ...attempt,
-          executionStatus:
-            record.providerAcknowledgementStatus === 'accepted'
-              ? ('provider-acknowledged' as const)
-              : ('provider-failed' as const),
-          providerAcknowledgementRef: record.providerAcknowledgementRef,
-          providerAcknowledgementStatus: record.providerAcknowledgementStatus,
-          businessResultStatus: 'not-evaluated' as const,
-          retryEligibility: record.retryEligibility,
-          updatedAtIso: record.recordedAtIso,
-        };
-        await writeAttempt(normalizeDeliveryAttemptRecord(updatedAttempt) ?? attempt);
+        await writeAttempt(updateDeliveryAttemptWithProviderAcknowledgement(attempt, record));
       }
 
       return Object.freeze({ recordingStatus: 'recorded' as const, record });
@@ -334,6 +336,12 @@ export function createDeliveryAttemptStore(input: {
       inputRecord: CreateDeliveryBusinessResultRecordInput,
     ): Promise<DeliveryBusinessResultRecording> {
       const attemptRef = normalizeDeliveryAttemptRef(inputRecord.attemptRef, 'Delivery business result attemptRef');
+      const idempotencyKey = normalizeIdempotencyKey(inputRecord.idempotencyKey);
+      const deliveryRef = normalizeOperationRef(inputRecord.deliveryRef, 'Delivery business result deliveryRef');
+      const attempt = await readAttemptByAttemptRef(attemptRef);
+      assertIdempotencyKeyMatchesAttempt(attempt, idempotencyKey);
+      assertDeliveryRefMatchesAttempt(attempt, deliveryRef);
+
       const existing = normalizeDeliveryBusinessResultRecord(await boundary.read(businessResultKey(attemptRef)));
       if (existing !== undefined) {
         return Object.freeze({ recordingStatus: 'duplicate' as const, record: existing });
@@ -342,28 +350,13 @@ export function createDeliveryAttemptStore(input: {
       const record = createDeliveryBusinessResultRecord({
         ...inputRecord,
         attemptRef,
-        deliveryRef: normalizeOperationRef(inputRecord.deliveryRef, 'Delivery business result deliveryRef'),
-        idempotencyKey: normalizeIdempotencyKey(inputRecord.idempotencyKey),
+        deliveryRef,
+        idempotencyKey,
       });
-      const attempt = await readAttemptByAttemptRef(attemptRef);
-      assertDeliveryRefMatchesAttempt(attempt, record.deliveryRef);
 
       await boundary.write(businessResultKey(attemptRef), record);
       if (attempt !== undefined) {
-        const updatedAttempt = {
-          ...attempt,
-          executionStatus:
-            record.businessResultStatus === 'marked-delivered'
-              ? ('business-succeeded' as const)
-              : ('business-failed' as const),
-          ...(record.providerAcknowledgementRef === undefined
-            ? {}
-            : { providerAcknowledgementRef: record.providerAcknowledgementRef }),
-          businessResultStatus: record.businessResultStatus,
-          retryEligibility: record.retryEligibility,
-          updatedAtIso: record.recordedAtIso,
-        };
-        await writeAttempt(normalizeDeliveryAttemptRecord(updatedAttempt) ?? attempt);
+        await writeAttempt(updateDeliveryAttemptWithBusinessResult(attempt, record));
       }
 
       return Object.freeze({ recordingStatus: 'recorded' as const, record });
