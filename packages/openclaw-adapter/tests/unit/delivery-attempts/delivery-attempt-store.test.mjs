@@ -6,6 +6,7 @@ import { createDeliveryAttemptStore } from '../../../dist/storage/delivery-attem
 const CREATED_AT = '2026-06-25T00:00:00.000Z';
 const ACK_AT = '2026-06-25T00:00:01.000Z';
 const BUSINESS_AT = '2026-06-25T00:00:02.000Z';
+const MISMATCH_IDEMPOTENCY_KEY = 'delivery-attempt:outbox:mismatch:claim:mismatch:attempt:1';
 const UNSAFE_FAILURE_TEXT = [
   ['bot', 'Token=abc'].join(''),
   ['raw', 'Provider', 'Payload'].join(''),
@@ -78,6 +79,14 @@ function createFailure(deliveryRef = 'operation:delivery-1') {
     retryable: true,
     correlationRef: 'correlation:delivery-1',
   };
+}
+
+async function registerAttempt(store, id) {
+  return store.registerAttempt({
+    request: createRequest(),
+    idempotencyKey: `delivery-attempt:outbox:${id}:claim:${id}:attempt:1`,
+    createdAtIso: CREATED_AT,
+  });
 }
 
 function assertNoForbiddenPublicMaterial(record) {
@@ -184,4 +193,62 @@ test('provider failures are redacted and replay-safe', async () => {
   assert.equal(failure.record.businessResultStatus, 'not-evaluated');
   assert.equal(replay.recordingStatus, 'duplicate');
   assertNoForbiddenPublicMaterial(failure.record);
+});
+
+test('provider acknowledgement rejects mismatched registered idempotencyKey', async () => {
+  const store = createDeliveryAttemptStore({ boundary: createMemoryBoundary() });
+  const registered = await registerAttempt(store, 'ack-mismatch');
+
+  await assert.rejects(
+    () => store.recordProviderAcknowledgement({
+      attemptRef: registered.record.attemptRef,
+      idempotencyKey: MISMATCH_IDEMPOTENCY_KEY,
+      result: createSuccess(),
+      recordedAtIso: ACK_AT,
+    }),
+    /registered idempotencyKey/u,
+  );
+
+  assert.equal(await store.getProviderAcknowledgementByAttemptRef(registered.record.attemptRef), undefined);
+  assert.equal((await store.getAttemptByAttemptRef(registered.record.attemptRef)).executionStatus, 'reserved');
+});
+
+test('delivered business result rejects mismatched registered idempotencyKey', async () => {
+  const store = createDeliveryAttemptStore({ boundary: createMemoryBoundary() });
+  const registered = await registerAttempt(store, 'delivered-mismatch');
+
+  await assert.rejects(
+    () => store.recordBusinessResult({
+      attemptRef: registered.record.attemptRef,
+      deliveryRef: registered.record.deliveryRef,
+      idempotencyKey: MISMATCH_IDEMPOTENCY_KEY,
+      businessResultStatus: 'marked-delivered',
+      retryEligibility: 'not-eligible',
+      recordedAtIso: BUSINESS_AT,
+    }),
+    /registered idempotencyKey/u,
+  );
+
+  assert.equal(await store.getBusinessResultByAttemptRef(registered.record.attemptRef), undefined);
+  assert.equal((await store.getAttemptByAttemptRef(registered.record.attemptRef)).executionStatus, 'reserved');
+});
+
+test('failed business result rejects mismatched registered idempotencyKey', async () => {
+  const store = createDeliveryAttemptStore({ boundary: createMemoryBoundary() });
+  const registered = await registerAttempt(store, 'failed-mismatch');
+
+  await assert.rejects(
+    () => store.recordBusinessResult({
+      attemptRef: registered.record.attemptRef,
+      deliveryRef: registered.record.deliveryRef,
+      idempotencyKey: MISMATCH_IDEMPOTENCY_KEY,
+      businessResultStatus: 'marked-failed',
+      retryEligibility: 'eligible',
+      recordedAtIso: BUSINESS_AT,
+    }),
+    /registered idempotencyKey/u,
+  );
+
+  assert.equal(await store.getBusinessResultByAttemptRef(registered.record.attemptRef), undefined);
+  assert.equal((await store.getAttemptByAttemptRef(registered.record.attemptRef)).executionStatus, 'reserved');
 });
