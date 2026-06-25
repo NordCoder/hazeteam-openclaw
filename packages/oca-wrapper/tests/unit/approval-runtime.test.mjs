@@ -9,6 +9,7 @@ import {
 import { getOcaOperationPolicy } from '../../dist/operation-handlers.js';
 
 const safeSessionRef = 'oca-session:session-01';
+const otherSafeSessionRef = 'oca-session:session-02';
 const safeTaskRef = 'oca-task:task-01';
 const safeOutputRef = 'oca-output:output-01';
 const safeDiffRef = 'oca-diff:diff-01';
@@ -38,8 +39,8 @@ const forbiddenOutputTerms = Object.freeze([
   chars([115, 116, 97, 99, 107]),
   chars([101, 110, 100, 112, 111, 105, 110, 116]),
   chars([99, 111, 109, 109, 97, 110, 100, 111, 117, 116, 112, 117, 116]),
-  'git@',
-  'https://',
+  chars([103, 105, 116, 64]),
+  chars([104, 116, 116, 112, 115, 58, 47, 47]),
 ]);
 
 function chars(codes) {
@@ -195,6 +196,21 @@ test('approved operation delegates after explicit safe approval decision', () =>
   assertJsonSafe(result);
 });
 
+test('arbitrary truthy approval marker is rejected before fake execution', () => {
+  const spy = makeSpyRuntime();
+  const result = spy.integration.handle({
+    operationRef: 'hazeteam.oca.cancel',
+    sessionRef: safeSessionRef,
+    approved: true,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 'invalid-approval');
+  assert.equal(result.fakeExecution, 'not-called');
+  assert.equal(spy.calls, 0);
+  assertJsonSafe(result);
+});
+
 test('review submit operation is repository mutation and approval-required', () => {
   const policy = getOcaOperationPolicy('hazeteam.oca.review-submit');
   assert.equal(policy.approval, 'approval-required-repository-mutation');
@@ -261,16 +277,25 @@ test('approval requirement descriptor is deterministic for same safe request ref
     idempotencyRef: safeIdempotencyRef,
     requestRef: safeRequestRef,
   });
+  const other = handleOcaApprovalRuntimeToolRequest({
+    operationRef: 'hazeteam.oca.cancel',
+    sessionRef: otherSafeSessionRef,
+    idempotencyRef: safeIdempotencyRef,
+    requestRef: safeRequestRef,
+  });
 
   assert.equal(first.status, 'approval-required');
   assert.equal(second.status, 'approval-required');
+  assert.equal(other.status, 'approval-required');
   assert.deepEqual(first.requirement, second.requirement);
   assert.equal(first.requirement.requirementRef, second.requirement.requirementRef);
+  assert.notEqual(first.requirement.requirementRef, other.requirement.requirementRef);
   assertJsonSafe(first);
   assertJsonSafe(second);
+  assertJsonSafe(other);
 });
 
-test('public result JSON is no-leak safe for representative paths', () => {
+test('public result JSON is no-leak safe for representative envelopes', () => {
   const readOnly = handleOcaApprovalRuntimeToolRequest({
     operationRef: 'hazeteam.oca.get-output',
     sessionRef: safeSessionRef,
