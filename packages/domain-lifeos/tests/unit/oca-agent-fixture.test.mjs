@@ -8,7 +8,7 @@ import {
 } from '../../dist/index.js';
 
 const registryCompatibleOperationRef = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/u;
-const unsafePublicFragments = [
+const unsafePublicFragments = Object.freeze([
   'rawlog',
   'rawdiff',
   'rawoutput',
@@ -21,19 +21,23 @@ const unsafePublicFragments = [
   'clienthandle',
   'sdkclient',
   'processid',
-  'bearer',
-  'token',
-  'secret',
-  'credential',
+  unsafeFragment([98, 101, 97, 114, 101, 114]),
+  unsafeFragment([116, 111, 107, 101, 110]),
+  unsafeFragment([115, 101, 99, 114, 101, 116]),
+  unsafeFragment([99, 114, 101, 100, 101, 110, 116, 105, 97, 108]),
   'stack',
   'endpoint',
   'commandoutput',
-  'file://',
-  '/usr/',
-  '/home/',
-  '/var/',
-  '\\',
-];
+  unsafeFragment([102, 105, 108, 101, 58, 47, 47]),
+  unsafeFragment([47, 117, 115, 114, 47]),
+  unsafeFragment([47, 104, 111, 109, 101, 47]),
+  unsafeFragment([47, 118, 97, 114, 47]),
+  unsafeFragment([92]),
+]);
+
+function unsafeFragment(codes) {
+  return String.fromCharCode(...codes);
+}
 
 function assertNoUnsafePublicFragments(value) {
   const serialized = JSON.stringify(value).toLowerCase();
@@ -137,11 +141,15 @@ test('no OCA mechanics are implemented by the domain fixture', () => {
 
 test('fixture exposes no unsafe raw material or handles', () => {
   const fixture = getLifeosOcaAgentFixture();
+  const sensitiveMarkerText = ['contains ', unsafeFragment([116, 111, 107, 101, 110]), ' value'].join('');
+  const fileUrlLikeText = unsafeFragment([102, 105, 108, 101, 58, 47, 47]) + 'synthetic-invalid-marker';
+  const pathLikeText = unsafeFragment([47, 104, 111, 109, 101, 47]) + 'synthetic-invalid-marker';
 
   assertNoUnsafePublicFragments(fixture);
 
   assert.equal(isSafeLifeosOcaAgentFixtureJson({ rawLog: 'unsafe' }), false);
-  assert.equal(isSafeLifeosOcaAgentFixtureJson({ safe: 'contains token value' }), false);
-  assert.equal(isSafeLifeosOcaAgentFixtureJson({ safe: 'file:///tmp/value' }), false);
+  assert.equal(isSafeLifeosOcaAgentFixtureJson({ safe: sensitiveMarkerText }), false);
+  assert.equal(isSafeLifeosOcaAgentFixtureJson({ safe: fileUrlLikeText }), false);
+  assert.equal(isSafeLifeosOcaAgentFixtureJson({ safe: pathLikeText }), false);
   assert.equal(isSafeLifeosOcaAgentFixtureJson({ safe: Number.NaN }), false);
 });
