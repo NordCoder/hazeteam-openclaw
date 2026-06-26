@@ -1,48 +1,51 @@
 # Current development state
 
-This document is the short worker-facing handoff for continuing `hazeteam-openclaw` development from current `main` under CD11.2.
+This document is the short worker-facing handoff for continuing hazeteam-openclaw development from current main under CD11.2.
 
 ## Active priority
 
-Active contract pack: `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`.
+Active contract pack: hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip.
 
-Current priority: prepare the generic OpenClaw/Telegram adapter evidence for W18E3 final readiness classification.
+Current priority: continue only from the W18E3 final adapter readiness classification. W18E3 classifies the generic OpenClaw/Telegram adapter as adapter-ready-for-real-system-integration under explicit gates.
 
-OCA, LifeOS, domain products, sidecar behavior, deployment runtime, production provider runtime, and product-layer behavior are parked downstream overlays until the adapter-ready-for-real-system-integration gate is actually met.
+This classification unlocks downstream overlay planning and implementation only as future scoped work. OCA, LifeOS, domain products, sidecar behavior, deployment runtime, production provider runtime, production credential loading, production durable backend, and product-layer behavior remain unimplemented until explicit future prompts assign them.
+
+Production-ready is not claimed.
 
 ## Repository role
 
-`hazeteam-openclaw` is the external OpenClaw-native adapter and integration repository over `hazeteam-core`.
+hazeteam-openclaw is the external OpenClaw-native adapter and integration repository over hazeteam-core.
 
-`hazeteam-core` owns transport-neutral semantics and public adapter-facing facades. This repository owns OpenClaw/Telegram adapter reality: normalized external events, topic binding, rendering, delivery, callbacks, runtime and approval bridges, durable adapter state, future real OpenClaw wiring, deployment docs, and future product overlays.
+hazeteam-core owns transport-neutral semantics and public adapter-facing facades. This repository owns OpenClaw/Telegram adapter reality: normalized external events, topic binding, rendering, delivery, callbacks, runtime and approval bridges, durable adapter state, future real OpenClaw wiring, deployment docs, and future product overlays.
 
-The adapter must use `hazeteam-core` public APIs only. If a needed core symbol is not public, treat it as a core API gap. Do not copy core source or import private core paths.
+The adapter must use hazeteam-core public APIs only. If a needed core symbol is not public, treat it as a core API gap. Do not copy core source or import private core paths.
 
 ## Required context before new implementation
 
 Read in this order:
 
 1. The assigned phase prompt and the Hazeteam OpenClaw Workflow Manifest.
-2. `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`, especially the contract docs named by the phase prompt.
-3. `docs/roadmap/w16a6-audit-consolidation.md` for W16 and later adapter-readiness reset work.
-4. `docs/index.md` and `docs/README.md`.
-5. `docs/adapter-readiness.md`, `docs/architecture/runtime-edge-boundaries.md`, `docs/release/release-checklist.md`, and `docs/release/known-limitations.md` for W18 release-closure or runtime-edge work.
-6. The README for the assigned package area.
-7. `docs/architecture/openclaw-telegram-adapter.md`.
-8. `docs/architecture/parallel-execution-and-fanin.md`.
-9. The assigned source and tests.
+2. hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip, especially the contract docs named by the phase prompt.
+3. docs/release/w18e3-final-adapter-readiness-report.md for the final W18 classifier and downstream unlock boundaries.
+4. docs/index.md and docs/README.md.
+5. docs/adapter-readiness.md, docs/architecture/runtime-edge-boundaries.md, docs/release/release-checklist.md, and docs/release/known-limitations.md for release-facing status, preserved limitations, and production non-claims.
+6. docs/roadmap/w16a6-audit-consolidation.md for W16 and later adapter-readiness reset work.
+7. The README for the assigned package area.
+8. docs/architecture/openclaw-telegram-adapter.md.
+9. docs/architecture/parallel-execution-and-fanin.md.
+10. The assigned source and tests.
 
 Repository docs are context. The contract pack and implementation manifest remain authoritative.
 
 ## Current merged historical foundation
 
-The current repository includes W12/W13/W14/W15 foundation work. This is useful implementation history, not an adapter-ready or production-ready claim.
+The current repository includes W12/W13/W14/W15 foundation work. This is useful implementation history, not production-ready certification.
 
 ### W12 public-core integration proof
 
-W12 added public-core integration proof wiring against pinned `hazeteam-core` public APIs with fake adapter edges and a separate integration gate.
+W12 added public-core integration proof wiring against pinned hazeteam-core public APIs with fake adapter edges and a separate integration gate.
 
-W12 does not prove production runtime readiness, provider runtime readiness, real transport readiness, sidecar readiness, or real-system integration readiness.
+W12 does not prove production runtime readiness, provider runtime readiness, real transport readiness, sidecar readiness, or production readiness.
 
 ### W13 OpenClaw plugin runtime shell
 
@@ -65,13 +68,13 @@ The package remains non-production-ready. Default build, check, and test flows r
 
 Provider acknowledgement is not business success. Delivery, callback, and smoke summaries keep provider acknowledgement distinct from business completion.
 
-Callback handling preserves permission-before-token-consume. Topic routing authority is `channelRef+chatRef+threadRef`, not topic title.
+Callback handling preserves permission-before-token-consume. Topic routing authority is channelRef + chatRef + threadRef, not topic title.
 
 ### W15 parked overlay surfaces
 
 W15 added fake/inert OCA wrapper surfaces and a descriptor-only LifeOS domain fixture.
 
-Those surfaces are parked downstream overlays. They may remain in the repository, but they must not be advanced by adapter-readiness workers unless a prompt explicitly assigns docs-only parked-status wording or a narrow compile/test safety fix. They must not be used as evidence that the generic OpenClaw/Telegram adapter is ready for real-system integration.
+Those surfaces are parked downstream overlays. They may remain in the repository, but they must not be advanced by adapter-readiness workers unless a prompt explicitly assigns docs-only parked-status wording or a narrow compile/test safety fix. They must not be used as evidence that the generic OpenClaw/Telegram adapter is ready for production behavior.
 
 ## Current merged CD11.2 adapter evidence
 
@@ -95,28 +98,34 @@ W18A/W18B/W18D/W18F1 evidence is merged:
 - W18A — runtime value boundary: secret handle, credential ref, resolved runtime-only value, public redacted descriptor, and no public secret values.
 - W18B — provider client port boundary: injected provider port, no default provider SDK/client construction, and provider acknowledgement separate from business success.
 - W18D — listener/webhook/polling boundary: interface/descriptors only; no daemon, server, listener startup, webhook server, polling loop, or production runtime.
-- W18F1 — runtime edge docs: runtime-edge vocabulary and limitations without a release classifier claim.
+- W18F1 — runtime edge docs: runtime-edge vocabulary and limitations without a production claim.
 
 These are boundary and documentation evidence. They do not create production runtime behavior, default network behavior, production credential loading, or product-layer behavior.
 
 ### W18 Wave 4 release-closure evidence
 
-W18C and W18E1 evidence is merged:
+W18C, W18E1, W18E2, and W18E3 evidence is merged or created on the W18E3 branch:
 
 - W18C — secret-gated smoke refinement: opt-in only, no default CI network, no default secrets, redacted/status-precise output, and skipped/blocked/ready-to-run states not counted as passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success for the narrow executed edge. Current W18C smoke code still does not call a real provider by default.
 - W18E1 — release-gate static/CI closure: default test/check path remains no-network and secret-free, real smoke remains opt-in, and release docs are guarded against premature production-ready and adapter-ready claims.
-
-W18E2 documents these facts. W18E3 remains the final classifier and must consolidate evidence before any final adapter readiness claim.
+- W18E2 — release docs closure: release-facing docs reflect W17H/W18 evidence and preserved limitations.
+- W18E3 — final adapter readiness report: final evidence table, checks table, real-smoke table, no-leak table, parked overlays, downstream unlock decision, remaining limitations, and adapter-ready-for-real-system-integration classifier under explicit gates.
 
 ## Current classification guardrails
 
-Current state:
+Current state after W18E3:
 
-- not `adapter-ready-for-real-system-integration`;
-- not `adapter-real-integration-ready`;
-- not `production-ready`;
-- W18E3 remains the final classifier;
-- OCA and LifeOS/domain overlays are parked;
+- final W18 classification: adapter-ready-for-real-system-integration under explicit gates;
+- not production-ready;
+- no production deployment readiness claim;
+- no production runtime readiness claim;
+- no production provider runtime readiness claim;
+- no production credential loading readiness claim;
+- no production durable backend readiness claim;
+- no sidecar readiness claim;
+- no OCA runtime readiness claim;
+- no LifeOS/domain product readiness claim;
+- OCA, Codex, LifeOS/domain, sidecar, deployment runtime, production provider runtime, production credential loading, and production durable backend remain future scoped work;
 - skipped, blocked, or ready-to-run real smoke is not a pass;
 - fake/inert OCA and descriptor-only LifeOS/domain surfaces are not adapter-readiness evidence.
 
