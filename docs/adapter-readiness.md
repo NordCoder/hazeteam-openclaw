@@ -1,170 +1,137 @@
 # Adapter Readiness
 
-## 1. Purpose
+Adapter readiness is tracked as a release-facing evidence ladder. The ladder measures whether `hazeteam-openclaw` exposes stable, inert, public adapter contracts that a separate real system can integrate under explicit runtime/operator gates.
 
-This document defines the CD11.2 readiness ladder for the OpenClaw/Telegram adapter track. It is release-facing vocabulary for classifying evidence, limitations, and gates.
+It does not measure full production readiness, durable backend readiness, sidecar readiness, OCA runtime readiness, LifeOS domain readiness, or real provider delivery success.
 
-The active status is adapter-ready-for-real-system-integration under explicit gates after W18E3 final classification. This is not production deployment readiness. OCA, Codex, LifeOS, sidecar, deployment runtime, production provider runtime, production credential loading, production durable backend, and domain/product overlays remain future work unless explicitly implemented and tested by later slices.
+## Current status
 
-## 2. Current repository posture after W18E3 final classification
+After W18E3 and Wave 5 closure, the guarded classification is `adapter-ready-for-real-system-integration-under-explicit-gates`.
 
-After W18E3 supplied the final evidence table and classifier decision in docs/release/w18e3-final-adapter-readiness-report.md, the final W18 classification is adapter-ready-for-real-system-integration under explicit gates.
+The current repository status is classified as adapter readiness for real-system integration under explicit gates.
 
-The current repository still must not claim production-ready, production deployment readiness, production runtime readiness, production provider runtime readiness, production credential loading readiness, production durable backend readiness, sidecar readiness, OCA runtime readiness, or LifeOS/domain product readiness.
+The repository remains not production-ready. Wave 5 did not add default provider network calls, default provider/client construction, default secret loading, default runtime credential loading, default listener runtime, default webhook runtime, default polling runtime, durable production storage, sidecar runtime, OCA runtime execution, or LifeOS/domain product readiness.
 
-W18E3 does not use adapter-real-integration-ready as a separate final classification label. When older docs mention adapter-real-integration-ready, treat it as release-gate vocabulary for the same adapter-ready milestone, not as a production claim.
+The exact readiness boundary is:
 
-Merged evidence now reflected here:
+- Public adapter, transport, runtime-value, smoke-gate, and integration-harness contracts can be imported and inspected safely.
+- Real-system integration attempts are represented only by explicit-gate descriptors and opt-in harness evidence.
+- Runtime/provider execution still requires injected ports, explicit operator acknowledgement, opened runtime/provider gates, safe runtime credential references, and redacted/safe evidence.
+- Default `npm run check` and `npm test` paths remain no-network and no-secret.
+- `test:real-smoke` remains a separate opt-in script and is not part of the default check/test path.
 
-| Evidence label | What is documented | Claim boundary |
-|---|---|---|
-| W17H1 inbound fake E2E | Provider-shaped fixture normalization into safe routing and command-intent behavior through fake/inert paths. | Fake/inert evidence only; not a real-provider pass. |
-| W17H2 outbound fake E2E | Adapter result to render model to delivery request to provider acknowledgement/business-success split through fakes. | Fake/inert evidence only; provider acknowledgement remains separate from business success. |
-| W17H3 callback permission fake E2E | Callback normalization, permission-before-token-consume, replay denial, and safe response through fakes. | Fake/inert evidence only; no real callback provider pass. |
-| W17H4 durable replay fake E2E | Inbound, callback, delivery replay/idempotency, correlation, and safe durable lifecycle behavior through fake stores. | Fake/inert evidence only; no production durable backend. |
-| W17H5 no-leak matrix | Public outputs remain JSON-serializable and free of raw provider data, raw callback data, tokens, secrets, paths, stack traces, provider handles, and SDK handles. | No-leak evidence only; not real provider execution. |
-| W17H6 package-root no-side-effect matrix | Public package roots do not create provider clients, call network, read env secrets, connect durable stores, start listeners, start timers, deliver messages, execute callbacks, or consume tokens by default. | Default inertness evidence only; not production runtime. |
-| W18A runtime value boundary | Secret handles, credential refs, resolved runtime-only values, and public redacted descriptors are distinct; public outputs do not contain secret values. | Boundary evidence only; no production credential loader. |
-| W18B provider client port boundary | Provider execution sits behind injected provider ports; safe roots do not construct default provider SDK clients; provider acknowledgement is distinct from business success. | Port boundary evidence only; no default provider network execution. |
-| W18D listener/webhook/polling boundary | Listener, webhook, and polling shapes are interfaces/descriptors only. | No daemon, webhook server, listener startup, polling loop, or production runtime. |
-| W18F1 runtime edge docs | Runtime-edge vocabulary and limits are documented separately from final release classification. | Docs evidence only. |
-| W18C secret-gated smoke refinement | Real smoke remains opt-in, redacted, status-precise, and excluded from default CI. | Skipped, blocked, and ready-to-run are not passes; current smoke code still does not call a real provider by default. |
-| W18E1 release gate static/CI closure | Default test/check path remains no-network and secret-free; release docs are guarded against premature production-ready and adapter-ready claims before W18E3. | Static/CI gate evidence only; real smoke remains opt-in. |
-| W18E2 release docs closure | Release-facing docs reflect merged evidence and limitations without claiming production readiness. | Docs evidence only. |
-| W18E3 final adapter readiness report | Final evidence table, checks table, real-smoke table, no-leak table, parked overlays, downstream unlock decision, limitations, and final classifier. | Final adapter-ready classifier only; no production-ready claim. |
+## Readiness ladder
 
-## 3. Readiness levels
+| Level | Meaning | Current evidence |
+| --- | --- | --- |
+| L0 | Package skeleton exists. | Passed in earlier waves. |
+| L1 | Public contracts and package topology exist without private core imports. | Passed in S01/S02 and W12–W14 static/unit checks. |
+| L2 | Safe transport/config/delivery/callback/topic/router surfaces exist without provider SDK/runtime side effects. | Passed in W14 fan-in and static checks. |
+| L3 | Runtime-edge boundaries are explicit and inert by default. | Passed through W18 runtime value, provider-client, listener/webhook/polling, and real-smoke gate refinements. |
+| L4 | Real-system integration can be attempted under explicit gates without default network/secret behavior. | Current Wave 5 posture: achieved as adapter-ready-for-real-system-integration under explicit gates. |
+| L5 | Production runtime, provider execution, durable backend, sidecar, OCA runtime, and LifeOS/domain readiness. | Not achieved; future work. |
 
-### 3.1 contract-ready
+## Wave 5 readiness evidence
 
-A component is contract-ready when public contracts exist and can be reviewed safely without real provider execution.
+Wave 5 closes the adapter-readiness evidence for real-system integration attempts under explicit gates. The evidence is public-surface and harness evidence only; it is not production runtime evidence.
 
-Required evidence includes stable public DTOs, refs, result envelopes, descriptors, error/status vocabulary, no-leak boundaries, static boundary tests, unit tests for local validation, and docs that state current support and non-goals. This level does not require real network, provider SDK/client, credential value, deployment process, durable backend, or sidecar.
+| Slice | Evidence | Boundary |
+| --- | --- | --- |
+| W19A | `packages/openclaw-telegram-transport/src/integration-harness/real-integration-attempt-contract.ts` defines the real integration attempt contract. | `runtimeClaim: 'not-production-runtime'`, `readinessClaim: 'explicit-gate-only'`, `noDefaultNetwork: true`, and `noSecretLoading: true`. |
+| W19B | `packages/openclaw-adapter/src/runtime-values/runtime-credential-binding-port.ts` defines the injected runtime credential binding port. | Runtime-only value stays behind the runtime boundary; public projection is redacted/json-safe. |
+| W19C | `tests/smoke/w19c-opt-in-real-smoke-harness-runner.test.mjs` records opt-in smoke harness behavior. | Default skipped/inert, missing port blocked, ready-to-run not pass, provider acknowledgement alone not pass, pass requires provider acknowledgement plus business success. |
+| W19D/W19D3 | `packages/openclaw-telegram-transport/src/index.ts` exposes the integration harness surface and metadata fan-in through the Telegram package root. | Package root remains inert, non-production, no default network, no default client construction, and no listener/webhook/polling runtime by default. |
+| W19E | `packages/openclaw-adapter/src/runtime-values/index.ts` exports W18A runtime-value boundary plus W19B credential binding port. | Runtime credential binding is publicly reachable only as an explicit port/projection boundary; runtime-only values are not serialized. |
+| W19F2 | `tests/static/w19f2-wave5-public-surface-regression-guard.test.mjs` guards Wave 5 public-surface invariants. | Static regression guard only; not runtime validation and not real-system validation. |
 
-This level is not enough for real-system integration.
+## Active boundary rules
 
-### 3.2 fake-e2e-ready
+1. **Explicit gates only.** Real-system integration attempts require explicit operator acknowledgement, an opened network/provider gate, an injected provider port, and safe runtime credential references.
+2. **No default network.** Package roots and default check/test paths must not create provider clients, start listeners, open polling loops, call provider SDKs, or call network primitives.
+3. **No default secrets.** Default package imports and default tests must not read provider secrets or runtime credential material.
+4. **Runtime-only credentials.** Runtime credential values are represented by runtime-only wrappers and must not appear in public JSON.
+5. **Redacted public projection.** Public credential binding projections may include safe refs, redacted descriptors, issue codes, and safe diagnostics only.
+6. **Provider acknowledgement is not business success.** A provider acknowledgement alone does not make an integration attempt pass.
+7. **Ready-to-attempt is not pass.** `ready-to-attempt` and `ready-to-run` statuses indicate preconditions, not successful integration.
+8. **W19F2 is static-only.** W19F2 guards public-surface and script invariants; it does not validate live provider behavior.
 
-A component is fake-e2e-ready when deterministic fake flows prove its public package-root behavior without secrets or network.
+## Real integration attempt semantics
 
-Required evidence includes package-root import inertness, fake or injected ports through public roots, fake inbound E2E, fake outbound E2E, fake callback E2E, durable fake E2E, readiness aggregation fake E2E, no-leak assertions, provider acknowledgement/business success split, and default CI/check discipline.
+The real integration attempt contract separates readiness, provider acknowledgement, and business outcome.
 
-W17H1-W17H6 document this class of fake/inert evidence for the acceptance concerns they own. This is still not a real-provider pass.
+A successful real-system integration attempt requires all of the following:
 
-### 3.3 secret-gated-ready
+- provider port available through injection,
+- network/provider gate open,
+- operator acknowledgement present,
+- runtime credential status safe for the attempt,
+- safe operation class,
+- redacted/safe attempt evidence,
+- provider acknowledgement supplied, and
+- business success supplied.
 
-A component is secret-gated-ready when a narrow real edge can be attempted only under explicit operator-controlled gates.
+The following are not passes:
 
-Required evidence includes opt-in execution, default CI exclusion, no direct library package secret reads, injected runtime-value handling, redacted public output, status-precise smoke reports, skipped/blocked/ready-to-run states not counted as provider passes, and a passed smoke only when a supplied redacted attempt proves provider acknowledgement and business success for the executed edge.
+- skipped/default state,
+- blocked states,
+- missing provider port,
+- missing operator acknowledgement,
+- closed network gate,
+- missing or unsafe credential reference,
+- unsafe operation class,
+- ready-to-attempt without a supplied attempt result,
+- provider acknowledgement without business success,
+- unsafe or malformed supplied evidence.
 
-W18A, W18B, W18C, W18D, W18F1, and W18E1 document runtime-value, provider-port, listener/webhook/polling-interface, secret-gated smoke, runtime-edge docs, and release-gate static/CI evidence.
+## Runtime credential boundary
 
-This level can support adapter-real integration planning, but it is not production readiness.
+Runtime credential binding exists to connect safe public references to runtime-only values through an injected port. It does not load secrets by default.
 
-### 3.4 adapter-ready-for-real-system-integration
+Public documentation may mention only safe references, redacted descriptors, binding statuses, safe issue codes, safe diagnostics, and public projection json-safety.
 
-The adapter is adapter-ready-for-real-system-integration when the repository is ready to be wired into a real host/system under explicit gates while still avoiding production-readiness overclaims.
+Public documentation must not include unsafe runtime/provider material or raw operational artifacts.
 
-Required evidence:
+## Default check/test posture
 
-1. Plugin runtime profile/readiness registry is public and tested.
-2. OpenClaw adapter fake E2E covers inbound, outbound, callback, rendering, delivery, storage, approval boundaries, and core public facade integration.
-3. Telegram transport fake E2E covers safe event normalization, routing tuple authority, delivery acknowledgement normalization, callback normalization, and no-leak output.
-4. Durable adapter-state contracts and fakes cover topic bindings, callback tokens, delivery attempts, idempotency/replay, correlation, and readiness snapshots.
-5. Runtime value boundary distinguishes secret handle, credential ref, resolved secret value, runtime-only value, and public redacted descriptor.
-6. Secret-gated smoke is opt-in, redacted, status-precise, and excluded from default CI.
-7. Default npm run check remains no-network and secret-free.
-8. Static tests protect real boundaries without freezing temporary topology.
-9. Documentation and release notes state the exact real behavior proven and remaining limitations.
-10. OCA, LifeOS, sidecar, deployment runtime, and production durable backend remain future unless explicitly implemented and tested by assigned later slices.
-11. W18E3 supplies the final evidence table and classifier decision.
+Root scripts preserve the safe default posture:
 
-After W18E3 final classification, this gate is the current adapter-readiness classification. This gate does not require a production daemon, webhook server, polling loop, sidecar, production durable backend, or product-layer behavior.
+- `npm run check` runs build, typecheck, and default tests.
+- `npm test` runs static, unit, and acceptance tests.
+- `test:real-smoke` is a separate explicit script.
+- Default check/test paths must remain no-network and no-secret.
 
-### 3.5 adapter-real-integration-ready
+W19F2 is in the default static/check path because `test:static` is part of `npm test`, and `npm test` is part of `npm run check`. This makes W19F2 a default static guard, not a default real-smoke execution path.
 
-Adapter-real-integration-ready is release-gate vocabulary for the same milestone as adapter-ready-for-real-system-integration. W18E3 uses adapter-ready-for-real-system-integration as the final classification label.
+## Negative claims
 
-### 3.6 production-ready
+The repository is not production-ready.
 
-A component is production-ready only after production runtime behavior and operations have been implemented, tested, and documented.
+The repository is not deployment-ready.
 
-Required evidence would include at least one production transport mode, production credential loading/resolution, durable backend, idempotency/replay/recovery, health/readiness endpoint or diagnostic surface, operator documentation, security documentation, known limitations, release notes, appropriate real smoke passes, and security/no-leak gates.
+The repository does not construct a real Telegram or OpenClaw provider client by default.
 
-The W16-W18 adapter-readiness track must not claim production readiness unless a later prompt explicitly reassigns that target and supplies the required evidence.
+The repository does not start real webhook, polling, listener, sidecar, durable backend, OCA runtime, or LifeOS/domain runtime behavior by default.
 
-## 4. Evidence categories for release review
+The repository does not load real secrets or credentials by default.
 
-| Evidence category | Current evidence reflected | Purpose | Boundary |
-|---|---|---|---|
-| Package-root no-side-effect matrix | W17H6 merged. | Proves public entrypoints can be imported without network, secret reads, client construction, listener startup, store connection, or process supervision. | Does not prove production runtime. |
-| Fake E2E matrix | W17H1-W17H4 merged. | Proves inbound, outbound, callback, durable replay/idempotency, and related fake paths through public package roots using deterministic fakes. | Not a real-provider pass. |
-| No-leak matrix | W17H5 merged. | Proves public outputs, errors, docs examples, smoke output, readiness output, delivery descriptors, callback results, and serialized summaries do not expose forbidden raw or secret material. | Not provider execution. |
-| Runtime value boundary | W18A merged. | Distinguishes secret handles, credential refs, resolved runtime-only values, and public redacted descriptors. | No production credential loader. |
-| Provider client port boundary | W18B merged. | Keeps provider execution behind injected ports and separates provider acknowledgement from business success. | No default SDK/client construction or provider network. |
-| Listener/webhook/polling interface boundary | W18D merged. | Defines descriptors and interfaces for later runtime edges. | No daemon/server/listener/polling loop. |
-| Runtime-edge documentation | W18F1 merged. | Keeps runtime-edge vocabulary, limitations, and parked overlays visible. | Not source behavior. |
-| Opt-in redacted smoke | W18C merged. | Proves the real edge is disabled by default, explicit when enabled, redacted in output, precise in status, and honest about skipped/blocked/ready-to-run cases. | Only passed can count, and current smoke code does not call a real provider by default. |
-| Release gate static/CI closure | W18E1 merged. | Protects no-network/no-secret default checks and premature claim guardrails. | Does not make production-ready claims. |
-| Release docs closure | W18E2 merged. | Reflects merged evidence and limitations in release-facing docs. | Does not implement behavior. |
-| Final classifier | W18E3 report created. | Provides final evidence table and classifier decision. | Does not claim production readiness. |
+The repository does not treat skipped, blocked, ready-to-attempt, or ready-to-run statuses as pass.
 
-## 5. Real smoke status rules
+The repository does not treat external provider acknowledgement as business success unless explicit business-success evidence is supplied.
 
-Real smoke is not a default check and must never require secrets or network during npm run check.
+The repository does not export runtime credentials as public values.
 
-Valid release-facing smoke status vocabulary includes skipped, blocked-missing-profile, blocked-missing-secret, blocked-missing-port, blocked-network-gate-closed, ready-to-run, passed, and failed-safe.
+The repository does not use parked OCA/LifeOS/domain overlays as adapter-readiness proof.
 
-Only passed can be counted as a provider-edge pass, and only for the narrow edge that was executed. Skipped, blocked, and ready-to-run are not passes. A passed smoke requires supplied redacted execution evidence with provider acknowledgement and business success for the narrow executed edge.
+W19F2 does not validate live provider behavior, real-system behavior, production behavior, or runtime execution. It only guards static public-surface and script invariants.
 
-Smoke output must not expose resolved tokens, credentials, endpoints, raw provider payloads, raw callback payloads, provider clients, SDK handles, stack traces, raw logs, raw diffs, command output, or filesystem paths.
+## Parked overlays
 
-## 6. Default check discipline
+OCA wrapper, LifeOS/domain, plugin-runtime, durable backend, and copied core readiness remain parked or below the adapter-readiness line unless separately promoted by future scoped work.
 
-Default repository checks must remain deterministic, no-network, and secret-free.
+They are not used as proof for the current adapter readiness classification.
 
-Default checks may include static, unit, acceptance, fake E2E, and no-leak tests. They must not require real Telegram/OpenClaw credentials, call real providers, read deployment secrets from library package roots, construct production provider clients by default, or start listener, webhook, polling, daemon, sidecar, or production store processes.
+## Release checklist link
 
-Gated real smoke may be run separately and reported separately. A blocked, skipped, or ready-to-run real smoke is safe posture but not a pass.
+Release gating for this status is recorded in `docs/release/release-checklist.md`.
 
-## 7. Parked overlays are not readiness evidence
-
-OCA, Codex, LifeOS, sidecar, deployment runtime, production durable backend, and domain/product overlays are parked downstream overlays.
-
-The following are not evidence for adapter readiness:
-
-- fake/inert OCA wrapper behavior;
-- descriptor-only LifeOS/domain package surfaces;
-- product-specific agent definitions;
-- product-specific command catalogs;
-- domain-specific policy expansion;
-- sidecar or deployment plans without implemented and tested adapter evidence.
-
-These overlays may be documented as parked. They must not be used to satisfy plugin runtime composition, Telegram transport E2E, adapter-wide readiness aggregation, durable adapter-state, no-leak, real-smoke, or production gates.
-
-## 8. Negative readiness claims
-
-The adapter cannot be classified as ready for real-system integration if any of the following are true:
-
-- fake E2E is missing for inbound, outbound, or callback paths;
-- durable state fakes are missing for adapter-owned lifecycle contracts;
-- package-root import can call network, read secrets, construct clients, start listeners, or connect stores;
-- public outputs can include raw provider payloads, raw callback payloads, raw paths, raw logs, raw diffs, tokens, credentials, stack traces, endpoints, chat IDs, thread IDs, provider clients, SDK handles, or runtime-only values;
-- secret-gated smoke reports skipped, blocked, or ready-to-run as passed;
-- docs claim production listener, webhook, polling, sidecar, deployment runtime, durable backend, OCA execution, or LifeOS behavior that current source and tests do not prove;
-- OCA or LifeOS/domain overlays are used as adapter readiness proof;
-- the final W18E3 evidence table and classifier decision are absent or superseded.
-
-## 9. Release classifier rule
-
-W18E3 supplied the final classifier for the W18 adapter-readiness closure. The allowed final release closure vocabulary is:
-
-- not-ready;
-- contract-ready;
-- fake-e2e-ready;
-- secret-gated-ready;
-- adapter-ready-for-real-system-integration.
-
-Production-ready is not an allowed W18E3 final classification. Adapter-real-integration-ready is not used as a separate W18E3 final classification label.
-
-The final classification is backed by docs/release/w18e3-final-adapter-readiness-report.md and treats skipped, blocked, and ready-to-run real smoke as not passed.
+Known limitations for this status are recorded in `docs/release/known-limitations.md`.

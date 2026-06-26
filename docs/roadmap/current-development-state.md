@@ -6,11 +6,13 @@ This document is the short worker-facing handoff for continuing hazeteam-opencla
 
 Active contract pack: hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip.
 
-Current priority: continue only from the W18E3 final adapter readiness classification. W18E3 classifies the generic OpenClaw/Telegram adapter as adapter-ready-for-real-system-integration under explicit gates.
+Current priority: continue only from the W19G Wave 5 documentation closure state. W18E3 classified the generic OpenClaw/Telegram adapter as adapter-ready-for-real-system-integration under explicit gates, and Wave 5 added public real-integration harness and runtime credential binding surfaces without changing that classification.
+
+The current repository posture is adapter-ready-for-real-system-integration under explicit gates and not production-ready.
+
+Real-system integration attempts remain explicit-gate-only. Default check and test paths remain no-network and no-secret. Real smoke remains separate, opt-in, and secret-gated.
 
 This classification unlocks downstream overlay planning and implementation only as future scoped work. OCA, LifeOS, domain products, sidecar behavior, deployment runtime, production provider runtime, production credential loading, production durable backend, and product-layer behavior remain unimplemented until explicit future prompts assign them.
-
-Production-ready is not claimed.
 
 ## Repository role
 
@@ -27,13 +29,14 @@ Read in this order:
 1. The assigned phase prompt and the Hazeteam OpenClaw Workflow Manifest.
 2. hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip, especially the contract docs named by the phase prompt.
 3. docs/release/w18e3-final-adapter-readiness-report.md for the final W18 classifier and downstream unlock boundaries.
-4. docs/index.md and docs/README.md.
-5. docs/adapter-readiness.md, docs/architecture/runtime-edge-boundaries.md, docs/release/release-checklist.md, and docs/release/known-limitations.md for release-facing status, preserved limitations, and production non-claims.
-6. docs/roadmap/w16a6-audit-consolidation.md for W16 and later adapter-readiness reset work.
-7. The README for the assigned package area.
-8. docs/architecture/openclaw-telegram-adapter.md.
-9. docs/architecture/parallel-execution-and-fanin.md.
-10. The assigned source and tests.
+4. docs/release/w19g-wave5-documentation-closure-report.md, when present, for the Wave 5 documentation closure summary.
+5. docs/index.md and docs/README.md.
+6. docs/adapter-readiness.md, docs/architecture/runtime-edge-boundaries.md, docs/release/release-checklist.md, and docs/release/known-limitations.md for release-facing status, preserved limitations, and production non-claims.
+7. docs/roadmap/w16a6-audit-consolidation.md for W16 and later adapter-readiness reset work.
+8. The README for the assigned package area.
+9. docs/architecture/openclaw-telegram-adapter.md.
+10. docs/architecture/parallel-execution-and-fanin.md.
+11. The assigned source and tests.
 
 Repository docs are context. The contract pack and implementation manifest remain authoritative.
 
@@ -91,32 +94,47 @@ W17H1-W17H6 acceptance evidence is merged:
 
 This is fake/inert evidence only. It proves deterministic safe paths, no-leak behavior, replay/idempotency behavior, and package-root inertness without secrets or network. It does not prove a real-provider pass, production provider runtime, production listener/webhook/polling runtime, production durable backend, deployment runtime, OCA execution, LifeOS behavior, or production readiness.
 
-### W18 Wave 3 runtime-edge preparation evidence
+### W18 runtime-edge and release-closure evidence
 
-W18A/W18B/W18D/W18F1 evidence is merged:
+W18A/W18B/W18C/W18D/W18F1/W18E1/W18E2/W18E3 evidence is merged:
 
 - W18A — runtime value boundary: secret handle, credential ref, resolved runtime-only value, public redacted descriptor, and no public secret values.
 - W18B — provider client port boundary: injected provider port, no default provider SDK/client construction, and provider acknowledgement separate from business success.
+- W18C — secret-gated smoke refinement: opt-in only, no default CI network, no default secrets, redacted/status-precise output, and skipped/blocked/ready-to-run states not counted as passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success for the narrow executed edge.
 - W18D — listener/webhook/polling boundary: interface/descriptors only; no daemon, server, listener startup, webhook server, polling loop, or production runtime.
 - W18F1 — runtime edge docs: runtime-edge vocabulary and limitations without a production claim.
-
-These are boundary and documentation evidence. They do not create production runtime behavior, default network behavior, production credential loading, or product-layer behavior.
-
-### W18 Wave 4 release-closure evidence
-
-W18C, W18E1, W18E2, and W18E3 evidence is merged or created on the W18E3 branch:
-
-- W18C — secret-gated smoke refinement: opt-in only, no default CI network, no default secrets, redacted/status-precise output, and skipped/blocked/ready-to-run states not counted as passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success for the narrow executed edge. Current W18C smoke code still does not call a real provider by default.
 - W18E1 — release-gate static/CI closure: default test/check path remains no-network and secret-free, real smoke remains opt-in, and release docs are guarded against premature production-ready and adapter-ready claims.
 - W18E2 — release docs closure: release-facing docs reflect W17H/W18 evidence and preserved limitations.
 - W18E3 — final adapter readiness report: final evidence table, checks table, real-smoke table, no-leak table, parked overlays, downstream unlock decision, remaining limitations, and adapter-ready-for-real-system-integration classifier under explicit gates.
 
+These are boundary, static, fake, smoke-classification, and documentation evidence. They do not create production runtime behavior, default network behavior, production credential loading, or product-layer behavior.
+
+### W19 Wave 5 real integration harness evidence
+
+W19A/W19B/W19C/W19D/W19E/W19D3/W19F2 evidence is merged:
+
+- W19A — real integration attempt contract is present in the Telegram integration harness. It models explicit operator acknowledgement, provider port availability, runtime credential status, network gate state, operation class, ready-to-attempt status, supplied redacted attempt evidence, provider acknowledgement, and business success. It states that ready-to-attempt is not pass and that provider acknowledgement alone does not imply business success.
+- W19B — runtime credential binding port is present in the adapter runtime-values area. It binds runtime credentials only through an injected port, keeps runtime-only values internal, and provides redacted JSON-safe public projections.
+- W19C — opt-in real smoke harness runner evidence is present as a smoke test. It exercises the gated harness through fakes and confirms skipped, blocked, ready-to-run, acknowledgement-only, passed, and failed-safe unsafe-output cases. This is not default real provider execution.
+- W19D — Telegram integration harness public export is present. The Telegram package root exposes the integration-harness public surface and W19A symbols while keeping productionReady false, defaultNetworkBehavior none, runtimeClientConstructedByDefault false, listenerWebhookPollingRuntime false, effects none, and realSmokeDefault skipped-or-blocked.
+- W19E — runtime credential binding public export is present. The runtime-values barrel exports both the W18A runtime-value boundary and the W19B runtime credential binding port.
+- W19D3 — Telegram integration harness metadata fan-in is present. Package-root metadata and related unit assertions reflect the Wave 5 integration harness public surface and non-production descriptor fields.
+- W19F2 — Wave 5 static public-surface regression guard is present under tests/static. It protects the Wave 5 package-root and runtime-values public-surface invariants, default script separation from real smoke, and runtime-overreach checks for the allowlisted Wave 5 source files. It is a static regression guard, not runtime validation and not a real-system pass.
+
+Wave 5 does not change the repository classification beyond adapter-ready-for-real-system-integration under explicit gates. It makes the real integration attempt contract and runtime credential binding surfaces publicly reachable while preserving no default provider network calls, no default provider/client construction, no default secret loading, no production runtime claim, and no production readiness claim.
+
 ## Current classification guardrails
 
-Current state after W18E3:
+Current state after W19G documentation closure:
 
-- final W18 classification: adapter-ready-for-real-system-integration under explicit gates;
+- classification: adapter-ready-for-real-system-integration under explicit gates;
 - not production-ready;
+- real-system integration attempts require explicit operator acknowledgement, an open network gate, injected provider/runtime ports, safe operation class, safe refs, and supplied redacted attempt evidence before a pass can be claimed;
+- ready-to-attempt is not pass;
+- provider acknowledgement alone is not business success;
+- default check/test path remains no-network and no-secret;
+- test:real-smoke remains explicit, separate, opt-in, and secret-gated;
+- W19F2 is a static public-surface regression guard only;
 - no production deployment readiness claim;
 - no production runtime readiness claim;
 - no production provider runtime readiness claim;
