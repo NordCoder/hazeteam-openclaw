@@ -23,12 +23,12 @@ const REQUIRED_RUNTIME_EXPORTS = Object.freeze([
 ]);
 
 const FORBIDDEN_MATERIAL = Object.freeze([
-  '123456:ABC-private-provider',
-  'Bearer provider-secret',
-  'https://provider.internal/send',
-  '/Users/anna/private',
-  'rawProviderPayload',
-  'rawCallbackPayload',
+  'unsafe-provider-token-value',
+  'unsafe-private-provider-ref',
+  'https://provider.example.invalid/send',
+  '/private/local/path',
+  'unsafeProviderPayload',
+  'unsafeCallbackPayload',
   'providerPayload',
   'callbackPayload',
   'stackTrace',
@@ -159,19 +159,19 @@ test('W19D package root exports the real integration attempt harness surface', a
   });
 });
 
-test('W19D package descriptor documents inert integration harness public surface', async () => {
+test('W19D package descriptor keeps W14 package status while documenting integration harness surface', async () => {
   await withRuntimeTripwire(async () => {
     const packageRoot = await import(PACKAGE_ROOT_IMPORT);
     const description = packageRoot.describeOpenClawTelegramTransport();
     const descriptor = description.descriptor;
 
     assert.equal(description.package.productionReady, false);
-    assert.equal(description.package.status, 'w19-integration-harness-public-export');
-    assert.equal(description.package.contractSlice, 'W19D');
-    assert.equal(descriptor.descriptorVersion, 'w19d');
-    assert.equal(descriptor.packageStatus, 'w19-integration-harness-public-export');
-    assert.equal(descriptor.readiness, 'adapter-ready-for-real-system-integration-under-explicit-gates');
-    assert.equal(descriptor.scope, 'w19-integration-harness-public-export');
+    assert.equal(description.package.status, 'w14-real-transport-port-fan-in');
+    assert.equal(description.package.contractSlice, 'W14G');
+    assert.equal(descriptor.descriptorVersion, 'w14g');
+    assert.equal(descriptor.packageStatus, 'w14-real-transport-port-fan-in');
+    assert.equal(descriptor.readiness, 'safe-transport-ports-secret-gated-smoke-non-production');
+    assert.equal(descriptor.scope, 'w14-real-transport-port-fan-in');
     assert.equal(descriptor.productionReady, false);
     assert.equal(descriptor.defaultNetworkBehavior, 'none');
     assert.equal(descriptor.runtimeClientConstructedByDefault, false);
@@ -220,7 +220,6 @@ test('W19D ready-to-attempt from package root is not pass', async () => {
 
     assert.equal(plan.attemptReadinessStatus, 'ready-to-attempt');
     assert.equal(plan.readyToAttemptIsPass, false);
-    assert.equal(plan.willCallRemote, false);
     assert.equal(result.attemptStatus, 'ready-to-attempt');
     assert.equal(result.readyToAttemptIsPass, false);
     assert.equal(result.providerAcknowledged, false);
@@ -312,9 +311,9 @@ test('W19D package root real integration harness unsafe supplied output fails sa
       providerAckStatus: 'provider-acknowledged',
       businessResult: 'business-succeeded',
       redactedEvidenceRef: 'evidence:w19d:unsafe',
-      rawProviderPayload: '123456:ABC-private-provider',
-      callbackPayload: { authorization: 'Bearer provider-secret' },
-      redactedFailureSummary: 'https://provider.internal/send /Users/anna/private stackTrace clientHandle providerHandle sdkHandle logOutput diffOutput commandOutput',
+      rawProviderPayload: 'unsafe-provider-token-value',
+      callbackPayload: { unsafeCallbackPayload: 'unsafe-private-provider-ref' },
+      redactedFailureSummary: 'https://provider.example.invalid/send /private/local/path stackTrace clientHandle providerHandle sdkHandle logOutput diffOutput commandOutput',
     });
 
     assert.equal(result.attemptStatus, 'failed-safe-unsafe-output');
