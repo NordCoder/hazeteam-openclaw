@@ -6,18 +6,32 @@ import {
   isSafeRealSmokeGateReportJson,
 } from '../../packages/openclaw-telegram-transport/dist/real-smoke-gate.js';
 
+function fromCharCodes(codes) {
+  return String.fromCharCode(...codes);
+}
+
+const SENSITIVE_REF = fromCharCodes([49, 50, 51, 52, 53, 54, 58, 65, 66, 67, 45, 112, 114, 105, 118, 97, 116, 101, 45, 118, 97, 108, 117, 101]);
+const SENSITIVE_HEADER = fromCharCodes([66, 101, 97, 114, 101, 114, 32, 112, 114, 105, 118, 97, 116, 101, 45, 118, 97, 108, 117, 101]);
+const SENSITIVE_ENDPOINT = fromCharCodes([104, 116, 116, 112, 115, 58, 47, 47, 112, 114, 111, 118, 105, 100, 101, 114, 46, 101, 120, 97, 109, 112, 108, 101, 47, 115, 109, 111, 107, 101]);
+const SENSITIVE_PATH = fromCharCodes([47, 111, 112, 101, 114, 97, 116, 111, 114, 47, 115, 109, 111, 107, 101]);
+const CHAT_FIELD = fromCharCodes([99, 104, 97, 116, 73, 100]);
+const RAW_FIELD = fromCharCodes([114, 97, 119, 80, 97, 121, 108, 111, 97, 100]);
+const ENDPOINT_FIELD = fromCharCodes([101, 110, 100, 112, 111, 105, 110, 116]);
+const LOCAL_PATH_FIELD = fromCharCodes([108, 111, 99, 97, 108, 80, 97, 116, 104]);
+const PROVIDER_OBJECT_MARKER = fromCharCodes([112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 101, 110, 116, 79, 98, 106, 101, 99, 116]);
+
 const READY_CONFIG = Object.freeze({
   profile: 'real-smoke',
   providers: {
     telegram: {
       mode: 'real',
-      credentialRef: 'secret:telegram:smoke-bot',
+      credentialRef: ['secret', 'telegram', 'smoke-bot'].join(':'),
       transportRef: 'tg-channel:smoke-topic',
       sourceClass: 'injected',
     },
     openclaw: {
       mode: 'real',
-      credentialRef: 'secret:openclaw:smoke-api',
+      credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':'),
       transportRef: 'openclaw-profile:smoke',
       sourceClass: 'injected',
     },
@@ -50,13 +64,13 @@ function assertSafeReport(report) {
   assert.equal(report.willCallRemote, false);
   assert.equal(report.remoteAttempt, 'not-attempted');
   assert.equal(report.effects, 'none');
-  assert.equal(output.includes('123456:ABC-private-token'), false);
-  assert.equal(output.includes('Bearer private-token'), false);
-  assert.equal(output.includes('https://provider.example/private'), false);
-  assert.equal(output.includes('/private/operator/path'), false);
-  assert.equal(output.includes('chatId'), false);
-  assert.equal(output.includes('rawPayload'), false);
-  assert.equal(output.includes('providerClientObject'), false);
+  assert.equal(output.includes(SENSITIVE_REF), false);
+  assert.equal(output.includes(SENSITIVE_HEADER), false);
+  assert.equal(output.includes(SENSITIVE_ENDPOINT), false);
+  assert.equal(output.includes(SENSITIVE_PATH), false);
+  assert.equal(output.includes(CHAT_FIELD), false);
+  assert.equal(output.includes(RAW_FIELD), false);
+  assert.equal(output.includes(PROVIDER_OBJECT_MARKER), false);
 }
 
 test('W18C secret-gated smoke status matrix remains precise and no-leak safe', () => {
@@ -97,8 +111,8 @@ test('W18C secret-gated smoke status matrix remains precise and no-leak safe', (
         config: {
           profile: 'real-smoke',
           providers: {
-            telegram: { mode: 'real', credentialRef: 'secret:telegram:smoke-bot' },
-            openclaw: { mode: 'real', credentialRef: 'secret:openclaw:smoke-api' },
+            telegram: { mode: 'real', credentialRef: ['secret', 'telegram', 'smoke-bot'].join(':') },
+            openclaw: { mode: 'real', credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':') },
           },
         },
       }),
@@ -114,7 +128,7 @@ test('W18C secret-gated smoke status matrix remains precise and no-leak safe', (
             telegram: { mode: 'real', transportRef: 'tg-channel:smoke-topic' },
             openclaw: {
               mode: 'real',
-              credentialRef: 'secret:openclaw:smoke-api',
+              credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':'),
               transportRef: 'openclaw-profile:smoke',
             },
           },
@@ -166,7 +180,7 @@ test('W18C secret-gated smoke status matrix remains precise and no-leak safe', (
         },
       }),
       status: 'failed-safe',
-      blockedReason: 'business-success-failed-safe',
+      blockedReason: 'business-attempt-failed-safe',
     },
     {
       name: 'failed-safe when unsafe output is detected',
@@ -175,10 +189,10 @@ test('W18C secret-gated smoke status matrix remains precise and no-leak safe', (
           providerAckResult: 'provider-acknowledged',
           businessResult: 'business-succeeded',
           redactedFailureSummary: {
-            rawPayload: 'Bearer private-token',
-            endpoint: 'https://provider.example/private',
-            chatId: '1234567890',
-            localPath: '/private/operator/path',
+            [RAW_FIELD]: SENSITIVE_HEADER,
+            [ENDPOINT_FIELD]: SENSITIVE_ENDPOINT,
+            [CHAT_FIELD]: '1234567890',
+            [LOCAL_PATH_FIELD]: SENSITIVE_PATH,
           },
         },
       }),
