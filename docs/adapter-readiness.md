@@ -6,7 +6,7 @@ It does not measure full production readiness, durable backend readiness, sideca
 
 ## Current status
 
-Status: `adapter-ready-for-real-system-integration-under-explicit-gates`.
+After W18E3 and Wave 5 closure, the guarded classification is `adapter-ready-for-real-system-integration-under-explicit-gates`.
 
 The current repository status is classified as adapter readiness for real-system integration under explicit gates.
 
@@ -87,28 +87,9 @@ The following are not passes:
 
 Runtime credential binding exists to connect safe public references to runtime-only values through an injected port. It does not load secrets by default.
 
-Public documentation may mention:
+Public documentation may mention only safe references, redacted descriptors, binding statuses, safe issue codes, safe diagnostics, and public projection json-safety.
 
-- credential refs,
-- secret handle refs,
-- redacted descriptors,
-- binding statuses,
-- safe issue codes,
-- safe diagnostics,
-- public projection json-safety.
-
-Public documentation must not include:
-
-- raw secrets,
-- tokens,
-- provider handles,
-- client handles,
-- runtime-only values,
-- endpoints,
-- local paths,
-- stack traces,
-- raw provider payloads,
-- raw command logs.
+Public documentation must not include unsafe runtime/provider material or raw operational artifacts.
 
 ## Default check/test posture
 
@@ -141,7 +122,7 @@ The repository does not export runtime credentials as public values.
 
 The repository does not use parked OCA/LifeOS/domain overlays as adapter-readiness proof.
 
-W19F2 does not validate live provider behavior, real-system behavior, production behavior, deployment behavior, or runtime execution. It only guards static public-surface and script invariants.
+W19F2 does not validate live provider behavior, real-system behavior, production behavior, or runtime execution. It only guards static public-surface and script invariants.
 
 ## Parked overlays
 
