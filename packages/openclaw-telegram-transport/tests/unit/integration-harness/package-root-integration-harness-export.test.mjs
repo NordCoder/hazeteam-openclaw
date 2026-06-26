@@ -22,6 +22,16 @@ const REQUIRED_RUNTIME_EXPORTS = Object.freeze([
   'isSafeRealIntegrationAttemptJson',
 ]);
 
+const W14_DESCRIPTOR_SURFACES = Object.freeze([
+  'config',
+  'secrets',
+  'channel-event-source',
+  'delivery-port',
+  'callback-handler-port',
+  'topic-command-router',
+  'real-smoke-gate',
+]);
+
 const FORBIDDEN_MATERIAL = Object.freeze([
   'unsafe-provider-token-value',
   'unsafe-private-provider-ref',
@@ -159,7 +169,7 @@ test('W19D package root exports the real integration attempt harness surface', a
   });
 });
 
-test('W19D package descriptor keeps W14 package status while documenting integration harness surface', async () => {
+test('W19D package descriptor keeps W14 package status and surface list', async () => {
   await withRuntimeTripwire(async () => {
     const packageRoot = await import(PACKAGE_ROOT_IMPORT);
     const description = packageRoot.describeOpenClawTelegramTransport();
@@ -178,8 +188,8 @@ test('W19D package descriptor keeps W14 package status while documenting integra
     assert.equal(descriptor.listenerWebhookPollingRuntime, false);
     assert.equal(descriptor.effects, 'none');
     assert.equal(descriptor.realSmokeDefault, 'skipped-or-blocked');
-    assert.equal(descriptor.publicSurfaces.includes('integration-harness'), true);
-    assert.equal(packageRoot.OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES.includes('integration-harness'), true);
+    assert.deepEqual(descriptor.publicSurfaces, W14_DESCRIPTOR_SURFACES);
+    assert.deepEqual(packageRoot.OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES, W14_DESCRIPTOR_SURFACES);
 
     assertPublicJsonNoLeak(description, packageRoot.isSafeRealIntegrationAttemptJson);
   });
