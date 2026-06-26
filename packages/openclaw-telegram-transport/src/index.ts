@@ -9,8 +9,7 @@ export type OpenClawTelegramTransportPublicSurface =
   | 'delivery-port'
   | 'callback-handler-port'
   | 'topic-command-router'
-  | 'real-smoke-gate'
-  | 'integration-harness';
+  | 'real-smoke-gate';
 
 export interface OpenClawTelegramTransportPackageMetadata {
   readonly name: '@hazeteam/openclaw-telegram-transport';
@@ -50,7 +49,6 @@ export const OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES = Object.freeze([
   'callback-handler-port',
   'topic-command-router',
   'real-smoke-gate',
-  'integration-harness',
 ] as const satisfies readonly OpenClawTelegramTransportPublicSurface[]);
 
 export const OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE = Object.freeze({
