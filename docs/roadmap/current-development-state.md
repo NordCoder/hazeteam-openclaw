@@ -6,7 +6,7 @@ This document is the short worker-facing handoff for continuing `hazeteam-opencl
 
 Active contract pack: `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`.
 
-Current priority: finish the generic OpenClaw/Telegram adapter until it is ready for real-system integration.
+Current priority: prepare the generic OpenClaw/Telegram adapter evidence for W18E3 final readiness classification.
 
 OCA, LifeOS, domain products, sidecar behavior, deployment runtime, production provider runtime, and product-layer behavior are parked downstream overlays until the adapter-ready-for-real-system-integration gate is actually met.
 
@@ -26,10 +26,11 @@ Read in this order:
 2. `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`, especially the contract docs named by the phase prompt.
 3. `docs/roadmap/w16a6-audit-consolidation.md` for W16 and later adapter-readiness reset work.
 4. `docs/index.md` and `docs/README.md`.
-5. The README for the assigned package area.
-6. `docs/architecture/openclaw-telegram-adapter.md`.
-7. `docs/architecture/parallel-execution-and-fanin.md`.
-8. The assigned source and tests.
+5. `docs/adapter-readiness.md`, `docs/architecture/runtime-edge-boundaries.md`, `docs/release/release-checklist.md`, and `docs/release/known-limitations.md` for W18 release-closure or runtime-edge work.
+6. The README for the assigned package area.
+7. `docs/architecture/openclaw-telegram-adapter.md`.
+8. `docs/architecture/parallel-execution-and-fanin.md`.
+9. The assigned source and tests.
 
 Repository docs are context. The contract pack and implementation manifest remain authoritative.
 
@@ -60,7 +61,7 @@ W14 added safe transport ports and injected boundaries for:
 - topic command routing;
 - opt-in real-smoke classification.
 
-The package remains non-production-ready. Default build, check, and test flows require no real credentials and perform no real network calls. Real smoke is opt-in and secret-gated. A missing credential, missing profile, closed network gate, missing injected port, or skipped gate is blocked or skipped by design, not a passing real-provider smoke result.
+The package remains non-production-ready. Default build, check, and test flows require no real credentials and perform no real network calls. Real smoke is opt-in and secret-gated. A missing credential, missing profile, closed network gate, missing injected port, skipped state, blocked state, or ready-to-run state is not a passing real-provider smoke result.
 
 Provider acknowledgement is not business success. Delivery, callback, and smoke summaries keep provider acknowledgement distinct from business completion.
 
@@ -72,15 +73,51 @@ W15 added fake/inert OCA wrapper surfaces and a descriptor-only LifeOS domain fi
 
 Those surfaces are parked downstream overlays. They may remain in the repository, but they must not be advanced by adapter-readiness workers unless a prompt explicitly assigns docs-only parked-status wording or a narrow compile/test safety fix. They must not be used as evidence that the generic OpenClaw/Telegram adapter is ready for real-system integration.
 
-## Current classification
+## Current merged CD11.2 adapter evidence
+
+### W17H fake/inert acceptance evidence
+
+W17H1-W17H6 acceptance evidence is merged:
+
+- W17H1 — inbound fake E2E.
+- W17H2 — outbound fake E2E.
+- W17H3 — callback permission fake E2E.
+- W17H4 — durable replay fake E2E.
+- W17H5 — no-leak matrix.
+- W17H6 — package-root no-side-effect matrix.
+
+This is fake/inert evidence only. It proves deterministic safe paths, no-leak behavior, replay/idempotency behavior, and package-root inertness without secrets or network. It does not prove a real-provider pass, production provider runtime, production listener/webhook/polling runtime, production durable backend, deployment runtime, OCA execution, LifeOS behavior, or production readiness.
+
+### W18 Wave 3 runtime-edge preparation evidence
+
+W18A/W18B/W18D/W18F1 evidence is merged:
+
+- W18A — runtime value boundary: secret handle, credential ref, resolved runtime-only value, public redacted descriptor, and no public secret values.
+- W18B — provider client port boundary: injected provider port, no default provider SDK/client construction, and provider acknowledgement separate from business success.
+- W18D — listener/webhook/polling boundary: interface/descriptors only; no daemon, server, listener startup, webhook server, polling loop, or production runtime.
+- W18F1 — runtime edge docs: runtime-edge vocabulary and limitations without a release classifier claim.
+
+These are boundary and documentation evidence. They do not create production runtime behavior, default network behavior, production credential loading, or product-layer behavior.
+
+### W18 Wave 4 release-closure evidence
+
+W18C and W18E1 evidence is merged:
+
+- W18C — secret-gated smoke refinement: opt-in only, no default CI network, no default secrets, redacted/status-precise output, and skipped/blocked/ready-to-run states not counted as passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success for the narrow executed edge. Current W18C smoke code still does not call a real provider by default.
+- W18E1 — release-gate static/CI closure: default test/check path remains no-network and secret-free, real smoke remains opt-in, and release docs are guarded against premature production-ready and adapter-ready claims.
+
+W18E2 documents these facts. W18E3 remains the final classifier and must consolidate evidence before any final adapter readiness claim.
+
+## Current classification guardrails
 
 Current state:
 
-- not adapter-ready-for-real-system-integration;
-- not production-ready;
-- adapter-first CD11.2 reset is active;
+- not `adapter-ready-for-real-system-integration`;
+- not `adapter-real-integration-ready`;
+- not `production-ready`;
+- W18E3 remains the final classifier;
 - OCA and LifeOS/domain overlays are parked;
-- skipped or blocked real smoke is not a pass;
+- skipped, blocked, or ready-to-run real smoke is not a pass;
 - fake/inert OCA and descriptor-only LifeOS/domain surfaces are not adapter-readiness evidence.
 
 ## Preserved limitations
