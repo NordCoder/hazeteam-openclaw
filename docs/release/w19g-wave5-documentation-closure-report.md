@@ -20,7 +20,7 @@ W19G updates release-facing documentation to reflect the completed Wave 5 public
 
 The repository classification remains adapter-ready-for-real-system-integration under explicit gates and not production-ready.
 
-A self-review follow-up adjusted one adapter-readiness sentence so the W18E1 static release-doc guard does not interpret the prose line as an unguarded readiness claim; the machine-readable status value remains present.
+A self-review follow-up adjusted one adapter-readiness prose sentence so the W18E1 static release-doc guard does not interpret that sentence as an unguarded readiness claim; the machine-readable status value remains present.
 
 ## Merged Wave 5 state summarized
 
