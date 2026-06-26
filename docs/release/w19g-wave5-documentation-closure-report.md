@@ -58,8 +58,6 @@ Added file:
 
 - docs/release/w19g-wave5-documentation-closure-report.md
 
-Self-review follow-up changed only allowed W19G documentation files.
-
 No package source files, tests, package metadata, package-lock, CI, scripts, README files, package READMEs, OCA files, LifeOS/domain files, plugin-runtime files, testkit files, or copied core source were changed by W19G.
 
 ## Production non-claim
