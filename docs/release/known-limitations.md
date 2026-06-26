@@ -2,55 +2,66 @@
 
 ## Current limitations
 
-The current repository is a safe OpenClaw/Telegram adapter foundation, not a production OpenClaw/Telegram runtime and not yet an adapter-ready-for-real-system-integration release.
+The current repository is a safe OpenClaw/Telegram adapter foundation with merged fake/inert and boundary evidence. It is not a production OpenClaw/Telegram runtime and W18E2 does not make a final adapter-ready-for-real-system-integration release claim.
 
-Current limitations:
+W18E3 remains the final classifier. Until W18E3 consolidates evidence and makes a final decision, the repository must not claim `adapter-ready-for-real-system-integration`, `adapter-real-integration-ready`, or `production-ready`.
+
+Current production limitations:
 
 - No production OpenClaw SDK or provider runtime is shipped.
 - No production Telegram/OpenClaw network integration is shipped.
 - No Telegram listener, webhook server, callback HTTP endpoint, polling loop, or daemon is shipped.
-- No production runtime-value loader is shipped; foundation libraries must not read sensitive runtime values directly.
+- No production runtime-value loader or credential loader is shipped; foundation libraries must not read sensitive runtime values directly.
 - No production HTTP health endpoint is shipped by the current source.
 - No packaged migration, backup, restore, replay, or recovery CLI is shipped.
 - No production database, cache, queue, scheduler, process supervisor, or deployment worker is shipped.
+- No production durable backend is shipped.
 - No remote sidecar support is shipped.
 - No real OCA client execution, OCA credential loading, Codex product runtime, LifeOS behavior, or domain-product implementation is shipped as part of adapter readiness.
 
 These limitations must remain visible in release documentation until current source, tests, and an explicit implementation slice prove otherwise.
 
+## Merged evidence that does not remove production limitations
+
+W18E2 reflects the following merged evidence without converting it into production support or a final adapter-ready claim:
+
+- W17H1-W17H6 fake/inert acceptance evidence is merged for inbound fake E2E, outbound fake E2E, callback permission fake E2E, durable replay fake E2E, no-leak matrix, and package-root no-side-effect matrix. This is not a real-provider pass.
+- W18A runtime value boundary is merged for secret handles, credential refs, resolved runtime-only values, public redacted descriptors, and no public secret values. This is not a production credential loader.
+- W18B provider client port boundary is merged for injected provider ports, no default provider SDK/client construction, and provider acknowledgement separate from business success. This is not default provider network execution.
+- W18D listener/webhook/polling boundary is merged as interface/descriptors only. It does not ship a daemon, server, listener startup, webhook server, polling loop, or production runtime.
+- W18F1 runtime-edge documentation is merged and remains documentation evidence only.
+- W18C secret-gated smoke refinement is merged. It is opt-in only, keeps no default CI network, requires no default secrets, reports redacted/status-precise output, and treats skipped/blocked/ready-to-run states as not passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success for the narrow executed edge. Current W18C smoke code still does not call a real provider by default.
+- W18E1 release-gate static/CI closure is merged. Default test/check remains no-network and secret-free, real smoke remains opt-in, and release docs are guarded against premature production-ready and adapter-ready claims.
+
 ## Readiness ladder limitations
 
-The repository must not currently claim `adapter-ready-for-real-system-integration`, `adapter-real-integration-ready`, or `production-ready`.
+W18E2 documentation closure may prepare release-facing docs for final classification, but W18E3 must still supply the final evidence table, checks table, remaining-limitations table, and downstream unlock decision before any final adapter readiness claim.
 
-The following evidence is still required before the adapter-ready gate may be claimed:
+A missing, skipped, blocked, or ready-to-run evidence item is not a pass. A release candidate may report safe blockage honestly, but it may not convert blockage into adapter readiness.
 
-- package-root no-side-effect matrix for readiness-relevant public entrypoints;
-- fake E2E matrix for inbound, outbound, callback, durable replay/idempotency, readiness aggregation, and failure/no-leak paths;
-- unified readiness aggregation across plugin runtime, OpenClaw adapter, Telegram transport, core facade, credentials posture, durable stores, smoke state, and production-claim status;
-- durable state fakes for topic bindings, callback tokens, delivery attempts, inbound idempotency, replay, correlation, and readiness snapshots;
-- no-leak matrix covering public DTOs, readiness output, smoke output, delivery/callback output, docs examples, and error paths;
-- opt-in redacted real smoke that can pass a narrow real edge or report a precise blocked reason without leaking secrets or making default CI networked;
-- release closure evidence that states exactly which behavior is contract-ready, fake-e2e-ready, secret-gated-ready, and still future production work.
-
-A missing, skipped, or blocked evidence item is not a pass. A release candidate may report safe blockage honestly, but it may not convert blockage into adapter readiness.
+OCA, Codex, LifeOS, domain/product overlays, sidecar, deployment runtime, production provider runtime, production credential loading, and production durable backend remain parked or future work unless explicitly implemented and tested by later approved slices.
 
 ## Default check and CI limitations
 
 The default check path must remain no-network and secret-free. It must not require real Telegram/OpenClaw credentials, real provider network access, deployment secrets, production infrastructure, or a running sidecar.
 
-Default checks can prove deterministic contract, unit, static, fake, and acceptance behavior. They cannot prove real provider reachability unless an explicitly gated smoke command is run and reported separately.
+Default checks can prove deterministic contract, unit, static, fake, acceptance, no-leak, and package-root inertness behavior. They cannot prove real provider reachability unless an explicitly gated smoke command is run and reported separately.
+
+W18E1 documents that default test/check remains no-network and secret-free. That static/CI closure is not a production runtime claim.
 
 ## Real smoke limitations
 
-Real smoke is opt-in and gated. A skipped or blocked real-smoke report is safe posture, not a successful real-provider pass.
+Real smoke is opt-in and gated. A skipped, blocked, or ready-to-run real-smoke report is safe posture, not a successful real-provider pass.
 
 A passed real smoke proves only the specific narrow edge that was executed. It does not prove production runtime behavior, durable backend correctness, listener/webhook/polling availability, sidecar support, OCA execution, LifeOS behavior, or overall production readiness.
+
+A passed smoke requires supplied redacted execution evidence with provider acknowledgement and business success for the narrow executed edge. Current W18C smoke code still does not call a real provider by default.
 
 Smoke summaries, blocked reasons, and failures must stay redacted. They must not reveal tokens, credentials, endpoints, raw provider payloads, raw callback payloads, provider clients, SDK handles, stack traces, filesystem paths, raw logs, raw diffs, or command output.
 
 ## Parked overlays
 
-OCA, Codex, LifeOS, and domain/product overlays are parked downstream overlays until the OpenClaw/Telegram adapter reaches the adapter-ready-for-real-system-integration gate.
+OCA, Codex, LifeOS, and domain/product overlays are parked downstream overlays until the OpenClaw/Telegram adapter reaches the adapter-ready-for-real-system-integration gate and W18E3 classifies that gate as met.
 
 Existing fake/inert OCA surfaces and descriptor-only LifeOS/domain surfaces are not evidence for:
 
@@ -80,19 +91,17 @@ The current boundary discipline remains mandatory:
 
 The following work is future work, not current release support:
 
-- CD11.2 plugin runtime composition/readiness shell completion;
-- adapter and Telegram transport fake E2E completion through public package roots;
-- adapter-wide readiness aggregation;
-- durable adapter-state fake contracts and replay/idempotency evidence;
-- no-leak acceptance matrix;
-- package-root no-side-effect matrix;
-- real OpenClaw SDK/client wiring behind explicit adapter-owned ports;
+- W18E3 final adapter readiness report and classifier decision;
+- production OpenClaw SDK/client wiring behind explicit adapter-owned ports;
 - real Telegram/OpenClaw listener, delivery, callback, runtime, and approval network execution;
-- real gated smoke execution that actually calls a provider after explicit gates;
+- real gated smoke execution that actually calls a provider after explicit gates and reports a redacted passed attempt;
 - production runtime-value loading and rotation strategy;
+- production credential loader or secret manager integration;
 - production HTTP health/readiness endpoint, if a deployment layer requires one;
 - production durable backend implementation;
+- packaged migration, backup, restore, replay, and recovery tooling;
 - sidecar support, if explicitly implemented later;
+- deployment runtime and process supervision;
 - OCA, Codex, LifeOS, or other product-layer branches after the adapter-ready gate unlocks them.
 
 Future work must preserve the current boundary discipline and must be introduced only by explicitly approved slices.
