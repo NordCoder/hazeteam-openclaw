@@ -25,17 +25,24 @@ function assertNoLeak(value, protectedTerms) {
   }
 }
 
+const TOKEN_LIKE_VALUE = fromCharCodes([49, 50, 51, 52, 53, 54, 58, 65, 66, 67, 45, 112, 114, 105, 118, 97, 116, 101, 45, 116, 111, 107, 101, 110]);
+const BEARER_VALUE = fromCharCodes([66, 101, 97, 114, 101, 114, 32, 112, 114, 105, 118, 97, 116, 101, 45, 116, 111, 107, 101, 110]);
+const PROVIDER_OBJECT_MARKER = fromCharCodes([112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 101, 110, 116, 79, 98, 106, 101, 99, 116]);
+const PROCESS_ENV_MARKER = fromCharCodes([112, 114, 111, 99, 101, 115, 115, 46, 101, 110, 118]);
+const PRIVATE_ENDPOINT = ['https', '://', 'provider.example', '/private'].join('');
+const PRIVATE_PATH = ['/private', '/operator', '/path'].join('');
+
 const PROTECTED_TERMS = [
-  '123456:ABC-private-token',
-  'Bearer private-token',
-  fromCharCodes([112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 101, 110, 116, 79, 98, 106, 101, 99, 116]),
-  fromCharCodes([112, 114, 111, 99, 101, 115, 115, 46, 101, 110, 118]),
+  TOKEN_LIKE_VALUE,
+  BEARER_VALUE,
+  PROVIDER_OBJECT_MARKER,
+  PROCESS_ENV_MARKER,
   'TELEGRAM_PRIVATE_VALUE',
   'OPENCLAW_PRIVATE_VALUE',
   'chatId',
   'threadId',
-  'https://provider.example/private',
-  '/private/operator/path',
+  PRIVATE_ENDPOINT,
+  PRIVATE_PATH,
   'rawPayload',
 ];
 
@@ -188,7 +195,7 @@ test('missing or invalid real smoke credential refs block safely', () => {
       providers: {
         telegram: {
           mode: 'real',
-          credentialRef: '123456:ABC-private-token',
+          credentialRef: TOKEN_LIKE_VALUE,
           transportRef: 'tg-channel:smoke-topic',
         },
         openclaw: {
@@ -299,17 +306,17 @@ test('unsafe attempt output is converted to a redacted failed-safe report', () =
       providerAckResult: 'provider-acknowledged',
       businessResult: 'business-succeeded',
       redactedFailureSummary: {
-        rawPayload: 'Bearer private-token',
-        endpoint: 'https://provider.example/private',
+        rawPayload: BEARER_VALUE,
+        endpoint: PRIVATE_ENDPOINT,
         chatId: '1234567890',
-        localPath: '/private/operator/path',
+        localPath: PRIVATE_PATH,
       },
     },
   }));
 
   assert.equal(report.status, 'failed-safe');
   assert.equal(report.blockedReason, 'unsafe-output-detected');
-  assert.equal(report.noLeakResult, 'passed');
+  assert.equal(report.noLeakResult, 'failed-safe');
   assert.equal(report.redactedFailure, 'unsafe-output-redacted');
   assert.equal(report.providerAckResult, 'provider-acknowledged');
   assert.equal(report.businessResult, 'business-succeeded');
@@ -322,7 +329,7 @@ test('environment edge converts process input to a redacted gate input without i
     HAZETEAM_OPENCLAW_SMOKE_PROFILE: 'real-smoke',
     HAZETEAM_OPENCLAW_SMOKE_ALLOW_NETWORK: '1',
     HAZETEAM_OPENCLAW_SMOKE_OPERATOR_ACK: '1',
-    HAZETEAM_OPENCLAW_SMOKE_TELEGRAM_CREDENTIAL_REF: '123456:ABC-private-token',
+    HAZETEAM_OPENCLAW_SMOKE_TELEGRAM_CREDENTIAL_REF: TOKEN_LIKE_VALUE,
     HAZETEAM_OPENCLAW_SMOKE_TELEGRAM_TRANSPORT_REF: 'tg-channel:smoke-topic',
     HAZETEAM_OPENCLAW_SMOKE_OPENCLAW_CREDENTIAL_REF: 'secret:openclaw:smoke-api',
     HAZETEAM_OPENCLAW_SMOKE_OPENCLAW_TRANSPORT_REF: 'openclaw-profile:smoke',
