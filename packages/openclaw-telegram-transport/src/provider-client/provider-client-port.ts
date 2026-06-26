@@ -160,7 +160,7 @@ type ProviderClientCallbackCapability = InjectedProviderClientPort & {
 
 export interface ProviderClientPortOptions {
   readonly port?: InjectedProviderClientPort;
-  readonly provider: ProviderClientKind;
+  readonly provider: unknown;
   readonly credentialStatus?: ProviderClientCredentialStatus;
   readonly enabled?: boolean;
 }
@@ -463,10 +463,12 @@ function blockedDeliveryResult(
   request: ProviderClientDeliveryCallRequest,
   readiness: ProviderClientPortReadiness,
 ): ProviderClientDeliveryResult {
+  const provider = normalizeProviderKind(options.provider);
+
   if (readiness.status === 'blocked-missing-port') {
     return failureResult({
       descriptorKind: 'provider-client-delivery-result',
-      provider: options.provider,
+      provider,
       deliveryRef: request.deliveryRef,
       correlationRef: request.correlationRef,
       idempotencyRef: request.idempotencyRef,
@@ -481,7 +483,7 @@ function blockedDeliveryResult(
   if (readiness.status === 'blocked-disabled') {
     return failureResult({
       descriptorKind: 'provider-client-delivery-result',
-      provider: options.provider,
+      provider,
       deliveryRef: request.deliveryRef,
       correlationRef: request.correlationRef,
       idempotencyRef: request.idempotencyRef,
@@ -495,7 +497,7 @@ function blockedDeliveryResult(
 
   return failureResult({
     descriptorKind: 'provider-client-delivery-result',
-    provider: options.provider,
+    provider,
     deliveryRef: request.deliveryRef,
     correlationRef: request.correlationRef,
     idempotencyRef: request.idempotencyRef,
@@ -512,10 +514,12 @@ function blockedCallbackResult(
   request: ProviderClientCallbackAcknowledgementRequest,
   readiness: ProviderClientPortReadiness,
 ): ProviderClientCallbackAcknowledgementResult {
+  const provider = normalizeProviderKind(options.provider);
+
   if (readiness.status === 'blocked-missing-port') {
     return failureResult({
       descriptorKind: 'provider-client-callback-acknowledgement-result',
-      provider: options.provider,
+      provider,
       callbackRef: request.callbackRef,
       correlationRef: request.correlationRef,
       providerAckStatus: 'not-attempted',
@@ -528,7 +532,7 @@ function blockedCallbackResult(
   if (readiness.status === 'blocked-disabled') {
     return failureResult({
       descriptorKind: 'provider-client-callback-acknowledgement-result',
-      provider: options.provider,
+      provider,
       callbackRef: request.callbackRef,
       correlationRef: request.correlationRef,
       providerAckStatus: 'not-attempted',
@@ -540,7 +544,7 @@ function blockedCallbackResult(
 
   return failureResult({
     descriptorKind: 'provider-client-callback-acknowledgement-result',
-    provider: options.provider,
+    provider,
     callbackRef: request.callbackRef,
     correlationRef: request.correlationRef,
     providerAckStatus: 'not-attempted',
@@ -735,10 +739,12 @@ export async function callProviderDelivery(
   options: ProviderClientPortOptions,
   request: ProviderClientDeliveryCallRequest,
 ): Promise<ProviderClientDeliveryResult> {
+  const provider = normalizeProviderKind(options.provider);
+
   if (!validateDeliveryRequest(request)) {
     return failureResult({
       descriptorKind: 'provider-client-delivery-result',
-      provider: options.provider,
+      provider,
       deliveryRef: request.deliveryRef,
       correlationRef: request.correlationRef,
       idempotencyRef: request.idempotencyRef,
@@ -751,7 +757,7 @@ export async function callProviderDelivery(
   }
 
   const readiness = createProviderClientPortReadiness({
-    provider: options.provider,
+    provider,
     port: options.port,
     credentialStatus: options.credentialStatus ?? 'configured-redacted',
     enabled: options.enabled,
@@ -766,7 +772,7 @@ export async function callProviderDelivery(
     return blockedDeliveryResult(
       options,
       request,
-      createProviderClientPortReadiness({ provider: options.provider, credentialStatus: options.credentialStatus }),
+      createProviderClientPortReadiness({ provider, credentialStatus: options.credentialStatus }),
     );
   }
 
@@ -776,7 +782,7 @@ export async function callProviderDelivery(
   } catch {
     return failureResult({
       descriptorKind: 'provider-client-delivery-result',
-      provider: options.provider,
+      provider: request.provider,
       deliveryRef: request.deliveryRef,
       correlationRef: request.correlationRef,
       idempotencyRef: request.idempotencyRef,
@@ -793,10 +799,12 @@ export async function acknowledgeProviderCallback(
   options: ProviderClientPortOptions,
   request: ProviderClientCallbackAcknowledgementRequest,
 ): Promise<ProviderClientCallbackAcknowledgementResult> {
+  const provider = normalizeProviderKind(options.provider);
+
   if (!validateCallbackAcknowledgementRequest(request)) {
     return failureResult({
       descriptorKind: 'provider-client-callback-acknowledgement-result',
-      provider: options.provider,
+      provider,
       callbackRef: request.callbackRef,
       correlationRef: request.correlationRef,
       providerAckStatus: 'not-attempted',
@@ -824,7 +832,7 @@ export async function acknowledgeProviderCallback(
   }
 
   const readiness = createProviderClientPortReadiness({
-    provider: options.provider,
+    provider,
     port: options.port,
     credentialStatus: options.credentialStatus ?? 'configured-redacted',
     enabled: options.enabled,
@@ -839,7 +847,7 @@ export async function acknowledgeProviderCallback(
     return blockedCallbackResult(
       options,
       request,
-      createProviderClientPortReadiness({ provider: options.provider, credentialStatus: options.credentialStatus }),
+      createProviderClientPortReadiness({ provider, credentialStatus: options.credentialStatus }),
     );
   }
 
@@ -849,7 +857,7 @@ export async function acknowledgeProviderCallback(
   } catch {
     return failureResult({
       descriptorKind: 'provider-client-callback-acknowledgement-result',
-      provider: options.provider,
+      provider: request.provider,
       callbackRef: request.callbackRef,
       correlationRef: request.correlationRef,
       providerAckStatus: 'provider-rejected',
