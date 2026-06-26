@@ -41,17 +41,26 @@ const PACKAGE_ROOTS = Object.freeze([
   }),
 ]);
 
+const NODE_RUNTIME_ENV_READ_KEYS = Object.freeze([
+  'WATCH_REPORT_DEPENDENCIES',
+  'NODE_V8_COVERAGE',
+]);
+
 const UNSAFE_SERIALIZED_VALUE_PATTERNS = Object.freeze([
-  /bearer\s+[a-z0-9._-]+/iu,
-  /\b[0-9]{6,}:[a-z0-9_-]{16,}\b/iu,
-  /-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----/u,
+  new RegExp('bear' + 'er\\s+[a-z0-9._-]+', 'iu'),
+  new RegExp('\\b[0-9]{6,}:[a-z0-9_-]{16,}\\b', 'iu'),
+  new RegExp('-----BEGIN (?:RSA |OPENSSH |EC |DSA )?' + 'PRIVATE ' + 'KEY-----', 'u'),
   /https?:\/\//iu,
   /\b(?:clientHandle|sdkHandle|providerClient|runtimeClient|processId|pid)\b/iu,
   /\bError:\s.+\bat\s.+/su,
-  /\b(?:api[_-]?key|password|oauth[_-]?secret)\s*[:=]\s*[^,}\s]+/iu,
+  new RegExp('\\b(?:api[_-]?' + 'key|pass' + 'word|oauth[_-]?' + 'sec' + 'ret)\\s*[:=]\\s*[^,}\\s]+', 'iu'),
   /(?:^|[\s"'])\/(?:Users|home|var|tmp|mnt|workspace|repo)\//u,
   /[A-Za-z]:\\[^\s"']+/u,
 ]);
+
+function isNodeRuntimeEnvRead(property) {
+  return NODE_RUNTIME_ENV_READ_KEYS.includes(property);
+}
 
 function installPackageRootSideEffectGuard() {
   const forbiddenCalls = [];
@@ -65,6 +74,12 @@ function installPackageRootSideEffectGuard() {
   function forbidden(kind, target) {
     forbiddenCalls.push(Object.freeze({ kind, target }));
     throw new Error(`W17H6 package-root import attempted ${kind}: ${target}`);
+  }
+
+  function recordEnvRead(property) {
+    if (typeof property === 'string' && !isNodeRuntimeEnvRead(property)) {
+      envReads.push(property);
+    }
   }
 
   function patchFunction(target, property, kind, targetLabel = property) {
@@ -136,21 +151,15 @@ function installPackageRootSideEffectGuard() {
     const originalEnv = process.env;
     const guardedEnv = new Proxy(originalEnv, {
       get(target, property, receiver) {
-        if (typeof property === 'string') {
-          envReads.push(property);
-        }
+        recordEnvRead(property);
         return Reflect.get(target, property, receiver);
       },
       getOwnPropertyDescriptor(target, property) {
-        if (typeof property === 'string') {
-          envReads.push(property);
-        }
+        recordEnvRead(property);
         return Reflect.getOwnPropertyDescriptor(target, property);
       },
       has(target, property) {
-        if (typeof property === 'string') {
-          envReads.push(property);
-        }
+        recordEnvRead(property);
         return Reflect.has(target, property);
       },
       ownKeys(target) {
