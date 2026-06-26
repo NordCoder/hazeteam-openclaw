@@ -4,16 +4,28 @@
 
 `hazeteam-openclaw` is an external OpenClaw/Telegram adapter repository over stable `hazeteam-core`.
 
-The active contract pack is `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`. CD11.2 makes the current priority explicit: finish the generic OpenClaw/Telegram adapter until it is ready for real-system integration before advancing OCA, LifeOS, domain-product overlays, sidecar behavior, deployment runtime, production provider runtime, or real-system integration work.
+The active contract pack is `hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip`. CD11.2 makes the current priority explicit: prepare the generic OpenClaw/Telegram adapter evidence for W18E3 final readiness classification before advancing OCA, LifeOS, domain-product overlays, sidecar behavior, deployment runtime, production provider runtime, or real-system integration work.
 
 The current repository includes W12 public-core integration proof wiring, W13 plugin-runtime shell surfaces, W14 Telegram/OpenClaw transport safe port surfaces, and W15 fake/inert OCA plus descriptor-only LifeOS/domain overlay surfaces.
 
-This index does not certify adapter-ready-for-real-system-integration or production readiness. Existing OCA and LifeOS/domain files are parked downstream overlays and are not adapter-readiness evidence. Skipped or blocked real smoke is not a real-provider pass.
+Merged release-facing evidence now reflected by W18E2:
+
+- W17H1-W17H6 fake/inert acceptance evidence for inbound fake E2E, outbound fake E2E, callback permission fake E2E, durable replay fake E2E, no-leak matrix, and package-root no-side-effect matrix. This evidence is not a real-provider pass.
+- W18A runtime value boundary evidence for secret handles, credential refs, resolved runtime-only values, public redacted descriptors, and no public secret values.
+- W18B provider client port evidence for injected provider ports, no default provider SDK/client construction, and provider acknowledgement separate from business success.
+- W18D listener/webhook/polling boundary evidence as interface/descriptors only, not production daemon/server/listener/polling runtime.
+- W18F1 runtime-edge documentation evidence without release classification.
+- W18C secret-gated smoke refinement evidence: opt-in only, no default CI network, no default secrets, redacted and status-precise output, and skipped/blocked/ready-to-run states not counted as passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success; current smoke code still does not call a real provider by default.
+- W18E1 release-gate static/CI closure evidence: default test/check path remains no-network and secret-free, real smoke remains opt-in, and release docs are guarded against premature production-ready and adapter-ready claims.
+
+This index does not certify `adapter-ready-for-real-system-integration`, `adapter-real-integration-ready`, or production readiness. W18E3 remains the final classifier. Existing OCA and LifeOS/domain files are parked downstream overlays and are not adapter-readiness evidence. Skipped, blocked, or ready-to-run real smoke is not a real-provider pass.
 
 ## Status and package map
 
-- [`README.md`](../README.md) — root project status, active CD11.2 contract pack, current priority, package map, and preserved limitations.
+- [`README.md`](../README.md) — root project status, active CD11.2 contract pack, current priority, package map, merged evidence, and preserved limitations.
 - [`docs/README.md`](README.md) — documentation index, worker reading order, and repo role.
+- [`docs/adapter-readiness.md`](adapter-readiness.md) — readiness ladder, evidence categories, smoke status rules, and W18E3 final-classifier rule.
+- [`docs/architecture/runtime-edge-boundaries.md`](architecture/runtime-edge-boundaries.md) — runtime value, provider port, listener/webhook/polling, secret-gated smoke, no-leak, and parked-overlay boundaries.
 - [`docs/roadmap/current-development-state.md`](roadmap/current-development-state.md) — worker-facing current handoff for W16 and later adapter-readiness work.
 - [`docs/roadmap/w16a6-audit-consolidation.md`](roadmap/w16a6-audit-consolidation.md) — Wave 0 audit consolidation and Wave 1 launch context.
 - [`packages/openclaw-adapter/README.md`](../packages/openclaw-adapter/README.md) — safe adapter foundation package posture.
@@ -35,7 +47,7 @@ This index does not certify adapter-ready-for-real-system-integration or product
 
 ## Release-hardening map
 
-Release classifier docs are intentionally linked here but not modified by W16B. W16D owns readiness ladder and release classifier wording.
+Release classifier docs are intentionally linked here. W18E2 updates release-facing docs with merged evidence, while W18E3 remains the only final classifier.
 
 - [`docs/deployment/config-readiness-health-credentials.md`](deployment/config-readiness-health-credentials.md) — configuration assumptions, readiness semantics, health evidence, and credential-handling posture for the current foundation.
 - [`docs/operations/migration-backup-replay.md`](operations/migration-backup-replay.md) — migration, backup, restore, replay, and recovery assumptions around injected durable stores and safe records.
@@ -49,8 +61,11 @@ Release classifier docs are intentionally linked here but not modified by W16B. 
 Use this status when orienting future workers:
 
 - W12/W13/W14/W15 work is merged historical foundation, not adapter-ready or production-ready certification.
-- Default build/check/test paths are no-secret and no-network by design.
-- Real smoke remains opt-in and status-classified. Skipped or blocked smoke must be reported honestly and must not be counted as a pass.
+- W17H1-W17H6 fake/inert acceptance evidence is merged and must be treated as fake/inert E2E, no-leak, and package-root inertness evidence, not real-provider evidence.
+- W18A/W18B/W18D/W18F1 runtime-edge preparation evidence is merged and must be treated as boundary/docs evidence, not production runtime.
+- W18C secret-gated smoke refinement is merged, but real smoke remains opt-in. Skipped, blocked, and ready-to-run smoke must be reported honestly and must not be counted as passes. Current smoke code still does not call a real provider by default.
+- W18E1 release-gate static/CI closure is merged; default build/check/test paths remain no-secret and no-network by design.
+- W18E3 remains the final classifier before any final adapter readiness claim.
 - OCA and LifeOS/domain packages are parked downstream overlays until adapter-ready-for-real-system-integration.
 - Fake/inert OCA and descriptor-only LifeOS surfaces must not be used as adapter-readiness evidence.
 
