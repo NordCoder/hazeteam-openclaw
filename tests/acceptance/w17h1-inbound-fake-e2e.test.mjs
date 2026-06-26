@@ -116,8 +116,8 @@ function adapterBinding() {
   return createTopicBindingSnapshot({
     key: {
       workspaceId: WORKSPACE_ID,
-      channelId: 'telegram-channel:' + CHANNEL_ID,
-      topicId: 'telegram-thread:' + THREAD_ID,
+      channelId: CHANNEL_ID,
+      topicId: THREAD_ID,
     },
     status: 'active',
     agentId: AGENT_ID,
@@ -131,18 +131,22 @@ function adapterMessageEventFromRoute(routeResult) {
   const safeEvent = routeResult.channelEvent;
   assert.ok(safeEvent, 'safe channel event must be available after routing');
   assert.equal(safeEvent.eventKind, 'message');
+  assert.equal(safeEvent.channelRef, 'telegram-channel:' + CHANNEL_ID);
+  assert.equal(safeEvent.chatRef, 'telegram-chat:' + CHAT_ID);
+  assert.equal(safeEvent.threadRef, 'telegram-thread:' + THREAD_ID);
+  assert.equal(safeEvent.messageRef, 'telegram-message:' + MESSAGE_ID);
 
   return Object.freeze({
     eventKind: 'message',
     operationRef: createAdapterOperationRef('w17h1-inbound-message'),
     correlationRef: createAdapterCorrelationRef('w17h1-inbound-message'),
     channelRef: Object.freeze({
-      channelId: safeEvent.channelRef,
+      channelId: CHANNEL_ID,
     }),
     topicRef: Object.freeze({
-      channelId: safeEvent.channelRef,
-      chatId: safeEvent.chatRef,
-      messageThreadId: safeEvent.threadRef,
+      channelId: CHANNEL_ID,
+      chatId: CHAT_ID,
+      messageThreadId: THREAD_ID,
       topicName: safeEvent.topicDisplay?.title,
     }),
     actor: Object.freeze({
@@ -150,10 +154,10 @@ function adapterMessageEventFromRoute(routeResult) {
       displayName: 'W17H1 Operator',
     }),
     externalMessageRef: Object.freeze({
-      channelId: safeEvent.channelRef,
-      chatId: safeEvent.chatRef,
-      messageThreadId: safeEvent.threadRef,
-      messageId: safeEvent.messageRef,
+      channelId: CHANNEL_ID,
+      chatId: CHAT_ID,
+      messageThreadId: THREAD_ID,
+      messageId: MESSAGE_ID,
     }),
     text: safeEvent.textIntent?.text,
     occurredAt: FIXED_TIME,
@@ -207,6 +211,10 @@ test('W17H1 inbound fake E2E routes a quarantined provider update into a safe ad
   assert.equal(route.readinessClaim, 'local-inbound-topic-route-evidence-only');
   assert.equal(route.routingAuthority?.authority, 'channelRef+chatRef+threadRef');
   assert.equal(route.channelEvent?.descriptorKind, 'w17c-safe-telegram-channel-event');
+  assert.equal(route.channelEvent?.channelRef, 'telegram-channel:' + CHANNEL_ID);
+  assert.equal(route.channelEvent?.chatRef, 'telegram-chat:' + CHAT_ID);
+  assert.equal(route.channelEvent?.threadRef, 'telegram-thread:' + THREAD_ID);
+  assert.equal(route.channelEvent?.messageRef, 'telegram-message:' + MESSAGE_ID);
   assert.equal(route.channelEvent?.topicDisplay?.titleRoutingAuthority, false);
   assert.equal(route.channelEvent?.textIntent?.commandName, 'status');
   assert.equal(route.channelEvent?.textIntent?.argumentText, 'safe-summary');
