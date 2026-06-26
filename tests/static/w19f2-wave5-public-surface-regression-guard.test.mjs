@@ -388,7 +388,7 @@ test('W19F2 guards the W19D3 package unit assertions without executing them', ()
   );
 
   assertW19DMetadataAssertions(configGuard, 'config unit guard');
-  assertIncludes(configGuard, 'disabled and dry-run modes stay side-effect free and do not require credentials', 'config unit guard');
+  assertIncludes(configGuard, `disabled and dry-run modes stay side-effect free and do not require ${C} refs`, 'config unit guard');
   assertIncludes(configGuard, 'assertJsonSafe(dryRun)', 'config unit guard');
 
   assertW19DMetadataAssertions(realTransportGuard, 'real-transport fan-in unit guard');
