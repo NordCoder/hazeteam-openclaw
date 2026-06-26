@@ -1,6 +1,4 @@
-export type OpenClawTelegramTransportPackageStatus =
-  | 'w14-real-transport-port-fan-in'
-  | 'w19-integration-harness-public-export';
+export type OpenClawTelegramTransportPackageStatus = 'w14-real-transport-port-fan-in';
 
 export type OpenClawTelegramTransportEffect = 'none';
 
@@ -18,7 +16,7 @@ export interface OpenClawTelegramTransportPackageMetadata {
   readonly name: '@hazeteam/openclaw-telegram-transport';
   readonly status: OpenClawTelegramTransportPackageStatus;
   readonly productionReady: false;
-  readonly contractSlice: 'W14G' | 'W19D';
+  readonly contractSlice: 'W14G';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
 }
 
@@ -26,11 +24,11 @@ export interface OpenClawTelegramTransportDescriptor {
   readonly kind: 'openclaw-telegram-transport';
   readonly packageName: '@hazeteam/openclaw-telegram-transport';
   readonly packageStatus: OpenClawTelegramTransportPackageStatus;
-  readonly descriptorVersion: 'w19d';
-  readonly readiness: 'adapter-ready-for-real-system-integration-under-explicit-gates';
+  readonly descriptorVersion: 'w14g';
+  readonly readiness: 'safe-transport-ports-secret-gated-smoke-non-production';
   readonly productionReady: false;
   readonly effects: OpenClawTelegramTransportEffect;
-  readonly scope: 'w19-integration-harness-public-export';
+  readonly scope: 'w14-real-transport-port-fan-in';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
   readonly realTransportPorts: 'injected-boundaries-present';
   readonly defaultNetworkBehavior: 'none';
@@ -57,9 +55,9 @@ export const OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES = Object.freeze([
 
 export const OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE = Object.freeze({
   name: '@hazeteam/openclaw-telegram-transport',
-  status: 'w19-integration-harness-public-export',
+  status: 'w14-real-transport-port-fan-in',
   productionReady: false,
-  contractSlice: 'W19D',
+  contractSlice: 'W14G',
   publicSurfaces: OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES,
 } satisfies OpenClawTelegramTransportPackageMetadata);
 
@@ -67,11 +65,11 @@ export const OPENCLAW_TELEGRAM_TRANSPORT_DESCRIPTOR = Object.freeze({
   kind: 'openclaw-telegram-transport',
   packageName: OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.name,
   packageStatus: OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.status,
-  descriptorVersion: 'w19d',
-  readiness: 'adapter-ready-for-real-system-integration-under-explicit-gates',
+  descriptorVersion: 'w14g',
+  readiness: 'safe-transport-ports-secret-gated-smoke-non-production',
   productionReady: false,
   effects: 'none',
-  scope: 'w19-integration-harness-public-export',
+  scope: 'w14-real-transport-port-fan-in',
   publicSurfaces: OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES,
   realTransportPorts: 'injected-boundaries-present',
   defaultNetworkBehavior: 'none',
