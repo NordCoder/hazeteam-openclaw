@@ -36,6 +36,7 @@ const EXPECTED_SURFACES = Object.freeze([
   'callback-handler-port',
   'topic-command-router',
   'real-smoke-gate',
+  'integration-harness',
 ]);
 
 const TRANSPORT_CONFIG = Object.freeze({
@@ -81,17 +82,19 @@ function assertJsonSafe(value, predicate) {
   assert.equal(predicate(value), true);
 }
 
-test('package root exposes W14A-F safe public surfaces and non-production metadata', () => {
+test('package root exposes W19D integration harness metadata and non-production surfaces', () => {
   const description = describeOpenClawTelegramTransport();
 
   assert.deepEqual(OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES, EXPECTED_SURFACES);
   assert.deepEqual(description.package.publicSurfaces, EXPECTED_SURFACES);
   assert.deepEqual(OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.publicSurfaces, EXPECTED_SURFACES);
-  assert.equal(description.package.status, 'w14-real-transport-port-fan-in');
-  assert.equal(description.package.contractSlice, 'W14G');
+  assert.equal(description.package.status, 'w19-integration-harness-public-export');
+  assert.equal(description.package.contractSlice, 'W19D');
   assert.equal(description.package.productionReady, false);
-  assert.equal(OPENCLAW_TELEGRAM_TRANSPORT_DESCRIPTOR.descriptorVersion, 'w14g');
-  assert.equal(description.descriptor.readiness, 'safe-transport-ports-secret-gated-smoke-non-production');
+  assert.equal(OPENCLAW_TELEGRAM_TRANSPORT_DESCRIPTOR.descriptorVersion, 'w19d');
+  assert.equal(description.descriptor.packageStatus, 'w19-integration-harness-public-export');
+  assert.equal(description.descriptor.readiness, 'adapter-ready-for-real-system-integration-under-explicit-gates');
+  assert.equal(description.descriptor.scope, 'w19-integration-harness-public-export');
   assert.equal(description.descriptor.productionReady, false);
   assert.equal(description.descriptor.effects, 'none');
   assert.equal(description.descriptor.realTransportPorts, 'injected-boundaries-present');
