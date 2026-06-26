@@ -102,13 +102,14 @@ test('disabled and dry-run modes stay side-effect free and do not require creden
   assertJsonSafe(dryRun);
 });
 
-test('package status descriptor is honest about W14 fan-in limitations', () => {
+test('package status descriptor documents Wave 5 integration harness public metadata', () => {
   const description = describeOpenClawTelegramTransport();
 
-  assert.equal(description.package.status, 'w14-real-transport-port-fan-in');
-  assert.equal(description.package.contractSlice, 'W14G');
+  assert.equal(description.package.status, 'w19-integration-harness-public-export');
+  assert.equal(description.package.contractSlice, 'W19D');
   assert.equal(description.package.productionReady, false);
-  assert.equal(description.descriptor.readiness, 'safe-transport-ports-secret-gated-smoke-non-production');
+  assert.equal(description.descriptor.descriptorVersion, 'w19d');
+  assert.equal(description.descriptor.readiness, 'adapter-ready-for-real-system-integration-under-explicit-gates');
   assert.equal(description.descriptor.productionReady, false);
   assert.equal(description.descriptor.effects, 'none');
   assert.equal(description.descriptor.defaultNetworkBehavior, 'none');
@@ -123,5 +124,6 @@ test('package status descriptor is honest about W14 fan-in limitations', () => {
     'callback-handler-port',
     'topic-command-router',
     'real-smoke-gate',
+    'integration-harness',
   ]);
 });
