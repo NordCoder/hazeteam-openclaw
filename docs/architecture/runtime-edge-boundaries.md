@@ -4,9 +4,9 @@
 
 This document defines the runtime-edge vocabulary and safety boundaries for the W18 real-edge preparation track. It is explanatory architecture documentation only.
 
-This document does not implement source behavior, does not update release classifiers, does not summarize final release evidence, and does not classify the repository as `adapter-ready-for-real-system-integration` or `production-ready`.
+This document does not implement source behavior, does not update release classifiers, does not summarize final release evidence, and does not classify the repository as `adapter-ready-for-real-system-integration`, `adapter-real-integration-ready`, or `production-ready`.
 
-The active scope remains the generic OpenClaw/Telegram adapter. OCA, LifeOS/domain behavior, sidecar, deployment runtime, production durable backend, production listener/webhook/polling runtime, and product-layer behavior remain parked until the adapter-ready gate is explicitly reached by release closure.
+The active scope remains the generic OpenClaw/Telegram adapter. OCA, LifeOS/domain behavior, sidecar, deployment runtime, production durable backend, production listener/webhook/polling runtime, and product-layer behavior remain parked until the adapter-ready gate is explicitly reached by W18E3 release classification.
 
 ## Readiness vocabulary
 
@@ -15,14 +15,14 @@ Readiness labels describe evidence classes. They are not interchangeable.
 | Label | Meaning | Evidence boundary | Not proven |
 | --- | --- | --- | --- |
 | `contract-ready` | Public contracts, DTOs, refs, descriptors, status vocabulary, and no-leak boundaries can be reviewed safely. | Static and unit evidence for local contracts; no real provider execution required. | Full adapter flow, provider interaction, durable lifecycle, secret-gated provider pass, real-system integration, or production runtime. |
-| `fake-e2e-ready` | Deterministic adapter paths execute through public package-root behavior using fakes or injected ports only. | Inbound, outbound, callback, durable replay/idempotency, no-leak, and package-root no-side-effect fake evidence. | Real provider success, real credential resolution, listener/webhook/polling runtime, deployment runtime, or production durability. |
-| `secret-gated-ready` | A narrow real edge can be attempted only under explicit operator-controlled gates. | Opt-in smoke path, injected runtime value resolver/provider port, redacted output, precise skipped/blocked/failed/passed status, no default CI network. | General real-system integration, default network behavior, production runtime, or broad provider coverage. |
-| `adapter-ready-for-real-system-integration` | A future release-classified state where the adapter can be wired into a real host/system under explicit gates while avoiding production claims. | Fake E2E matrix, readiness aggregation, durable adapter-state evidence, runtime value boundary, provider client port boundary, secret-gated smoke evidence, no-leak evidence, and release-closure documentation. | Production daemon/server/polling runtime, production credential loading and rotation, production durable backend, deployment supervision, sidecar, OCA, LifeOS, or product behavior. |
-| `production-ready` | A future production/runtime/operations state. | Production listener/webhook/polling runtime, deployment lifecycle, production credential loading/rotation, production durable backend, health/readiness operations, monitoring, recovery, rollback, and production-grade tests. | Not a W18 Wave 3 target and not implied by any adapter-real-integration evidence. |
+| `fake-e2e-ready` | Deterministic adapter paths execute through public package-root behavior using fakes or injected ports only. | W17H inbound, outbound, callback, durable replay/idempotency, no-leak, and package-root no-side-effect fake evidence. | Real provider success, real credential resolution, listener/webhook/polling runtime, deployment runtime, or production durability. |
+| `secret-gated-ready` | A narrow real edge can be attempted only under explicit operator-controlled gates. | W18A runtime value boundary, W18B provider client port boundary, W18C opt-in redacted smoke refinement, W18D listener/webhook/polling descriptors, W18F1 runtime-edge docs, W18E1 no-network/no-secret release gate. | General real-system integration, default network behavior, production runtime, broad provider coverage, or a real provider call by default. |
+| `adapter-ready-for-real-system-integration` | A future release-classified state where the adapter can be wired into a real host/system under explicit gates while avoiding production claims. | Fake E2E matrix, readiness aggregation, durable adapter-state evidence, runtime value boundary, provider client port boundary, secret-gated smoke evidence, no-leak evidence, release-closure documentation, and W18E3 final evidence table. | Production daemon/server/polling runtime, production credential loading and rotation, production durable backend, deployment supervision, sidecar, OCA, LifeOS, or product behavior. |
+| `production-ready` | A future production/runtime/operations state. | Production listener/webhook/polling runtime, deployment lifecycle, production credential loading/rotation, production durable backend, health/readiness operations, monitoring, recovery, rollback, and production-grade tests. | Not a W18 target and not implied by any adapter-real-integration evidence. |
 
 ## Current evidence limits
 
-W17H evidence proves fake/inert E2E behavior only. It does not prove a real-provider pass.
+W17H evidence is merged and proves fake/inert E2E behavior only. It does not prove a real-provider pass.
 
 The W17H acceptance layer is useful because it exercises deterministic public flows and no-leak constraints without secrets or network:
 
@@ -35,13 +35,20 @@ The W17H acceptance layer is useful because it exercises deterministic public fl
 
 Those tests support fake/inert evidence. They do not demonstrate that a real Telegram/OpenClaw provider accepted a request, that a real credential was resolved, that a real listener or webhook is running, or that production deployment behavior exists.
 
-W18A, W18B, and W18D prepare real-edge boundaries only:
+W18A, W18B, W18D, and W18F1 runtime-edge preparation evidence is merged:
 
-- W18A prepares runtime value and credential resolver boundaries.
-- W18B prepares provider client port boundaries.
-- W18D prepares listener/webhook/polling interface or descriptor boundaries.
+- W18A documents and implements runtime value and credential resolver boundaries: secret handle, credential ref, resolved runtime-only value, public redacted descriptor, and no public secret values.
+- W18B documents and implements provider client port boundaries: injected provider port, no default provider SDK/client construction, and provider acknowledgement separate from business success.
+- W18D documents and implements listener/webhook/polling interface or descriptor boundaries only.
+- W18F1 updates runtime-edge docs and vocabulary without a release classifier claim.
 
-Those slices should make later secret-gated work safer. They do not by themselves create production runtime behavior, default network behavior, final release readiness, or product-layer behavior.
+Those slices make later secret-gated work safer. They do not by themselves create production runtime behavior, default network behavior, final release readiness, or product-layer behavior.
+
+W18C secret-gated smoke refinement is merged as opt-in real-smoke evidence. It preserves no default CI network, no default secrets, redacted output, precise statuses, and no-leak posture. Skipped, blocked, and ready-to-run states are not passes. A passed smoke requires a supplied redacted attempt with provider acknowledgement and business success for the narrow executed edge. Current W18C smoke code still does not call a real provider by default.
+
+W18E1 release-gate static/CI closure is merged. The default test/check path remains no-network and secret-free, real smoke remains opt-in, and release docs are guarded against premature production-ready and adapter-ready claims.
+
+W18E3 remains the final classifier and must consolidate the evidence before any final adapter readiness claim.
 
 ## Runtime value boundary
 
@@ -77,9 +84,9 @@ Provider acknowledgement means the provider edge accepted or reported on the tra
 
 ## Listener, webhook, and polling boundary
 
-Wave 3 may define listener/webhook/polling boundaries when assigned, but a boundary is not a daemon.
+A listener/webhook/polling boundary is not a daemon.
 
-Allowed Wave 3 shapes include:
+Allowed W18D shapes include:
 
 - listener lifecycle interfaces;
 - webhook input descriptors;
@@ -89,7 +96,7 @@ Allowed Wave 3 shapes include:
 - blocked/disabled readiness descriptors;
 - fake or inert interfaces used by tests.
 
-Not implemented by Wave 3 unless explicitly assigned:
+Not implemented by W18D:
 
 - production daemon startup;
 - HTTP webhook server;
@@ -115,9 +122,10 @@ Required rules:
 4. A missing secret, missing provider port, disabled profile, or closed network gate must report a safe skipped or blocked status.
 5. Skipped, blocked, or ready-to-run is not a passed provider call.
 6. Only a passed smoke can count as a provider-edge pass, and only for the exact narrow edge it executed.
-7. Smoke output must be redacted.
-8. Public smoke summaries must not include credential values, token values, endpoints, provider handles, SDK/client handles, stack traces, raw payloads, filesystem paths, raw logs, diffs, command output, or resolved runtime-only values.
-9. Smoke failures must return safe categories and redacted failure summaries.
+7. A passed smoke requires supplied redacted execution evidence with provider acknowledgement and business success for that narrow executed edge.
+8. Smoke output must be redacted.
+9. Public smoke summaries must not include credential values, token values, endpoints, provider handles, SDK/client handles, stack traces, raw payloads, filesystem paths, raw logs, diffs, command output, or resolved runtime-only values.
+10. Smoke failures must return safe categories and redacted failure summaries.
 
 A secret-gated smoke result can support later release closure only when it is status-precise and no-leak safe. It cannot replace fake E2E, durable replay, package-root no-side-effect, no-leak, or release documentation evidence.
 
@@ -149,12 +157,12 @@ Safe substitutes include:
 
 ## Parked overlays
 
-OCA, LifeOS/domain behavior, sidecar, deployment runtime, production durable backend, production provider runtime, and product-layer behavior remain parked.
+OCA, Codex, LifeOS/domain behavior, sidecar, deployment runtime, production durable backend, production provider runtime, and product-layer behavior remain parked.
 
 Parked means:
 
 - they are not adapter-readiness evidence;
-- they must not be advanced by Wave 3 runtime-edge preparation;
+- they must not be advanced by W18 runtime-edge preparation or W18 release docs closure;
 - they must not be used to substitute for OpenClaw/Telegram fake E2E, no-leak, provider-port, runtime-value, smoke, or release-gate evidence;
 - they may be mentioned only to preserve excluded or downstream status unless a later post-gate prompt explicitly reopens them.
 
@@ -162,6 +170,6 @@ This document preserves that status and does not unlock OCA, LifeOS, sidecar, de
 
 ## Fan-in and release closure note
 
-This document is intentionally not a release classifier. W18E2 may later integrate runtime-edge documentation into release or current-state docs after W18A, W18B, W18C, W18D, and W18E1 evidence is known. W18E3 remains the final classifier for any adapter-ready-for-real-system-integration decision.
+This document is intentionally not a release classifier. W18E2 integrates runtime-edge documentation into release and current-state docs after W18A, W18B, W18C, W18D, W18F1, and W18E1 evidence is known. W18E3 remains the final classifier for any adapter-ready-for-real-system-integration decision.
 
-Until that later release closure, use this document only as architecture guidance for safe runtime-edge boundaries.
+Use this document only as architecture guidance for safe runtime-edge boundaries until W18E3 completes final release classification.
