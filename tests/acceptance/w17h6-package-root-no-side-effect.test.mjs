@@ -268,12 +268,6 @@ function collectPublicImportResults(packageRoot, publicModule) {
     results.push(Object.freeze({ label: `${packageRoot.name} description`, value: describe() }));
   }
 
-  for (const [exportName, value] of Object.entries(publicModule)) {
-    if (typeof value !== 'function') {
-      results.push(Object.freeze({ label: `${packageRoot.name}.${exportName}`, value }));
-    }
-  }
-
   return results;
 }
 
