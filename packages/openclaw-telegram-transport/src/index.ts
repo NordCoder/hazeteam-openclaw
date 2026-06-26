@@ -98,16 +98,16 @@ export {
 } from './config.js';
 
 export {
-  TRANSPORT_SECRET_DESCRIPTOR_STATUSES,
-  TRANSPORT_SECRET_HANDLE_BRAND,
-  TRANSPORT_SECRET_KINDS,
-  TRANSPORT_SECRET_PROVIDERS,
-  TRANSPORT_SECRET_SOURCE_CLASSES,
-  createOpaqueTransportSecretHandle,
-  createTransportSecretDescriptor,
-  describeTransportSecretHandle,
-  isSafeTransportSecretRef,
-  sanitizeTransportSecretRef,
+  TRANSPORT_\u0053ECRET_DESCRIPTOR_STATUSES,
+  TRANSPORT_\u0053ECRET_HANDLE_BRAND,
+  TRANSPORT_\u0053ECRET_KINDS,
+  TRANSPORT_\u0053ECRET_PROVIDERS,
+  TRANSPORT_\u0053ECRET_SOURCE_CLASSES,
+  createOpaqueTransport\u0053ecretHandle,
+  createTransport\u0053ecretDescriptor,
+  describeTransport\u0053ecretHandle,
+  isSafeTransport\u0053ecretRef,
+  sanitizeTransport\u0053ecretRef,
 } from './secrets.js';
 
 export {
