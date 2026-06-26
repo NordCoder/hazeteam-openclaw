@@ -138,6 +138,7 @@ Future worker prompts should include these rules unless a later manifest superse
 - no deployment readiness language unless a future deployment release gate explicitly proves it;
 - no default network behavior;
 - no default secret loading;
+- no default runtime behavior;
 - no default SDK/client construction;
 - no default listener/webhook/polling/daemon startup;
 - no OCA, LifeOS, sidecar, deployment, production durable backend, or product-readiness claim unless explicitly implemented, tested, and release-gated by a future slice;
