@@ -1,4 +1,4 @@
-export type OpenClawTelegramTransportPackageStatus = 'w14-real-transport-port-fan-in';
+export type OpenClawTelegramTransportPackageStatus = 'w19-integration-harness-public-export';
 
 export type OpenClawTelegramTransportEffect = 'none';
 
@@ -9,13 +9,14 @@ export type OpenClawTelegramTransportPublicSurface =
   | 'delivery-port'
   | 'callback-handler-port'
   | 'topic-command-router'
-  | 'real-smoke-gate';
+  | 'real-smoke-gate'
+  | 'integration-harness';
 
 export interface OpenClawTelegramTransportPackageMetadata {
   readonly name: '@hazeteam/openclaw-telegram-transport';
   readonly status: OpenClawTelegramTransportPackageStatus;
   readonly productionReady: false;
-  readonly contractSlice: 'W14G';
+  readonly contractSlice: 'W19D';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
 }
 
@@ -23,11 +24,11 @@ export interface OpenClawTelegramTransportDescriptor {
   readonly kind: 'openclaw-telegram-transport';
   readonly packageName: '@hazeteam/openclaw-telegram-transport';
   readonly packageStatus: OpenClawTelegramTransportPackageStatus;
-  readonly descriptorVersion: 'w14g';
-  readonly readiness: 'safe-transport-ports-secret-gated-smoke-non-production';
+  readonly descriptorVersion: 'w19d';
+  readonly readiness: 'adapter-ready-for-real-system-integration-under-explicit-gates';
   readonly productionReady: false;
   readonly effects: OpenClawTelegramTransportEffect;
-  readonly scope: 'w14-real-transport-port-fan-in';
+  readonly scope: 'w19-integration-harness-public-export';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
   readonly realTransportPorts: 'injected-boundaries-present';
   readonly defaultNetworkBehavior: 'none';
@@ -49,13 +50,14 @@ export const OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES = Object.freeze([
   'callback-handler-port',
   'topic-command-router',
   'real-smoke-gate',
+  'integration-harness',
 ] as const satisfies readonly OpenClawTelegramTransportPublicSurface[]);
 
 export const OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE = Object.freeze({
   name: '@hazeteam/openclaw-telegram-transport',
-  status: 'w14-real-transport-port-fan-in',
+  status: 'w19-integration-harness-public-export',
   productionReady: false,
-  contractSlice: 'W14G',
+  contractSlice: 'W19D',
   publicSurfaces: OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES,
 } satisfies OpenClawTelegramTransportPackageMetadata);
 
@@ -63,11 +65,11 @@ export const OPENCLAW_TELEGRAM_TRANSPORT_DESCRIPTOR = Object.freeze({
   kind: 'openclaw-telegram-transport',
   packageName: OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.name,
   packageStatus: OPENCLAW_TELEGRAM_TRANSPORT_PACKAGE.status,
-  descriptorVersion: 'w14g',
-  readiness: 'safe-transport-ports-secret-gated-smoke-non-production',
+  descriptorVersion: 'w19d',
+  readiness: 'adapter-ready-for-real-system-integration-under-explicit-gates',
   productionReady: false,
   effects: 'none',
-  scope: 'w14-real-transport-port-fan-in',
+  scope: 'w19-integration-harness-public-export',
   publicSurfaces: OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES,
   realTransportPorts: 'injected-boundaries-present',
   defaultNetworkBehavior: 'none',
@@ -94,16 +96,16 @@ export {
 } from './config.js';
 
 export {
-  TRANSPORT_\u0053ECRET_DESCRIPTOR_STATUSES,
-  TRANSPORT_\u0053ECRET_HANDLE_BRAND,
-  TRANSPORT_\u0053ECRET_KINDS,
-  TRANSPORT_\u0053ECRET_PROVIDERS,
-  TRANSPORT_\u0053ECRET_SOURCE_CLASSES,
-  createOpaqueTransport\u0053ecretHandle,
-  createTransport\u0053ecretDescriptor,
-  describeTransport\u0053ecretHandle,
-  isSafeTransport\u0053ecretRef,
-  sanitizeTransport\u0053ecretRef,
+  TRANSPORT_SECRET_DESCRIPTOR_STATUSES,
+  TRANSPORT_SECRET_HANDLE_BRAND,
+  TRANSPORT_SECRET_KINDS,
+  TRANSPORT_SECRET_PROVIDERS,
+  TRANSPORT_SECRET_SOURCE_CLASSES,
+  createOpaqueTransportSecretHandle,
+  createTransportSecretDescriptor,
+  describeTransportSecretHandle,
+  isSafeTransportSecretRef,
+  sanitizeTransportSecretRef,
 } from './secrets.js';
 
 export {
@@ -269,3 +271,44 @@ export type {
   RealSmokeProviderAckResult,
   RealSmokeProviderKind,
 } from './real-smoke-gate.js';
+
+export {
+  REAL_INTEGRATION_ATTEMPT_DESCRIPTOR_KIND,
+  REAL_INTEGRATION_ATTEMPT_DESCRIPTOR_VERSION,
+  REAL_INTEGRATION_ATTEMPT_READINESS_STATUSES,
+  REAL_INTEGRATION_BUSINESS_RESULTS,
+  REAL_INTEGRATION_NETWORK_GATE_STATUSES,
+  REAL_INTEGRATION_NORMALIZED_ATTEMPT_STATUSES,
+  REAL_INTEGRATION_OPERATION_CLASSES,
+  REAL_INTEGRATION_OPERATION_KINDS,
+  REAL_INTEGRATION_OPERATOR_ACKNOWLEDGEMENT_STATUSES,
+  REAL_INTEGRATION_PROVIDER_ACK_STATUSES,
+  REAL_INTEGRATION_PROVIDER_KINDS,
+  REAL_INTEGRATION_PROVIDER_PORT_STATUSES,
+  REAL_INTEGRATION_RUNTIME_CREDENTIAL_STATUSES,
+  createRealIntegrationAttemptPlanDescriptor,
+  isSafeRealIntegrationAttemptJson,
+  normalizeSuppliedRealIntegrationAttemptResult,
+} from './integration-harness/index.js';
+
+export type {
+  RealIntegrationAttemptEffect,
+  RealIntegrationAttemptNormalizedResult,
+  RealIntegrationAttemptPlanDescriptor,
+  RealIntegrationAttemptPlanInput,
+  RealIntegrationAttemptReadinessStatus,
+  RealIntegrationBusinessResult,
+  RealIntegrationEvidenceStatus,
+  RealIntegrationNetworkGateStatus,
+  RealIntegrationNoLeakResult,
+  RealIntegrationNormalizedAttemptStatus,
+  RealIntegrationOperationClass,
+  RealIntegrationOperationKind,
+  RealIntegrationOperatorAcknowledgementStatus,
+  RealIntegrationProviderAckStatus,
+  RealIntegrationProviderKind,
+  RealIntegrationProviderPortStatus,
+  RealIntegrationRedactedFailure,
+  RealIntegrationRuntimeCredentialStatus,
+  SuppliedRealIntegrationAttemptResultInput,
+} from './integration-harness/index.js';
