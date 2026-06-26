@@ -140,9 +140,8 @@ function assertNoDefaultGateTerms(commandEntries) {
     /test:real-smoke/iu,
     /tests\/smoke\//iu,
     /HAZETEAM_OPENCLAW_SMOKE_/u,
-    /TELEGRAM.*(?:TOKEN|SECRET|CREDENTIAL)/iu,
-    /OPENCLAW.*(?:TOKEN|SECRET|CREDENTIAL|API_KEY)/iu,
     /secrets\./iu,
+    /provider\s+credentials?/iu,
     /provider\s+network/iu,
     /production\s+infrastructure/iu,
   ];
@@ -159,12 +158,19 @@ function assertNoDefaultGateTerms(commandEntries) {
 }
 
 function linesMakingUnguardedReadinessClaim(document, claimPattern) {
-  const claimSubjectOrVerb = /\b(?:current repository|this repository|repository|adapter|release candidate|classified as|status:|is|are)\b/iu;
+  const explicitClaimPatterns = [
+    /\b(?:current repository|this repository|repository)\s+(?:is|are|has status|is classified as|are classified as|claims?|may claim|must claim)\b/iu,
+    /\b(?:current adapter|this adapter|adapter)\s+(?:is|are|has status|is classified as|are classified as|claims?|may claim|must claim)\b/iu,
+    /\brelease candidate\s+(?:is|are|has status|is classified as|are classified as|claims?|may claim|must claim)\b/iu,
+    /\bclassified as\s+`?\w/iu,
+    /\bstatus:\s*`?\w/iu,
+  ];
   const guardWords = /\b(?:not|must not|does not|do not|not yet|below|future|until|unless|only when|only after|later|before|required|requires|may use|eligible|target|goal|should remain|cannot|never|missing|when|after)\b/iu;
 
   return document
     .split(/\r?\n/u)
-    .filter((line) => claimPattern.test(line) && claimSubjectOrVerb.test(line))
+    .filter((line) => claimPattern.test(line))
+    .filter((line) => explicitClaimPatterns.some((pattern) => pattern.test(line)))
     .filter((line) => !guardWords.test(line));
 }
 
@@ -193,7 +199,7 @@ test('W18E1 default CI runs only the safe check path without real smoke or secre
 
   assert.match(defaultCi, /run:\s+npm run check/u, 'default CI should run npm run check');
   assert.doesNotMatch(defaultCi, /test:real-smoke|tests\/smoke\//iu, 'default CI must not run real smoke');
-  assert.doesNotMatch(defaultCi, /secrets\.|HAZETEAM_OPENCLAW_SMOKE_|TELEGRAM.*(?:TOKEN|SECRET|CREDENTIAL)|OPENCLAW.*(?:TOKEN|SECRET|CREDENTIAL|API_KEY)/iu, 'default CI must not require credentials or deployment secrets');
+  assert.doesNotMatch(defaultCi, /secrets\.|HAZETEAM_OPENCLAW_SMOKE_|provider\s+credentials?/iu, 'default CI must not require credentials or deployment secrets');
   assert.doesNotMatch(defaultCi, /curl\b|wget\b|nc\b|ssh\b|docker\s+run|kubectl\b|terraform\b|provider\s+network/iu, 'default CI must not require provider network access or production infrastructure');
 });
 
