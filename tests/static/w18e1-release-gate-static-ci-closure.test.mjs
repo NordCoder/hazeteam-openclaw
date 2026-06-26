@@ -158,11 +158,14 @@ function assertNoDefaultGateTerms(commandEntries) {
   }
 }
 
-function linesClaimingProductionReady(document) {
+function linesMakingUnguardedReadinessClaim(document, claimPattern) {
+  const claimSubjectOrVerb = /\b(?:current repository|this repository|repository|adapter|release candidate|classified as|status:|is|are)\b/iu;
+  const guardWords = /\b(?:not|must not|does not|do not|not yet|below|future|until|unless|only when|only after|later|before|required|requires|may use|eligible|target|goal|should remain|cannot|never|missing|when|after)\b/iu;
+
   return document
     .split(/\r?\n/u)
-    .filter((line) => /\b(?:is|are|classified as|status:)\s+`?production-ready`?\b/iu.test(line))
-    .filter((line) => !/\b(?:not|must not|does not|do not|not yet|below|future|only after|forbidden|unless)\b/iu.test(line));
+    .filter((line) => claimPattern.test(line) && claimSubjectOrVerb.test(line))
+    .filter((line) => !guardWords.test(line));
 }
 
 test('W18E1 root real-smoke script is explicit opt-in and excluded from default test and check', () => {
@@ -278,13 +281,25 @@ test('W18E1 package roots remain import-side-effect free and do not start runtim
   }
 });
 
-test('W18E1 release docs guard production readiness claims and parked overlays', () => {
+test('W18E1 release docs guard adapter-ready and production-ready claims while preserving parked overlays', () => {
+  const productionReadyClaim = /\bproduction-ready\b/iu;
+  const adapterReadyClaim = /\b(?:adapter-ready-for-real-system-integration|adapter-real-integration-ready)\b/iu;
+
   for (const segments of releaseDocs) {
     assertFile(...segments);
     const document = readUtf8(...segments);
     const rel = segments.join('/');
 
-    assert.deepEqual(linesClaimingProductionReady(document), [], `${rel} appears to claim production-ready`);
+    assert.deepEqual(
+      linesMakingUnguardedReadinessClaim(document, productionReadyClaim),
+      [],
+      `${rel} appears to claim production-ready`,
+    );
+    assert.deepEqual(
+      linesMakingUnguardedReadinessClaim(document, adapterReadyClaim),
+      [],
+      `${rel} appears to claim adapter-ready-for-real-system-integration before W18E3`,
+    );
     assert.match(document, /production-ready|production readiness|production runtime/iu, `${rel} should mention production readiness boundaries`);
     assert.match(document, /not|must not|does not|below|future|parked/iu, `${rel} should guard readiness claims`);
     assert.match(document, /\bOCA\b/iu, `${rel} should preserve OCA parked-overlay status`);
