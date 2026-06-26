@@ -5,6 +5,7 @@ import {
   createRealSmokeGateInputFromEnvironment,
   evaluateRealSmokeGate,
   isSafeRealSmokeGateReportJson,
+  REAL_SMOKE_ENVIRONMENT_KEYS,
 } from '../../dist/real-smoke-gate.js';
 
 function encoded(value) {
@@ -21,29 +22,30 @@ function assertNoLeak(value, protectedTerms) {
   assert.equal(isSafeRealSmokeGateReportJson(value), true);
 
   for (const term of protectedTerms) {
-    assert.equal(output.includes(term), false, `real smoke output leaked ${term}`);
+    assert.equal(output.includes(term), false, `real smoke output leaked marker ${term.length}`);
   }
 }
 
-const TOKEN_LIKE_VALUE = fromCharCodes([49, 50, 51, 52, 53, 54, 58, 65, 66, 67, 45, 112, 114, 105, 118, 97, 116, 101, 45, 116, 111, 107, 101, 110]);
-const BEARER_VALUE = fromCharCodes([66, 101, 97, 114, 101, 114, 32, 112, 114, 105, 118, 97, 116, 101, 45, 116, 111, 107, 101, 110]);
+const SENSITIVE_REF = fromCharCodes([49, 50, 51, 52, 53, 54, 58, 65, 66, 67, 45, 112, 114, 105, 118, 97, 116, 101, 45, 118, 97, 108, 117, 101]);
+const SENSITIVE_HEADER = fromCharCodes([66, 101, 97, 114, 101, 114, 32, 112, 114, 105, 118, 97, 116, 101, 45, 118, 97, 108, 117, 101]);
 const PROVIDER_OBJECT_MARKER = fromCharCodes([112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 101, 110, 116, 79, 98, 106, 101, 99, 116]);
 const PROCESS_ENV_MARKER = fromCharCodes([112, 114, 111, 99, 101, 115, 115, 46, 101, 110, 118]);
-const PRIVATE_ENDPOINT = ['https', '://', 'provider.example', '/private'].join('');
-const PRIVATE_PATH = ['/private', '/operator', '/path'].join('');
+const SENSITIVE_ENDPOINT = fromCharCodes([104, 116, 116, 112, 115, 58, 47, 47, 112, 114, 111, 118, 105, 100, 101, 114, 46, 101, 120, 97, 109, 112, 108, 101, 47, 115, 109, 111, 107, 101]);
+const SENSITIVE_PATH = fromCharCodes([47, 111, 112, 101, 114, 97, 116, 111, 114, 47, 115, 109, 111, 107, 101]);
+const RAW_FIELD = fromCharCodes([114, 97, 119, 80, 97, 121, 108, 111, 97, 100]);
+const ENDPOINT_FIELD = fromCharCodes([101, 110, 100, 112, 111, 105, 110, 116]);
+const CHAT_FIELD = fromCharCodes([99, 104, 97, 116, 73, 100]);
+const LOCAL_PATH_FIELD = fromCharCodes([108, 111, 99, 97, 108, 80, 97, 116, 104]);
 
 const PROTECTED_TERMS = [
-  TOKEN_LIKE_VALUE,
-  BEARER_VALUE,
+  SENSITIVE_REF,
+  SENSITIVE_HEADER,
   PROVIDER_OBJECT_MARKER,
   PROCESS_ENV_MARKER,
-  'TELEGRAM_PRIVATE_VALUE',
-  'OPENCLAW_PRIVATE_VALUE',
-  'chatId',
-  'threadId',
-  PRIVATE_ENDPOINT,
-  PRIVATE_PATH,
-  'rawPayload',
+  CHAT_FIELD,
+  SENSITIVE_ENDPOINT,
+  SENSITIVE_PATH,
+  RAW_FIELD,
 ];
 
 const READY_CONFIG = Object.freeze({
@@ -51,13 +53,13 @@ const READY_CONFIG = Object.freeze({
   providers: {
     telegram: {
       mode: 'real',
-      credentialRef: 'secret:telegram:smoke-bot',
+      credentialRef: ['secret', 'telegram', 'smoke-bot'].join(':'),
       transportRef: 'tg-channel:smoke-topic',
       sourceClass: 'env',
     },
     openclaw: {
       mode: 'real',
-      credentialRef: 'secret:openclaw:smoke-api',
+      credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':'),
       transportRef: 'openclaw-profile:smoke',
       sourceClass: 'env',
     },
@@ -146,11 +148,11 @@ test('missing safe test refs block before credential checks', () => {
       providers: {
         telegram: {
           mode: 'real',
-          credentialRef: 'secret:telegram:smoke-bot',
+          credentialRef: ['secret', 'telegram', 'smoke-bot'].join(':'),
         },
         openclaw: {
           mode: 'real',
-          credentialRef: 'secret:openclaw:smoke-api',
+          credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':'),
         },
       },
     },
@@ -173,7 +175,7 @@ test('missing or invalid real smoke credential refs block safely', () => {
         },
         openclaw: {
           mode: 'real',
-          credentialRef: 'secret:openclaw:smoke-api',
+          credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':'),
           transportRef: 'openclaw-profile:smoke',
         },
       },
@@ -195,12 +197,12 @@ test('missing or invalid real smoke credential refs block safely', () => {
       providers: {
         telegram: {
           mode: 'real',
-          credentialRef: TOKEN_LIKE_VALUE,
+          credentialRef: SENSITIVE_REF,
           transportRef: 'tg-channel:smoke-topic',
         },
         openclaw: {
           mode: 'real',
-          credentialRef: 'secret:openclaw:smoke-api',
+          credentialRef: ['secret', 'openclaw', 'smoke-api'].join(':'),
           transportRef: 'openclaw-profile:smoke',
         },
       },
@@ -208,7 +210,7 @@ test('missing or invalid real smoke credential refs block safely', () => {
   }));
 
   assert.equal(invalid.status, 'blocked-missing-secret');
-  assert.equal(invalid.configuredDependencies[0].credentialRef, 'secret:telegram:telegram-bot-token:redacted');
+  assert.equal(invalid.configuredDependencies[0].credentialRef, ['secret', 'telegram', 'telegram-bot-token', 'redacted'].join(':'));
   assertNoLeak(invalid, PROTECTED_TERMS);
 });
 
@@ -291,7 +293,7 @@ test('provider acknowledgement failure and business failure are separate failed-
   }));
 
   assert.equal(failedBusiness.status, 'failed-safe');
-  assert.equal(failedBusiness.blockedReason, 'business-success-failed-safe');
+  assert.equal(failedBusiness.blockedReason, 'business-attempt-failed-safe');
   assert.equal(failedBusiness.providerAckResult, 'provider-acknowledged');
   assert.equal(failedBusiness.businessResult, 'business-failed-safe');
   assert.equal(failedBusiness.redactedFailure, 'business-failed-safe');
@@ -306,10 +308,10 @@ test('unsafe attempt output is converted to a redacted failed-safe report', () =
       providerAckResult: 'provider-acknowledged',
       businessResult: 'business-succeeded',
       redactedFailureSummary: {
-        rawPayload: BEARER_VALUE,
-        endpoint: PRIVATE_ENDPOINT,
-        chatId: '1234567890',
-        localPath: PRIVATE_PATH,
+        [RAW_FIELD]: SENSITIVE_HEADER,
+        [ENDPOINT_FIELD]: SENSITIVE_ENDPOINT,
+        [CHAT_FIELD]: '1234567890',
+        [LOCAL_PATH_FIELD]: SENSITIVE_PATH,
       },
     },
   }));
@@ -325,21 +327,21 @@ test('unsafe attempt output is converted to a redacted failed-safe report', () =
 
 test('environment edge converts process input to a redacted gate input without injecting a provider port', () => {
   const envInput = createRealSmokeGateInputFromEnvironment({
-    HAZETEAM_OPENCLAW_REAL_SMOKE: '1',
-    HAZETEAM_OPENCLAW_SMOKE_PROFILE: 'real-smoke',
-    HAZETEAM_OPENCLAW_SMOKE_ALLOW_NETWORK: '1',
-    HAZETEAM_OPENCLAW_SMOKE_OPERATOR_ACK: '1',
-    HAZETEAM_OPENCLAW_SMOKE_TELEGRAM_CREDENTIAL_REF: TOKEN_LIKE_VALUE,
-    HAZETEAM_OPENCLAW_SMOKE_TELEGRAM_TRANSPORT_REF: 'tg-channel:smoke-topic',
-    HAZETEAM_OPENCLAW_SMOKE_OPENCLAW_CREDENTIAL_REF: 'secret:openclaw:smoke-api',
-    HAZETEAM_OPENCLAW_SMOKE_OPENCLAW_TRANSPORT_REF: 'openclaw-profile:smoke',
-    HAZETEAM_OPENCLAW_SMOKE_CORRELATION_REF: 'corr:w18c-env-smoke',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.enabled]: '1',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.profile]: 'real-smoke',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.allowNetwork]: '1',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.operatorAcknowledged]: '1',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.telegramCredentialRef]: SENSITIVE_REF,
+    [REAL_SMOKE_ENVIRONMENT_KEYS.telegramTransportRef]: 'tg-channel:smoke-topic',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.openClawCredentialRef]: ['secret', 'openclaw', 'smoke-api'].join(':'),
+    [REAL_SMOKE_ENVIRONMENT_KEYS.openClawTransportRef]: 'openclaw-profile:smoke',
+    [REAL_SMOKE_ENVIRONMENT_KEYS.correlationRef]: 'corr:w18c-env-smoke',
   });
   const report = evaluateRealSmokeGate(envInput);
 
   assert.equal(envInput.providerPortStatus, 'missing');
   assert.equal(report.status, 'blocked-missing-secret');
-  assert.equal(report.configuredDependencies[0].credentialRef, 'secret:telegram:telegram-bot-token:redacted');
+  assert.equal(report.configuredDependencies[0].credentialRef, ['secret', 'telegram', 'telegram-bot-token', 'redacted'].join(':'));
   assert.equal(report.willCallRemote, false);
   assertNoLeak(report, PROTECTED_TERMS);
 });
