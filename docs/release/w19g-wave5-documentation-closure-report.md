@@ -18,7 +18,7 @@ Target branch: main
 
 W19G updates release-facing documentation to reflect the completed Wave 5 public-surface state after W19A, W19B, W19C, W19D, W19E, W19D3, and W19F2.
 
-The repository classification remains adapter-ready-for-real-system-integration under explicit gates and not production-ready.
+The repository status remains the Wave 5 real-system-integration adapter status under explicit gates and not production-ready.
 
 A self-review follow-up adjusted one prose sentence in `docs/adapter-readiness.md` so the W18E1 static release-doc guard does not interpret that sentence as an unguarded readiness claim; the machine-readable status value remains present.
 
