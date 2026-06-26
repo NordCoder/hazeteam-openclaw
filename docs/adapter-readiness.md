@@ -8,7 +8,7 @@ It does not measure full production readiness, durable backend readiness, sideca
 
 Status: `adapter-ready-for-real-system-integration-under-explicit-gates`.
 
-The current repository status is adapter-ready-for-real-system-integration under explicit gates.
+The current repository status is classified as adapter readiness for real-system integration under explicit gates.
 
 The repository remains not production-ready. Wave 5 did not add default provider network calls, default provider/client construction, default secret loading, default runtime credential loading, default listener runtime, default webhook runtime, default polling runtime, durable production storage, sidecar runtime, OCA runtime execution, or LifeOS/domain product readiness.
 
