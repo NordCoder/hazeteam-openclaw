@@ -496,7 +496,7 @@ function protectedEnvMarker(): string {
 }
 
 function protectedProviderObjectMarker(): string {
-  return String.fromCharCode(112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 100, 101, 110, 116, 79, 98, 106, 101, 99, 116);
+  return String.fromCharCode(112, 114, 111, 118, 105, 100, 101, 114, 67, 108, 105, 101, 110, 116, 79, 98, 106, 101, 99, 116);
 }
 
 export function isSafeRealSmokeGateReportJson(value: unknown): boolean {
