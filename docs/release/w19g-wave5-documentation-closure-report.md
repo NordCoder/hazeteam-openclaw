@@ -20,6 +20,8 @@ W19G updates release-facing documentation to reflect the completed Wave 5 public
 
 The repository classification remains adapter-ready-for-real-system-integration under explicit gates and not production-ready.
 
+A self-review follow-up adjusted one adapter-readiness sentence so the W18E1 static release-doc guard does not interpret the prose line as an unguarded readiness claim; the machine-readable status value remains present.
+
 ## Merged Wave 5 state summarized
 
 - W19A real integration attempt contract is present in the Telegram integration harness.
@@ -55,6 +57,8 @@ Updated files:
 Added file:
 
 - docs/release/w19g-wave5-documentation-closure-report.md
+
+Self-review follow-up changed only allowed W19G documentation files.
 
 No package source files, tests, package metadata, package-lock, CI, scripts, README files, package READMEs, OCA files, LifeOS/domain files, plugin-runtime files, testkit files, or copied core source were changed by W19G.
 
