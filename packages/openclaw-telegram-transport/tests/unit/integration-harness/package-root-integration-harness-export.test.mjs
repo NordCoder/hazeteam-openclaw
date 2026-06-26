@@ -22,7 +22,7 @@ const REQUIRED_RUNTIME_EXPORTS = Object.freeze([
   'isSafeRealIntegrationAttemptJson',
 ]);
 
-const W14_DESCRIPTOR_SURFACES = Object.freeze([
+const W19D_DESCRIPTOR_SURFACES = Object.freeze([
   'config',
   'secrets',
   'channel-event-source',
@@ -30,6 +30,7 @@ const W14_DESCRIPTOR_SURFACES = Object.freeze([
   'callback-handler-port',
   'topic-command-router',
   'real-smoke-gate',
+  'integration-harness',
 ]);
 
 const FORBIDDEN_MATERIAL = Object.freeze([
@@ -169,27 +170,29 @@ test('W19D package root exports the real integration attempt harness surface', a
   });
 });
 
-test('W19D package descriptor keeps W14 package status and surface list', async () => {
+test('W19D package descriptor documents integration harness public metadata', async () => {
   await withRuntimeTripwire(async () => {
     const packageRoot = await import(PACKAGE_ROOT_IMPORT);
     const description = packageRoot.describeOpenClawTelegramTransport();
     const descriptor = description.descriptor;
 
     assert.equal(description.package.productionReady, false);
-    assert.equal(description.package.status, 'w14-real-transport-port-fan-in');
-    assert.equal(description.package.contractSlice, 'W14G');
-    assert.equal(descriptor.descriptorVersion, 'w14g');
-    assert.equal(descriptor.packageStatus, 'w14-real-transport-port-fan-in');
-    assert.equal(descriptor.readiness, 'safe-transport-ports-secret-gated-smoke-non-production');
-    assert.equal(descriptor.scope, 'w14-real-transport-port-fan-in');
+    assert.equal(description.package.status, 'w19-integration-harness-public-export');
+    assert.equal(description.package.contractSlice, 'W19D');
+    assert.equal(descriptor.descriptorVersion, 'w19d');
+    assert.equal(descriptor.packageStatus, 'w19-integration-harness-public-export');
+    assert.equal(descriptor.readiness, 'adapter-ready-for-real-system-integration-under-explicit-gates');
+    assert.equal(descriptor.scope, 'w19-integration-harness-public-export');
     assert.equal(descriptor.productionReady, false);
     assert.equal(descriptor.defaultNetworkBehavior, 'none');
     assert.equal(descriptor.runtimeClientConstructedByDefault, false);
     assert.equal(descriptor.listenerWebhookPollingRuntime, false);
     assert.equal(descriptor.effects, 'none');
     assert.equal(descriptor.realSmokeDefault, 'skipped-or-blocked');
-    assert.deepEqual(descriptor.publicSurfaces, W14_DESCRIPTOR_SURFACES);
-    assert.deepEqual(packageRoot.OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES, W14_DESCRIPTOR_SURFACES);
+    assert.deepEqual(descriptor.publicSurfaces, W19D_DESCRIPTOR_SURFACES);
+    assert.deepEqual(packageRoot.OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES, W19D_DESCRIPTOR_SURFACES);
+    assert.equal(descriptor.publicSurfaces.includes('integration-harness'), true);
+    assert.equal(packageRoot.OPENCLAW_TELEGRAM_TRANSPORT_PUBLIC_SURFACES.includes('integration-harness'), true);
 
     assertPublicJsonNoLeak(description, packageRoot.isSafeRealIntegrationAttemptJson);
   });
