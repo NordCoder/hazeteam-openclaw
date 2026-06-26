@@ -1,5 +1,10 @@
 export type OpenClawTelegramTransportPackageStatus = 'w19-integration-harness-public-export';
 
+type OpenClawTelegramTransportLegacyW14FanInAudit = {
+  readonly status: 'w14-real-transport-port-fan-in';
+  readonly contractSlice: 'W14G';
+};
+
 export type OpenClawTelegramTransportEffect = 'none';
 
 export type OpenClawTelegramTransportPublicSurface =
