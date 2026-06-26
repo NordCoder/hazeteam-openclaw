@@ -1,4 +1,6 @@
-export type OpenClawTelegramTransportPackageStatus = 'w19-integration-harness-public-export';
+export type OpenClawTelegramTransportPackageStatus =
+  | 'w14-real-transport-port-fan-in'
+  | 'w19-integration-harness-public-export';
 
 export type OpenClawTelegramTransportEffect = 'none';
 
@@ -16,7 +18,7 @@ export interface OpenClawTelegramTransportPackageMetadata {
   readonly name: '@hazeteam/openclaw-telegram-transport';
   readonly status: OpenClawTelegramTransportPackageStatus;
   readonly productionReady: false;
-  readonly contractSlice: 'W19D';
+  readonly contractSlice: 'W14G' | 'W19D';
   readonly publicSurfaces: readonly OpenClawTelegramTransportPublicSurface[];
 }
 
