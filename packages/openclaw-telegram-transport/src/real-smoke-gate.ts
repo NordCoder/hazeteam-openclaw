@@ -287,7 +287,7 @@ function attemptStatus(
   if (businessResult !== 'business-succeeded') {
     return {
       status: 'failed-safe',
-      blockedReason: 'business-success-failed-safe',
+      blockedReason: 'business-attempt-failed-safe',
       redactedFailure: 'business-failed-safe',
     };
   }
