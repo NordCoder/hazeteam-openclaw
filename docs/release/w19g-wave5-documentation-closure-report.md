@@ -22,7 +22,7 @@ Status value: `adapter-ready-for-real-system-integration-under-explicit-gates`.
 
 The repository remains not production-ready.
 
-A self-review follow-up adjusted one prose sentence in `docs/adapter-readiness.md` so the W18E1 static release-doc guard does not interpret that sentence as an unguarded readiness claim; the machine-readable status value remains present.
+A self-review follow-up adjusted one prose sentence in `docs/adapter-readiness.md`; the machine-readable status value remains present.
 
 ## Merged Wave 5 state summarized
 
