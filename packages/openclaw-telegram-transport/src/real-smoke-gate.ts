@@ -4,12 +4,19 @@ import type { TransportConfigInput, TransportConfigReadinessProjection } from '.
 
 export const REAL_SMOKE_GATE_STATUSES = Object.freeze([
   'skipped',
-  'blocked-by-profile',
-  'blocked-by-secret',
-  'blocked-by-missing-port',
+  'blocked-missing-profile',
+  'blocked-network-gate-closed',
+  'blocked-operator-ack-missing',
+  'blocked-unsafe-operation-class',
+  'blocked-missing-safe-test-ref',
+  'blocked-missing-secret',
+  'blocked-missing-port',
   'ready-to-run',
   'passed',
   'failed-safe',
+  'blocked-by-profile',
+  'blocked-by-secret',
+  'blocked-by-missing-port',
 ] as const);
 
 export type RealSmokeGateStatus = (typeof REAL_SMOKE_GATE_STATUSES)[number];
@@ -56,6 +63,19 @@ export const REAL_SMOKE_BUSINESS_RESULTS = Object.freeze([
 
 export type RealSmokeBusinessResult = (typeof REAL_SMOKE_BUSINESS_RESULTS)[number];
 
+export const REAL_SMOKE_ATTEMPT_REPORTS = Object.freeze(['not-supplied', 'supplied-redacted'] as const);
+
+export type RealSmokeAttemptReport = (typeof REAL_SMOKE_ATTEMPT_REPORTS)[number];
+
+export const REAL_SMOKE_REDACTED_FAILURES = Object.freeze([
+  'none',
+  'provider-ack-failed-safe',
+  'business-failed-safe',
+  'unsafe-output-redacted',
+] as const);
+
+export type RealSmokeRedactedFailure = (typeof REAL_SMOKE_REDACTED_FAILURES)[number];
+
 export type RealSmokeBlockedReason =
   | 'none'
   | 'not-enabled'
@@ -64,11 +84,15 @@ export type RealSmokeBlockedReason =
   | 'operator-ack-missing'
   | 'unsafe-operation-class'
   | 'missing-safe-test-ref'
+  | 'missing-or-invalid-credential-ref'
+  | 'provider-port-not-injected'
+  | 'provider-acknowledgement-failed-safe'
+  | 'business-success-failed-safe'
+  | 'unsafe-output-detected'
   | 'missing-or-invalid-secret-ref'
   | 'transport-port-not-implemented'
   | 'provider-attempt-failed-safe'
-  | 'business-attempt-failed-safe'
-  | 'unsafe-output-detected';
+  | 'business-attempt-failed-safe';
 
 export interface RealSmokeGateEnvironmentInput {
   readonly [key: string]: unknown;
@@ -77,6 +101,7 @@ export interface RealSmokeGateEnvironmentInput {
 export interface RealSmokeAttemptInput {
   readonly providerAckResult?: unknown;
   readonly businessResult?: unknown;
+  readonly redactedFailureSummary?: unknown;
 }
 
 export interface RealSmokeGateInput {
@@ -87,6 +112,7 @@ export interface RealSmokeGateInput {
   readonly operationClass?: unknown;
   readonly cleanupPolicy?: unknown;
   readonly correlationRef?: unknown;
+  readonly providerPortStatus?: unknown;
   readonly transportPortStatus?: unknown;
   readonly config?: unknown;
   readonly attempt?: RealSmokeAttemptInput;
@@ -101,7 +127,7 @@ export interface RealSmokeConfiguredDependency {
 
 export interface RealSmokeGateReport {
   readonly descriptorKind: 'openclaw-telegram-real-smoke-gate';
-  readonly descriptorVersion: 'w14f';
+  readonly descriptorVersion: 'w18c';
   readonly status: RealSmokeGateStatus;
   readonly providerKind: RealSmokeProviderKind;
   readonly profile: 'real-smoke' | 'not-real-smoke';
@@ -113,7 +139,10 @@ export interface RealSmokeGateReport {
   readonly blockedReason: RealSmokeBlockedReason;
   readonly providerAckResult: RealSmokeProviderAckResult;
   readonly businessResult: RealSmokeBusinessResult;
+  readonly providerPortStatus: RealSmokePortStatus;
   readonly transportPortStatus: RealSmokePortStatus;
+  readonly attemptReport: RealSmokeAttemptReport;
+  readonly redactedFailure: RealSmokeRedactedFailure;
   readonly noLeakResult: 'passed' | 'failed-safe';
   readonly remoteAttempt: 'not-attempted';
   readonly willCallRemote: false;
@@ -137,7 +166,19 @@ export const REAL_SMOKE_ENVIRONMENT_KEYS = Object.freeze({
 } as const);
 
 const SAFE_REF_PATTERN = /^[a-z][a-z0-9:-]{0,119}$/u;
-const DEFAULT_CORRELATION_REF = 'corr:w14f-real-smoke-gate';
+const DEFAULT_CORRELATION_REF = 'corr:w18c-real-smoke-gate';
+const MAX_REDACTED_FAILURE_INPUT_LENGTH = 240;
+
+const UNSAFE_REAL_SMOKE_OUTPUT_PATTERNS = Object.freeze([
+  /\bbearer\s+[a-z0-9._-]+/iu,
+  /\bauthorization\s*[:=]/iu,
+  /(?:https?|postgres|redis|mongodb):\/\//iu,
+  /(?:^|[\s"'=])(?:\/[A-Za-z0-9_.-]+\/|~\/|[A-Za-z]:\\)/u,
+  /\b\d{5,}:[A-Za-z0-9_-]{3,}\b/u,
+  /\b(?:chat|thread|message|callback)[_-]?id\b/iu,
+  /\braw(?:Config|Payload|Update|Response|Body)?\b/u,
+  /\b(?:endpoint|stackTrace|stack|trace|diff|logOutput)\b/u,
+] as const);
 
 function normalizeOneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   if (typeof value === 'string' && (allowed as readonly string[]).includes(value)) {
@@ -157,7 +198,7 @@ function safeRef(value: unknown, fallback: string): string {
   }
 
   const normalized = value.trim().toLowerCase().replace(/\s+/gu, '-').slice(0, 120);
-  if (!SAFE_REF_PATTERN.test(normalized)) {
+  if (!SAFE_REF_PATTERN.test(normalized) || hasUnsafeRealSmokeOutputText(normalized)) {
     return fallback;
   }
 
@@ -182,7 +223,10 @@ function configuredDependencies(readiness: TransportConfigReadinessProjection): 
 }
 
 function hasMissingTransportRef(dependencies: readonly RealSmokeConfiguredDependency[]): boolean {
-  return dependencies.some((dependency) => dependency.transportRef === `transport:${dependency.provider}`);
+  return dependencies.some((dependency) => {
+    const fallbackRef = `transport:${dependency.provider}`;
+    return dependency.transportRef === fallbackRef || dependency.transportRef === `${fallbackRef}:redacted`;
+  });
 }
 
 function normalizeAttemptProviderAck(attempt: RealSmokeAttemptInput | undefined): RealSmokeProviderAckResult {
@@ -193,23 +237,66 @@ function normalizeAttemptBusinessResult(attempt: RealSmokeAttemptInput | undefin
   return normalizeOneOf(attempt?.businessResult, REAL_SMOKE_BUSINESS_RESULTS, 'not-attempted');
 }
 
+function attemptReport(attempt: RealSmokeAttemptInput | undefined): RealSmokeAttemptReport {
+  return attempt === undefined ? 'not-supplied' : 'supplied-redacted';
+}
+
+function hasUnsafeRealSmokeOutputText(value: string): boolean {
+  return UNSAFE_REAL_SMOKE_OUTPUT_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function hasUnsafeAttemptOutput(value: unknown): boolean {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  try {
+    const encoded = JSON.stringify(value);
+    return (
+      typeof encoded !== 'string' ||
+      encoded.length > MAX_REDACTED_FAILURE_INPUT_LENGTH ||
+      hasUnsafeRealSmokeOutputText(encoded)
+    );
+  } catch {
+    return true;
+  }
+}
+
 function attemptStatus(
   providerAckResult: RealSmokeProviderAckResult,
   businessResult: RealSmokeBusinessResult,
-): Pick<RealSmokeGateReport, 'status' | 'blockedReason'> {
-  if (providerAckResult === 'not-attempted' && businessResult === 'not-attempted') {
-    return { status: 'ready-to-run', blockedReason: 'none' };
+  inputAttemptReport: RealSmokeAttemptReport,
+  unsafeAttemptOutput: boolean,
+): Pick<RealSmokeGateReport, 'status' | 'blockedReason' | 'redactedFailure'> {
+  if (unsafeAttemptOutput) {
+    return { status: 'failed-safe', blockedReason: 'unsafe-output-detected', redactedFailure: 'unsafe-output-redacted' };
+  }
+
+  if (inputAttemptReport === 'not-supplied') {
+    return { status: 'ready-to-run', blockedReason: 'none', redactedFailure: 'none' };
   }
 
   if (providerAckResult !== 'provider-acknowledged') {
-    return { status: 'failed-safe', blockedReason: 'provider-attempt-failed-safe' };
+    return {
+      status: 'failed-safe',
+      blockedReason: 'provider-acknowledgement-failed-safe',
+      redactedFailure: 'provider-ack-failed-safe',
+    };
   }
 
   if (businessResult !== 'business-succeeded') {
-    return { status: 'failed-safe', blockedReason: 'business-attempt-failed-safe' };
+    return {
+      status: 'failed-safe',
+      blockedReason: 'business-attempt-failed-safe',
+      redactedFailure: 'business-failed-safe',
+    };
   }
 
-  return { status: 'passed', blockedReason: 'none' };
+  return { status: 'passed', blockedReason: 'none', redactedFailure: 'none' };
+}
+
+function safeFallbackReadiness(readiness: TransportConfigReadinessProjection): TransportConfigReadinessProjection {
+  return parseTransportConfig({ profile: readiness.profile }).readiness;
 }
 
 function makeReport(input: {
@@ -220,13 +307,15 @@ function makeReport(input: {
   readonly correlationRef: string;
   readonly providerAckResult: RealSmokeProviderAckResult;
   readonly businessResult: RealSmokeBusinessResult;
-  readonly transportPortStatus: RealSmokePortStatus;
+  readonly providerPortStatus: RealSmokePortStatus;
+  readonly attemptReport: RealSmokeAttemptReport;
+  readonly redactedFailure: RealSmokeRedactedFailure;
   readonly readiness: TransportConfigReadinessProjection;
 }): RealSmokeGateReport {
   const dependencies = configuredDependencies(input.readiness);
   const report = Object.freeze({
     descriptorKind: 'openclaw-telegram-real-smoke-gate',
-    descriptorVersion: 'w14f',
+    descriptorVersion: 'w18c',
     status: input.status,
     providerKind: 'telegram-openclaw',
     profile: input.readiness.profile === 'real-smoke' ? 'real-smoke' : 'not-real-smoke',
@@ -238,8 +327,11 @@ function makeReport(input: {
     blockedReason: input.blockedReason,
     providerAckResult: input.providerAckResult,
     businessResult: input.businessResult,
-    transportPortStatus: input.transportPortStatus,
-    noLeakResult: 'passed',
+    providerPortStatus: input.providerPortStatus,
+    transportPortStatus: input.providerPortStatus,
+    attemptReport: input.attemptReport,
+    redactedFailure: input.redactedFailure,
+    noLeakResult: input.blockedReason === 'unsafe-output-detected' ? 'failed-safe' : 'passed',
     remoteAttempt: 'not-attempted',
     willCallRemote: false,
     effects: 'none',
@@ -251,12 +343,18 @@ function makeReport(input: {
     return report;
   }
 
+  const safeReadiness = safeFallbackReadiness(input.readiness);
+  const safeDependencies = configuredDependencies(safeReadiness);
   return Object.freeze({
     ...report,
     status: 'failed-safe',
     blockedReason: 'unsafe-output-detected',
+    redactedFailure: 'unsafe-output-redacted',
     noLeakResult: 'failed-safe',
     correlationRef: DEFAULT_CORRELATION_REF,
+    configuredDependencyCount: safeDependencies.length,
+    configuredDependencies: safeDependencies,
+    readiness: safeReadiness,
   } satisfies RealSmokeGateReport);
 }
 
@@ -287,6 +385,7 @@ export function createRealSmokeGateInputFromEnvironment(environment: RealSmokeGa
     operationClass: environment[REAL_SMOKE_ENVIRONMENT_KEYS.operationClass],
     cleanupPolicy: environment[REAL_SMOKE_ENVIRONMENT_KEYS.cleanupPolicy],
     correlationRef: environment[REAL_SMOKE_ENVIRONMENT_KEYS.correlationRef],
+    providerPortStatus: 'missing',
     transportPortStatus: 'missing',
     config,
   } satisfies RealSmokeGateInput);
@@ -297,16 +396,24 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   const operationClass = normalizeOneOf(input.operationClass, REAL_SMOKE_OPERATION_CLASSES, 'ephemeral-write');
   const cleanupPolicy = normalizeOneOf(input.cleanupPolicy, REAL_SMOKE_CLEANUP_POLICIES, 'not-applicable');
   const correlationRef = safeCorrelationRef(input.correlationRef);
-  const transportPortStatus = normalizeOneOf(input.transportPortStatus, REAL_SMOKE_PORT_STATUSES, 'missing');
+  const providerPortStatus = normalizeOneOf(
+    input.providerPortStatus ?? input.transportPortStatus,
+    REAL_SMOKE_PORT_STATUSES,
+    'missing',
+  );
   const providerAckResult = normalizeAttemptProviderAck(input.attempt);
   const businessResult = normalizeAttemptBusinessResult(input.attempt);
+  const inputAttemptReport = attemptReport(input.attempt);
+  const unsafeAttemptOutput = hasUnsafeAttemptOutput(input.attempt?.redactedFailureSummary);
   const base = {
     operationClass,
     cleanupPolicy,
     correlationRef,
     providerAckResult,
     businessResult,
-    transportPortStatus,
+    providerPortStatus,
+    attemptReport: inputAttemptReport,
+    redactedFailure: 'none' as RealSmokeRedactedFailure,
     readiness: config.readiness,
   } as const;
 
@@ -321,7 +428,7 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   if (input.profile !== 'real-smoke' || config.descriptor.profile !== 'real-smoke') {
     return makeReport({
       ...base,
-      status: 'blocked-by-profile',
+      status: 'blocked-missing-profile',
       blockedReason: 'profile-not-real-smoke',
     });
   }
@@ -329,7 +436,7 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   if (!gateEnabled(input.allowNetwork)) {
     return makeReport({
       ...base,
-      status: 'blocked-by-profile',
+      status: 'blocked-network-gate-closed',
       blockedReason: 'network-gate-not-enabled',
     });
   }
@@ -337,7 +444,7 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   if (!gateEnabled(input.operatorAcknowledged)) {
     return makeReport({
       ...base,
-      status: 'blocked-by-profile',
+      status: 'blocked-operator-ack-missing',
       blockedReason: 'operator-ack-missing',
     });
   }
@@ -345,7 +452,7 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   if (operationClass === 'destructive' || operationClass === 'long-running' || operationClass === 'sensitive-output') {
     return makeReport({
       ...base,
-      status: 'blocked-by-profile',
+      status: 'blocked-unsafe-operation-class',
       blockedReason: 'unsafe-operation-class',
     });
   }
@@ -354,7 +461,7 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   if (hasMissingTransportRef(dependencies)) {
     return makeReport({
       ...base,
-      status: 'blocked-by-profile',
+      status: 'blocked-missing-safe-test-ref',
       blockedReason: 'missing-safe-test-ref',
     });
   }
@@ -362,24 +469,25 @@ export function evaluateRealSmokeGate(input: RealSmokeGateInput = Object.freeze(
   if (config.descriptor.status === 'blocked-by-secret') {
     return makeReport({
       ...base,
-      status: 'blocked-by-secret',
-      blockedReason: 'missing-or-invalid-secret-ref',
+      status: 'blocked-missing-secret',
+      blockedReason: 'missing-or-invalid-credential-ref',
     });
   }
 
-  if (transportPortStatus === 'missing') {
+  if (providerPortStatus === 'missing') {
     return makeReport({
       ...base,
-      status: 'blocked-by-missing-port',
-      blockedReason: 'transport-port-not-implemented',
+      status: 'blocked-missing-port',
+      blockedReason: 'provider-port-not-injected',
     });
   }
 
-  const status = attemptStatus(providerAckResult, businessResult);
+  const status = attemptStatus(providerAckResult, businessResult, inputAttemptReport, unsafeAttemptOutput);
   return makeReport({
     ...base,
     status: status.status,
     blockedReason: status.blockedReason,
+    redactedFailure: status.redactedFailure,
   });
 }
 
@@ -397,5 +505,10 @@ export function isSafeRealSmokeGateReportJson(value: unknown): boolean {
   }
 
   const encoded = JSON.stringify(value);
-  return typeof encoded === 'string' && !encoded.includes(protectedEnvMarker()) && !encoded.includes(protectedProviderObjectMarker());
+  return (
+    typeof encoded === 'string' &&
+    !encoded.includes(protectedEnvMarker()) &&
+    !encoded.includes(protectedProviderObjectMarker()) &&
+    !hasUnsafeRealSmokeOutputText(encoded)
+  );
 }
