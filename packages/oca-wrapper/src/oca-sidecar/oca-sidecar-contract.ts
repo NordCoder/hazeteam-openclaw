@@ -9,10 +9,15 @@
 
 export type OcaSidecarJsonScalar = string | number | boolean | null;
 
-export type OcaSidecarJsonValue =
+export type OcaSidecarSafeDetailValue =
   | OcaSidecarJsonScalar
-  | readonly OcaSidecarJsonValue[]
-  | { readonly [key: string]: OcaSidecarJsonValue };
+  | readonly OcaSidecarJsonScalar[];
+
+export interface OcaSidecarSafeDetail {
+  readonly detailKind: 'redacted-status-detail' | 'policy-detail' | 'containment-detail';
+  readonly label: string;
+  readonly value: OcaSidecarSafeDetailValue;
+}
 
 export type OcaDescriptorKind =
   | 'oca-capability-descriptor'
@@ -176,7 +181,7 @@ export interface RedactedOcaSidecarPublicSummary extends OcaSidecarProviderOutco
   readonly safeCorrelationRef?: OcaCorrelationRef;
   readonly safeLabels: readonly string[];
   readonly safeSummaryText: string;
-  readonly safeDetails: readonly OcaSidecarJsonValue[];
+  readonly safeDetails: readonly OcaSidecarSafeDetail[];
   readonly descriptorOnly: true;
   readonly executionPass: false;
   readonly productionReady: false;
