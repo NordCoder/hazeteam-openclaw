@@ -292,18 +292,9 @@ export function createFakeInertAdapterStateStore(
     assertJsonSafeValue(input);
     assertSafeRef(input.idempotencyRef);
     assertSafeRef(input.eventRef);
-
-    if (input.reservationRef !== undefined) {
-      assertSafeRef(input.reservationRef);
-    }
-
-    if (input.stateRef !== undefined) {
-      assertSafeRef(input.stateRef);
-    }
-
-    if (input.correlationRef !== undefined) {
-      assertSafeRef(input.correlationRef);
-    }
+    assertOptionalSafeRef(input.reservationRef);
+    assertOptionalSafeRef(input.stateRef);
+    assertOptionalSafeRef(input.correlationRef);
 
     const existingSafeRef = inboundByIdempotencyRef.get(input.idempotencyRef);
 
@@ -686,7 +677,9 @@ function assertJsonSafeValue(value: unknown): asserts value is DurableAdapterJso
     throw new Error('plain-json-object-required');
   }
 
-  for (const entry of Object.values(value)) {
+  const plainObject = value as Record<string, unknown>;
+
+  for (const entry of Object.values(plainObject)) {
     assertJsonSafeValue(entry);
   }
 }
