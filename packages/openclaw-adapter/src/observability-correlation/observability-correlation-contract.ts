@@ -160,7 +160,7 @@ export interface ObservabilityCorrelationReferenceDescriptor {
   readonly correlationRef: ObservabilityCorrelationRef;
   readonly correlationRefKind: ObservabilityCorrelationRefKind;
   readonly syntheticBoundedRef: true;
-  readonly rawTraceDumpSerializable: false;
+  readonly traceDumpSerializable: false;
   readonly publicProjection: ObservabilityCorrelationPublicProjectionKind;
   readonly representation: ObservabilityCorrelationContractRepresentation;
 }
@@ -263,6 +263,6 @@ export interface ObservabilityCorrelationContractPosture {
   readonly telemetryBehavior: ObservabilityCorrelationTelemetryBehavior;
   readonly sinkOrBackendBehavior: 'not-implemented';
   readonly networkBehavior: 'not-implemented';
-  readonly providerClientBehavior: 'not-implemented';
+  readonly providerPortBehavior: 'not-implemented';
   readonly productionPosture: ObservabilityCorrelationProductionPosture;
 }
