@@ -195,6 +195,7 @@ function countOccurrences(source, needle) {
     count += 1;
     index = source.indexOf(needle, index + needle.length);
   }
+
   return count;
 }
 
@@ -308,12 +309,19 @@ test('W21B readiness classifier remains guarded and not production readiness', (
   assertDoesNotInclude(source, 'productionReady', 'W21B contract source');
 });
 
-test('W21B package-root non-export evidence remains in the local W21B unit guard', () => {
+test('W21B unit guard evidence is rebaselined for W21F durable-state barrel fan-in', () => {
   const unitGuard = readUtf8(W21B_UNIT_GUARD);
 
   assertIncludes(unitGuard, 'PACKAGE_ROOT_SOURCE_URL', 'W21B unit guard');
-  assertIncludes(unitGuard, 'W21B durable-state contracts are not exported from the package root', 'W21B unit guard');
-  assertIncludes(unitGuard, "packageRoot.includes('durable-state')", 'W21B unit guard');
-  assertIncludes(unitGuard, "packageRoot.includes('durable-state-contract-types')", 'W21B unit guard');
+  assertIncludes(unitGuard, 'LOCAL_DURABLE_BARREL_URL', 'W21B unit guard');
+  assertIncludes(
+    unitGuard,
+    'W21B durable-state contracts fan into package root only through W21F durable-state barrel',
+    'W21B unit guard',
+  );
+  assertIncludes(unitGuard, "export * from './durable-state/index.js';", 'W21B unit guard');
+  assertIncludes(unitGuard, "export type * from './durable-state-contract-types.js';", 'W21B unit guard');
+  assertIncludes(unitGuard, 'should remain type-only', 'W21B unit guard');
   assertIncludes(unitGuard, 'local durable barrel should not fan into package root', 'W21B unit guard');
+  assertDoesNotInclude(unitGuard, 'W21B durable-state contracts are not exported from the package root', 'W21B unit guard');
 });

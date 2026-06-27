@@ -12,6 +12,7 @@ const SOURCE_URL = new URL(
 );
 const PACKAGE_ROOT_SOURCE_URL = new URL('../../../src/index.ts', import.meta.url);
 const PACKAGE_ROOT_DIST_URL = new URL('../../../dist/index.js', import.meta.url);
+const LOCAL_DURABLE_BARREL_URL = new URL('../../../src/durable-state/index.ts', import.meta.url);
 
 const FORBIDDEN_PUBLIC_VOCABULARY = Object.freeze([
   'token',
@@ -376,10 +377,46 @@ test('source implies no production backend, runtime edge, provider execution, or
   }
 });
 
-test('W21D boundary is not exported from the package root', async () => {
+test('W21D replay/idempotency boundary fans into package root only through W21F durable-state barrel', async () => {
   const packageRootSource = readSource(PACKAGE_ROOT_SOURCE_URL);
+  const localBarrel = readSource(LOCAL_DURABLE_BARREL_URL);
   const packageRootModule = await import(PACKAGE_ROOT_DIST_URL.href);
 
+  assert.equal(packageRootSource.includes("export * from './durable-state/index.js';"), true);
   assert.equal(packageRootSource.includes('fake-inert-replay-idempotency-state-boundary'), false);
-  assert.equal(Object.hasOwn(packageRootModule, 'createFakeInertReplayIdempotencyStateBoundary'), false);
+  assert.equal(
+    localBarrel.includes('FAKE_INERT_REPLAY_IDEMPOTENCY_STATE_BOUNDARY_POSTURE'),
+    true,
+  );
+  assert.equal(
+    localBarrel.includes('createFakeInertReplayIdempotencyStateBoundary'),
+    true,
+  );
+  assert.equal(typeof packageRootModule.createFakeInertReplayIdempotencyStateBoundary, 'function');
+  assert.deepEqual(packageRootModule.FAKE_INERT_REPLAY_IDEMPOTENCY_STATE_BOUNDARY_POSTURE, {
+    publicProjection: 'redacted-json-safe',
+    representation: 'fake-inert-contract-only',
+    runtimeOnlyValuesSerializable: false,
+    productionDurableBackend: 'not-implemented',
+    productionReadiness: 'not-production-ready',
+    readyToAttemptIsPass: false,
+    readyToRunIsPass: false,
+    jsonSafe: true,
+  });
+
+  const rootBoundary = packageRootModule.createFakeInertReplayIdempotencyStateBoundary();
+  assert.equal(rootBoundary.publicSnapshot().recordCount, 0);
+
+  const acknowledgementOnly = rootBoundary.recordDeliveryAttemptReplayOutcome({
+    deliveryAttemptRef: 'delivery-attempt:root-ack-only',
+    idempotencyRef: 'idempotency:root-ack-only',
+    providerAcknowledged: true,
+    businessSuccess: false,
+  });
+
+  assert.equal(acknowledgementOnly.providerAcknowledged, true);
+  assert.equal(acknowledgementOnly.businessSuccess, false);
+  assert.equal(acknowledgementOnly.providerAcknowledgementImpliesBusinessSuccess, false);
+  assert.equal(acknowledgementOnly.record.productionDurableBackend, 'not-implemented');
+  assertJsonSafe(acknowledgementOnly, 'package-root replay boundary acknowledgement-only output');
 });

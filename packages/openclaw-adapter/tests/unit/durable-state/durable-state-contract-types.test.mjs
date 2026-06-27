@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const DIST_MODULE_URL = new URL('../../../dist/durable-state/durable-state-contract-types.js', import.meta.url);
 const SOURCE_URL = new URL('../../../src/durable-state/durable-state-contract-types.ts', import.meta.url);
 const PACKAGE_ROOT_SOURCE_URL = new URL('../../../src/index.ts', import.meta.url);
+const PACKAGE_ROOT_DIST_URL = new URL('../../../dist/index.js', import.meta.url);
 const LOCAL_DURABLE_BARREL_URL = new URL('../../../src/durable-state/index.ts', import.meta.url);
 
 const UNSAFE_PUBLIC_FIELD_NAMES = Object.freeze([
@@ -155,18 +156,21 @@ test('provider acknowledgement and business success vocabulary remain distinct',
   assert.doesNotMatch(source, /providerSuccess/u);
 });
 
-test('W21B durable-state contracts are not exported from the package root', () => {
+test('W21B durable-state contracts fan into package root only through W21F durable-state barrel', async () => {
   const packageRoot = readSource(PACKAGE_ROOT_SOURCE_URL);
+  const localBarrel = readSource(LOCAL_DURABLE_BARREL_URL);
+  const packageRootModule = await import(PACKAGE_ROOT_DIST_URL.href);
 
-  assert.equal(packageRoot.includes('durable-state'), false, 'package root should not export durable-state leaf');
-  assert.equal(
-    packageRoot.includes('durable-state-contract-types'),
-    false,
-    'package root should not export W21B contract types',
-  );
+  assert.equal(packageRoot.includes("export * from './durable-state/index.js';"), true);
+  assert.equal(packageRoot.includes('durable-state-contract-types'), false);
+  assert.equal(localBarrel.includes("export type * from './durable-state-contract-types.js';"), true);
+  assert.equal(localBarrel.includes('../../index'), false, 'local durable barrel should not fan into package root');
 
-  if (existsSync(LOCAL_DURABLE_BARREL_URL)) {
-    const localBarrel = readSource(LOCAL_DURABLE_BARREL_URL);
-    assert.equal(localBarrel.includes('../../index'), false, 'local durable barrel should not fan into package root');
+  for (const typeOnlyName of [
+    'DurableAdapterStateContract',
+    'DurableAdapterPublicStateProjection',
+    'DurableAdapterReadinessClassification',
+  ]) {
+    assert.equal(Object.hasOwn(packageRootModule, typeOnlyName), false, `${typeOnlyName} should remain type-only`);
   }
 });

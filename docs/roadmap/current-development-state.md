@@ -124,9 +124,21 @@ W19A/W19B/W19C/W19D/W19E/W19D3/W19F2 evidence is merged:
 
 Wave 5 does not change the repository classification beyond adapter-ready-for-real-system-integration under explicit gates. It makes the real integration attempt contract and runtime credential binding surfaces publicly reachable while preserving no default provider network calls, no default provider/client construction, no default secret loading, no production runtime claim, and no production readiness claim.
 
+### W21 durable-state fake/inert fan-in evidence
+
+W21B/W21C/W21D/W21E1/W21E2/W21F durable-state evidence is merged or staged through the W21F fan-in branch:
+
+- W21B — durable-state contract types for safe, redacted, JSON-safe fake/inert durable adapter state vocabulary.
+- W21C — fake/inert adapter state store port and explicit fake store constructor.
+- W21D — fake/inert replay and idempotency state boundary preserving duplicate suppression, replay cursor planning, provider acknowledgement/business success separation, and permission-before-consume replay decisions.
+- W21E1 and W21E2 — static no-leak guards for W21B and W21C public durable-state vocabulary.
+- W21F — local durable-state barrel and package-root fan-in export for the already merged fake/inert durable-state boundaries.
+
+W21F does not change the repository classification beyond adapter-ready-for-real-system-integration under explicit gates. It preserves the not production-ready posture and adds no production durable backend, no production storage readiness, no production durable backend behavior, no runtime/provider/network/secret/deployment behavior, no deployment/runtime/provider/OCA/LifeOS/sidecar readiness, and no real-provider success claim.
+
 ## Current classification guardrails
 
-Current state after W19G documentation closure:
+Current state after W19G documentation closure and W21 durable-state fake/inert fan-in:
 
 - classification: adapter-ready-for-real-system-integration under explicit gates;
 - not production-ready;
@@ -136,11 +148,13 @@ Current state after W19G documentation closure:
 - default check/test path remains no-network and no-secret;
 - test:real-smoke remains explicit, separate, opt-in, and secret-gated;
 - W19F2 is a static public-surface regression guard only;
+- W21 durable-state fan-in exposes fake/inert local durable-state boundaries only;
 - no production deployment readiness claim;
 - no production runtime readiness claim;
 - no production provider runtime readiness claim;
 - no production credential loading readiness claim;
 - no production durable backend readiness claim;
+- no production storage readiness claim;
 - no sidecar readiness claim;
 - no OCA runtime readiness claim;
 - no LifeOS/domain product readiness claim;
@@ -158,6 +172,11 @@ Until explicit future slices implement and test them, the repository still has:
 - no production credential loader;
 - no production deployment runtime;
 - no production durable backend;
+- no production storage readiness;
+- no production durable backend behavior;
+- no runtime/provider/network/secret/deployment behavior;
+- no deployment/runtime/provider/OCA/LifeOS/sidecar readiness;
+- no real-provider success claim;
 - no sidecar support;
 - no real OCA client execution;
 - no LifeOS or domain-product behavior.
