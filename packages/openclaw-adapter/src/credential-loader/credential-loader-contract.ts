@@ -69,7 +69,7 @@ export const CREDENTIAL_LOADER_ISSUE_CODES = [
 export const CREDENTIAL_LOADER_PUBLIC_OUTPUT_CLASSES = [
   'redacted-descriptor-only',
   'readiness-only',
-  'no-public-value',
+  'no-public-material',
 ] as const;
 
 export const CREDENTIAL_LOADER_READINESS_CLAIMS = [
