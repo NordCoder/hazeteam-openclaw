@@ -205,28 +205,14 @@ const CATEGORY_RECORD_KEYS: Record<DurableAdapterStateKind, ReadonlySet<string>>
   ]),
 };
 
-const FORBIDDEN_PUBLIC_KEYS = new Set([
-  'token',
-  'secret',
-  'credential',
-  'password',
-  'apiKey',
-  'authHeader',
-  'endpoint',
-  'url',
-  'rawPayload',
-  'rawProviderPayload',
-  'rawCallbackPayload',
-  'stack',
-  'stackTrace',
-  'localPath',
-  'stdout',
-  'stderr',
-  'client',
-  'sdk',
-  'handle',
-  'processEnv',
-  'runtimeValue',
+const REDACTED_SUMMARY_KEYS = new Set([
+  'diagnosticRef',
+  'summaryKind',
+  'status',
+  'issueCode',
+  'detailCode',
+  'safeRefs',
+  'jsonSafe',
 ]);
 
 export function createFakeInertAdapterStateStore(
@@ -604,14 +590,7 @@ function assertRecordSafeRefs(record: DurableAdapterStateContract): void {
 
 function assertAllowedRecordKeys(record: DurableAdapterStateContract): void {
   const allowedKeys = CATEGORY_RECORD_KEYS[record.stateKind];
-
-  for (const key of Object.keys(record)) {
-    assertSafePublicKey(key);
-
-    if (!allowedKeys.has(key)) {
-      throw new Error('unexpected-public-field');
-    }
-  }
+  assertAllowedKeys(record, allowedKeys);
 }
 
 function assertRedactedSummary(summary: DurableAdapterRedactedSummary | undefined): void {
@@ -620,6 +599,7 @@ function assertRedactedSummary(summary: DurableAdapterRedactedSummary | undefine
   }
 
   assertJsonSafeValue(summary);
+  assertAllowedKeys(summary, REDACTED_SUMMARY_KEYS);
 
   if (summary.summaryKind !== 'redacted-summary') {
     throw new Error('redacted-summary-required');
@@ -631,6 +611,14 @@ function assertRedactedSummary(summary: DurableAdapterRedactedSummary | undefine
 
   assertOptionalSafeRef(summary.diagnosticRef);
   assertOptionalSafeRefs(summary.safeRefs);
+}
+
+function assertAllowedKeys(value: object, allowedKeys: ReadonlySet<string>): void {
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error('unexpected-public-field');
+    }
+  }
 }
 
 function assertKnownStateKind(stateKind: DurableAdapterStateKind): void {
@@ -698,17 +686,8 @@ function assertJsonSafeValue(value: unknown): asserts value is DurableAdapterJso
     throw new Error('plain-json-object-required');
   }
 
-  const objectRecord = value as Record<string, unknown>;
-
-  for (const [key, entry] of Object.entries(objectRecord)) {
-    assertSafePublicKey(key);
+  for (const entry of Object.values(value)) {
     assertJsonSafeValue(entry);
-  }
-}
-
-function assertSafePublicKey(key: string): void {
-  if (FORBIDDEN_PUBLIC_KEYS.has(key)) {
-    throw new Error('safe-public-field-required');
   }
 }
 
