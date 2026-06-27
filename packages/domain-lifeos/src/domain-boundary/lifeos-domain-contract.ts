@@ -119,9 +119,9 @@ export interface LifeosSafeInputShapeDescriptor {
   readonly shapeKind: 'lifeos-safe-input-shape-descriptor';
   readonly fields: readonly LifeosSafeFieldDescriptor[];
   readonly allowsFunctions: false;
-  readonly allowsRuntimeHandles: false;
   readonly allowsClasses: false;
   readonly allowsSymbols: false;
+  readonly allowsNonJsonValues: false;
 }
 
 export interface LifeosIdempotencyStrategyDescriptor {
@@ -231,8 +231,8 @@ export interface LifeosDomainBoundaryInvariantDescriptor {
 
 /**
  * Redacted public projections expose descriptor-level information only. They do
- * not expose runtime handles, provider objects, runtime values, or unbounded
- * diagnostic material.
+ * not expose opaque runtime objects, provider objects, runtime values, or
+ * unbounded diagnostic material.
  */
 export interface LifeosRedactedPublicDomainProjection {
   readonly projectionKind: 'lifeos-redacted-public-domain-projection';
