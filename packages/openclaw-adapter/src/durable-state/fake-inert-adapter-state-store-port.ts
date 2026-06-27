@@ -1,4 +1,5 @@
 import type {
+  DurableAdapterCorrelationRef,
   DurableAdapterDeliveryAttemptRef,
   DurableAdapterDuplicateDisposition,
   DurableAdapterIdempotencyRef,
@@ -38,7 +39,7 @@ export interface FakeInertAdapterInboundIdempotencyReservationInput {
   readonly eventRef: DurableAdapterSafeRef;
   readonly reservationRef?: DurableAdapterSafeRef;
   readonly stateRef?: DurableAdapterStateRef;
-  readonly correlationRef?: Extract<DurableAdapterSafeRef, `correlation:${string}`>;
+  readonly correlationRef?: DurableAdapterCorrelationRef;
 }
 
 export interface FakeInertAdapterInboundIdempotencyReservationResult {
