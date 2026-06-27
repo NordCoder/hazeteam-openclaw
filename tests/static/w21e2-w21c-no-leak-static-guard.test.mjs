@@ -419,11 +419,17 @@ test('W21C source preserves redactedSummary JSON-safe public output boundary', (
   assertIncludes(unitEvidence, 'public snapshot is JSON-safe and does not expose forbidden field', 'W21C unit evidence');
 });
 
-test('package root does not export W21C durable-state store port', () => {
+test('package root does not directly export W21C durable-state store port', () => {
   const packageRootSource = readUtf8(PACKAGE_ROOT_SOURCE);
+  const assignedFanInExport = "export * from './durable-state/index.js';";
 
-  assert.doesNotMatch(packageRootSource, /^\s*export\s+.*durable-state/mu);
-  assertDoesNotInclude(packageRootSource, 'durable-state', 'openclaw-adapter package root');
+  if (packageRootSource.includes(assignedFanInExport)) {
+    const durableStateRootExports = packageRootSource.match(/^\s*export\s+\*\s+from\s+'\.\/durable-state\/index\.js';$/gmu) ?? [];
+    assert.equal(durableStateRootExports.length, 1, 'package root should expose durable-state only through the assigned W21F barrel');
+  } else {
+    assert.doesNotMatch(packageRootSource, /^\s*export\s+.*durable-state/mu);
+  }
+
   assertDoesNotInclude(packageRootSource, 'fake-inert-adapter-state-store-port', 'openclaw-adapter package root');
   assertDoesNotInclude(packageRootSource, 'createFakeInertAdapterStateStore', 'openclaw-adapter package root');
 });
