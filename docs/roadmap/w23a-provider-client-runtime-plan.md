@@ -25,7 +25,8 @@ Future W23 work must preserve these current repository limits until explicitly i
 - no default network behavior;
 - no production deployment runtime;
 - no deployment, OCA, LifeOS, domain-product, sidecar, or production provider runtime readiness claim;
-- no real-provider success claim from skipped, blocked, ready-to-run, or acknowledgement-only states.
+- ready-to-attempt is not pass;
+- no real-provider success claim from skipped, blocked, ready-to-attempt, ready-to-run, or acknowledgement-only states.
 
 ## Future provider-client ownership boundaries
 
@@ -56,6 +57,8 @@ The future injected boundary should make these facts visible:
 - whether the operation is eligible for a real smoke attempt under explicit gates.
 
 Default package import, build, check, and test paths must remain side-effect-free, no-network, and no-secret.
+
+Ready-to-attempt is not pass. It means only that all explicitly scoped gates appear sufficient for an attempted provider edge; it must not be reported as provider acknowledgement, business success, real-provider success, production provider runtime readiness, or production readiness.
 
 ### Provider acknowledgement result boundary
 
