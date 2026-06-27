@@ -6,7 +6,7 @@ W21G2 is documentation-only. It documents safe vocabulary for future durable-sta
 
 This document does not change W21B source. It does not add tests, static guards, package-root exports, store behavior, runtime behavior, production durable backend behavior, or production readiness.
 
-The current repository classification remains `adapter-ready-for-real-system-integration-under-explicit-gates`. The repository remains not production-ready.
+The current repository classification remains adapter-ready-for-real-system-integration under explicit gates. The repository remains not production-ready.
 
 ## Scope boundaries
 
@@ -125,12 +125,14 @@ The examples below are synthetic, generic, and non-operational. They use fake re
 
 ### Readiness snapshot projection
 
+This synthetic projection uses a bounded non-classifier status while the surrounding document preserves the repository classification as adapter-ready-for-real-system-integration under explicit gates and not production-ready.
+
 ~~~json
 {
   "safeRef": "readiness-snapshot:synthetic-snapshot-001",
   "stateRef": "state:synthetic-readiness-001",
   "readinessSnapshotRef": "readiness-snapshot:synthetic-snapshot-001",
-  "status": "adapter-ready-for-real-system-integration-under-explicit-gates",
+  "status": "explicit-gates-only",
   "issueCode": "no-production-durable-backend",
   "providerAcknowledged": false,
   "businessSuccess": false,
