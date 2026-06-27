@@ -1,22 +1,11 @@
 import type {
-  DurableAdapterAuditSummaryRef,
-  DurableAdapterAttemptEvidenceRef,
-  DurableAdapterCallbackRef,
-  DurableAdapterCallbackTokenRef,
-  DurableAdapterChannelRef,
-  DurableAdapterChatRef,
-  DurableAdapterComponentRef,
-  DurableAdapterCorrelationRef,
-  DurableAdapterCursorRef,
   DurableAdapterDeliveryAttemptRef,
-  DurableAdapterDiagnosticRef,
   DurableAdapterDuplicateDisposition,
   DurableAdapterIdempotencyRef,
   DurableAdapterInboundIdempotencyState,
   DurableAdapterIssueCode,
   DurableAdapterJsonValue,
   DurableAdapterPublicStateProjection,
-  DurableAdapterReadinessSnapshotRef,
   DurableAdapterRedactedSummary,
   DurableAdapterReplayCursorState,
   DurableAdapterReplayRef,
@@ -25,7 +14,6 @@ import type {
   DurableAdapterStateKind,
   DurableAdapterStateRef,
   DurableAdapterStateStatus,
-  DurableAdapterThreadRef,
 } from './durable-state-contract-types.js';
 
 export type FakeInertAdapterStateStoreCategory = DurableAdapterStateKind;
@@ -50,7 +38,7 @@ export interface FakeInertAdapterInboundIdempotencyReservationInput {
   readonly eventRef: DurableAdapterSafeRef;
   readonly reservationRef?: DurableAdapterSafeRef;
   readonly stateRef?: DurableAdapterStateRef;
-  readonly correlationRef?: DurableAdapterCorrelationRef;
+  readonly correlationRef?: Extract<DurableAdapterSafeRef, `correlation:${string}`>;
 }
 
 export interface FakeInertAdapterInboundIdempotencyReservationResult {
@@ -766,17 +754,3 @@ function createRedactedSummary(
     jsonSafe: true,
   };
 }
-
-void (undefined as unknown as DurableAdapterAuditSummaryRef | undefined);
-void (undefined as unknown as DurableAdapterAttemptEvidenceRef | undefined);
-void (undefined as unknown as DurableAdapterCallbackRef | undefined);
-void (undefined as unknown as DurableAdapterCallbackTokenRef | undefined);
-void (undefined as unknown as DurableAdapterChannelRef | undefined);
-void (undefined as unknown as DurableAdapterChatRef | undefined);
-void (undefined as unknown as DurableAdapterComponentRef | undefined);
-void (undefined as unknown as DurableAdapterCorrelationRef | undefined);
-void (undefined as unknown as DurableAdapterCursorRef | undefined);
-void (undefined as unknown as DurableAdapterDiagnosticRef | undefined);
-void (undefined as unknown as DurableAdapterReadinessSnapshotRef | undefined);
-void (undefined as unknown as DurableAdapterStateRef | undefined);
-void (undefined as unknown as DurableAdapterThreadRef | undefined);
