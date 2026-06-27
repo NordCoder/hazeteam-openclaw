@@ -12,6 +12,7 @@ const SOURCE_URL = new URL(
 );
 const PACKAGE_ROOT_SOURCE_URL = new URL('../../../src/index.ts', import.meta.url);
 const PACKAGE_ROOT_DIST_URL = new URL('../../../dist/index.js', import.meta.url);
+const LOCAL_DURABLE_BARREL_URL = new URL('../../../src/durable-state/index.ts', import.meta.url);
 
 const UNSAFE_PUBLIC_FIELD_NAMES = Object.freeze([
   'token',
@@ -442,11 +443,23 @@ test('source file exposes no forbidden public field names', () => {
   assert.equal(source.includes('businessSuccess'), true);
 });
 
-test('package root does not export W21C fake/inert store port', async () => {
+test('W21C fake/inert store port fans into package root only through W21F durable-state barrel', async () => {
   const packageRootSource = readSource(PACKAGE_ROOT_SOURCE_URL);
+  const localBarrel = readSource(LOCAL_DURABLE_BARREL_URL);
   const packageRootModule = await import(PACKAGE_ROOT_DIST_URL.href);
 
+  assert.equal(packageRootSource.includes("export * from './durable-state/index.js';"), true);
   assert.equal(packageRootSource.includes('fake-inert-adapter-state-store-port'), false);
-  assert.equal(packageRootSource.includes('durable-state'), false);
-  assert.equal(Object.hasOwn(packageRootModule, 'createFakeInertAdapterStateStore'), false);
+  assert.equal(localBarrel.includes("export { createFakeInertAdapterStateStore } from './fake-inert-adapter-state-store-port.js';"), true);
+  assert.equal(localBarrel.includes("export type * from './fake-inert-adapter-state-store-port.js';"), true);
+  assert.equal(typeof packageRootModule.createFakeInertAdapterStateStore, 'function');
+
+  const rootStore = packageRootModule.createFakeInertAdapterStateStore();
+  const snapshot = rootStore.publicSnapshot();
+
+  assert.equal(snapshot.representation, 'fake-inert-contract-only');
+  assert.equal(snapshot.publicProjection, 'redacted-json-safe');
+  assert.equal(snapshot.durableBackendPosture, 'not-implemented');
+  assert.equal(snapshot.jsonSafe, true);
+  assertJsonSafe(snapshot, 'package-root fake store snapshot');
 });
