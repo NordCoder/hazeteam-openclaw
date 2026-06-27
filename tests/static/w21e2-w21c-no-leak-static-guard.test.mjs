@@ -249,7 +249,7 @@ function sourceFieldNames(source) {
   return [...source.matchAll(/\breadonly\s+([A-Za-z_$][A-Za-z0-9_$]*)\??\s*:/gu)].map((match) => match[1]);
 }
 
-test('W21E2 inspects only W21C source, W21C unit evidence, and package-root non-export evidence', () => {
+test('W21E2 inspects only W21C source, W21C unit evidence, and package-root fan-in evidence', () => {
   assert.deepEqual(
     INSPECTED_FILES.map(asRepoRelative),
     [
@@ -419,11 +419,17 @@ test('W21C source preserves redactedSummary JSON-safe public output boundary', (
   assertIncludes(unitEvidence, 'public snapshot is JSON-safe and does not expose forbidden field', 'W21C unit evidence');
 });
 
-test('package root does not export W21C durable-state store port', () => {
+test('package root durable-state fan-in is limited to the assigned W21F local barrel', () => {
   const packageRootSource = readUtf8(PACKAGE_ROOT_SOURCE);
 
-  assert.doesNotMatch(packageRootSource, /^\s*export\s+.*durable-state/mu);
-  assertDoesNotInclude(packageRootSource, 'durable-state', 'openclaw-adapter package root');
+  assertIncludes(packageRootSource, "export * from './durable-state/index.js';", 'openclaw-adapter package root');
+  assertDoesNotInclude(packageRootSource, 'durable-state-contract-types', 'openclaw-adapter package root');
   assertDoesNotInclude(packageRootSource, 'fake-inert-adapter-state-store-port', 'openclaw-adapter package root');
+  assertDoesNotInclude(packageRootSource, 'fake-inert-replay-idempotency-state-boundary', 'openclaw-adapter package root');
   assertDoesNotInclude(packageRootSource, 'createFakeInertAdapterStateStore', 'openclaw-adapter package root');
+  assert.doesNotMatch(
+    packageRootSource,
+    /^\s*export\s+.*\.\/durable-state\/(?!index\.js)/mu,
+    'package root should not export durable-state leaf files directly',
+  );
 });
