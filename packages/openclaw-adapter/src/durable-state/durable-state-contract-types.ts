@@ -140,7 +140,7 @@ export interface DurableAdapterCallbackTokenState extends DurableAdapterStateCon
   readonly tokenRef: DurableAdapterCallbackTokenRef;
   readonly expectedContextRef: DurableAdapterSafeRef;
   readonly expiresAt?: string;
-  readonly tokenValueSerializable: false;
+  readonly opaqueRefOnly: true;
 }
 
 export interface DurableAdapterCallbackPermissionConsumeState extends DurableAdapterStateContractBase {
@@ -214,7 +214,7 @@ export interface DurableAdapterReadinessSnapshotState extends DurableAdapterStat
   readonly productionReadiness: DurableAdapterProductionReadiness;
   readonly readyToAttemptIsPass: false;
   readonly readyToRunIsPass: false;
-  readonly durableBackendClaim: DurableAdapterDurableBackendPosture;
+  readonly durableBackendPosture: DurableAdapterDurableBackendPosture;
   readonly explicitGateStatus: DurableAdapterReadinessGateStatus;
   readonly issueCodes?: readonly DurableAdapterIssueCode[];
 }
