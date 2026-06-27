@@ -197,6 +197,15 @@ export type DescriptorEvidenceClass =
 
 export type CountStatus = 'exact' | 'bounded-estimate' | 'not-counted' | 'unknown';
 
+export type SafeDescriptorSummaryStatus =
+  | MigrationState
+  | BackupStatus
+  | RestoreStatus
+  | RecoveryStatus
+  | ReplayEligibilityClass
+  | ExternalReferenceValidityClass
+  | SchemaCompatibilityClass;
+
 export interface DescriptorEvidence {
   readonly evidenceRef: DescriptorEvidenceRef;
   readonly evidenceClass: DescriptorEvidenceClass;
@@ -207,7 +216,7 @@ export interface DescriptorEvidence {
 
 export interface SafeDescriptorSummary {
   readonly summaryKind: 'redacted-summary';
-  readonly status: string;
+  readonly status: SafeDescriptorSummaryStatus;
   readonly reasonCodes?: readonly SafeReasonCode[];
   readonly safeRefs?: readonly MigrationBackupRestoreSafeRef[];
   readonly detailCode?: string;
