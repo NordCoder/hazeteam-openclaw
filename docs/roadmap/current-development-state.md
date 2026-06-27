@@ -30,13 +30,14 @@ Read in this order:
 2. hazeteam-openclaw-contract-pack-cd11.2-max-parallel-adapter-readiness.zip, especially the contract docs named by the phase prompt.
 3. docs/release/w18e3-final-adapter-readiness-report.md for the final W18 classifier and downstream unlock boundaries.
 4. docs/release/w19g-wave5-documentation-closure-report.md, when present, for the Wave 5 documentation closure summary.
-5. docs/index.md and docs/README.md.
-6. docs/adapter-readiness.md, docs/architecture/runtime-edge-boundaries.md, docs/release/release-checklist.md, and docs/release/known-limitations.md for release-facing status, preserved limitations, and production non-claims.
-7. docs/roadmap/w16a6-audit-consolidation.md for W16 and later adapter-readiness reset work.
-8. The README for the assigned package area.
-9. docs/architecture/openclaw-telegram-adapter.md.
-10. docs/architecture/parallel-execution-and-fanin.md.
-11. The assigned source and tests.
+5. docs/roadmap/w21a-durable-adapter-state-ownership-plan.md for durable adapter state planning context.
+6. docs/index.md and docs/README.md.
+7. docs/adapter-readiness.md, docs/architecture/runtime-edge-boundaries.md, docs/release/release-checklist.md, and docs/release/known-limitations.md for release-facing status, preserved limitations, and production non-claims.
+8. docs/roadmap/w16a6-audit-consolidation.md for W16 and later adapter-readiness reset work.
+9. The README for the assigned package area.
+10. docs/architecture/openclaw-telegram-adapter.md.
+11. docs/architecture/parallel-execution-and-fanin.md.
+12. The assigned source and tests.
 
 Repository docs are context. The contract pack and implementation manifest remain authoritative.
 
