@@ -152,7 +152,7 @@ const FORBIDDEN_STORAGE_OR_QUEUE_SNIPPETS = Object.freeze([
   'cache',
   'queue',
   'migration',
-  'migrate(',
+  'migrate',
   'Prisma',
   'PrismaClient',
   'TypeORM',
@@ -308,7 +308,7 @@ test('W21C source avoids unsafe public field names and unsafe public concepts', 
 test('W21C source has no runtime import, default network, or command-execution snippets', () => {
   const source = readUtf8(W21C_SOURCE);
 
-  assert.doesNotMatch(source, /\brequire\s*\(/u, 'W21C source should not require modules');
+  assert.doesNotMatch(source, /\brequire\b/u, 'W21C source should not use require vocabulary');
 
   for (const snippet of FORBIDDEN_RUNTIME_IMPORT_OR_SNIPPETS) {
     assertDoesNotInclude(source, snippet, 'W21C source');
@@ -330,6 +330,7 @@ test('W21C source has no production runtime, provider SDK, overlay, backup, rest
   const source = readUtf8(W21C_SOURCE);
 
   assert.doesNotMatch(source, /\bfunction\s+(?:recover|schedule|listen|poll)[A-Za-z0-9_$]*\b/u);
+  assert.doesNotMatch(source, /\blisten\b/u, 'W21C source should not use listener startup vocabulary');
 
   for (const snippet of [...FORBIDDEN_RUNTIME_BEHAVIOR_SNIPPETS, ...FORBIDDEN_PROVIDER_OR_OVERLAY_SNIPPETS]) {
     assertDoesNotInclude(source, snippet, 'W21C source');
