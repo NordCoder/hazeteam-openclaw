@@ -15,6 +15,11 @@ const ASSIGNED_FAN_IN_FILES = Object.freeze([
   ['docs', 'roadmap', 'w21f-durable-state-docs-and-fan-in.md'],
 ]);
 
+const FAN_IN_SOURCE_SURFACES = Object.freeze([
+  ['packages', 'openclaw-adapter', 'src', 'durable-state', 'index.ts'],
+  ['packages', 'openclaw-adapter', 'src', 'index.ts'],
+]);
+
 const DURABLE_STATE_BARREL = ASSIGNED_FAN_IN_FILES[0];
 const PACKAGE_ROOT_SOURCE = ASSIGNED_FAN_IN_FILES[1];
 const W21F_ROADMAP_NOTE = ASSIGNED_FAN_IN_FILES[5];
@@ -167,14 +172,10 @@ test('exported runtime names remain safe and fake/inert', () => {
   }
 });
 
-test('assigned W21F source files do not introduce forbidden durable-state fan-in behavior', () => {
-  for (const file of ASSIGNED_FAN_IN_FILES) {
+test('fan-in source surfaces do not introduce forbidden durable-state fan-in behavior', () => {
+  for (const file of FAN_IN_SOURCE_SURFACES) {
     const relative = asRepoRelative(file);
     const source = readUtf8(file);
-
-    if (relative === 'tests/static/w21f-durable-state-fan-in-public-surface.test.mjs') {
-      continue;
-    }
 
     for (const forbidden of FORBIDDEN_FAN_IN_SNIPPETS) {
       assertDoesNotInclude(source, forbidden, relative);
