@@ -8,16 +8,6 @@
  * readiness, and fake/inert mode is not real runtime behavior.
  */
 
-export type RuntimeModeJsonPrimitive = string | number | boolean | null;
-export type RuntimeModeJsonValue =
-  | RuntimeModeJsonPrimitive
-  | RuntimeModeJsonObject
-  | readonly RuntimeModeJsonValue[];
-
-export interface RuntimeModeJsonObject {
-  readonly [key: string]: RuntimeModeJsonValue;
-}
-
 export type RuntimeModeKind =
   | 'listener'
   | 'webhook'
