@@ -32,14 +32,17 @@ const MAX_METADATA_DEPTH = 3;
 const SAFE_REF_PATTERN = /^[A-Za-z0-9._:~-]+$/u;
 const SAFE_METADATA_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/u;
 const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]+/gu;
-const URL_LIKE_PATTERN = /\b(?:https?:\/\/|wss?:\/\/|api\.)\S+/giu;
+const UNSAFE_ASSIGNMENT_PATTERN =
+  /\b(?:api[-_]?key|authorization|bot[-_]?key|callback[-_]?data|client(?:Handle)?|config|cookie|credential(?:[-_]?value)?|diff|endpoint|log|passwd|password|path|payload|provider[-_]?payload|raw(?:[-_]?payload)?|runtime(?:Handle)?|sdk(?:Client|Handle)?|secret|session|stack(?:trace)?|token|trace|uri|url|webhook)\s*[:=]\s*\S+/giu;
+const URL_OR_ENDPOINT_PATTERN =
+  /\b(?:https?:\/\/|wss?:\/\/|api\.)\S+|\b[A-Za-z0-9.-]+\.(?:app|cloud|com|dev|example|internal|io|local|net|org)(?::\d+)?(?:\/\S*)?/giu;
 const LOCATION_LIKE_PATTERN = /(?:\/[A-Za-z0-9._~-]+){2,}|\b[A-Za-z]:\\[^\s]+/gu;
 const TRACE_LIKE_PATTERN = /\b(?:Error|TypeError|ReferenceError):\s.+?\s+at\s+\S+\s*\([^)]*\)/gsu;
 const PROVIDER_NATIVE_REF_PATTERN = /\b\d{5,}:[A-Za-z0-9_-]{8,}\b/gu;
-const SENSITIVE_ASSIGNMENT_PATTERN =
-  /\b(?:api[-_]?key|authorization|bot[-_]?key|credential[-_]?value|password|passwd|secret|session|token)\s*[:=]\s*\S+/giu;
+const API_KEY_PATTERN = /\bsk_(?:live|test)_[A-Za-z0-9_-]+\b/gu;
+const UNSAFE_REF_PATTERN = /(?:\d{5,}:[A-Za-z0-9_-]{8,}|sk_(?:live|test)_[A-Za-z0-9_-]+|https?:|wss?:|api\.|[A-Za-z0-9.-]+\.(?:app|cloud|com|dev|internal|io|local|net|org))/iu;
 const UNSAFE_METADATA_KEY_PATTERN =
-  /^(?:raw|rawProvider|rawCallback|payload|providerPayload|callbackData|credentialValue|password|passwd|secret|session|token|authorization|cookie|endpoint|url|uri|path|stack|trace|log|diff|sdk|client|clientHandle|runtimeHandle|providerHandle)$/iu;
+  /^(?:authorization|callbackData|client|clientHandle|config|cookie|credentialValue|diff|endpoint|log|passwd|password|path|payload|providerHandle|providerPayload|raw|rawCallback|rawProvider|runtimeHandle|sdk|secret|session|stack|token|trace|uri|url|webhook)$/iu;
 
 export const FAKE_INERT_PROVIDER_BOUNDARY_STATE_KINDS = [
   'absent',
@@ -124,13 +127,11 @@ export function createFakeInertProviderClientPort(
   const normalizedState = normalizeState(state);
 
   return Object.freeze({
-    describeBoundary: (request?: ProviderRequestDescriptor) =>
-      describeFakeInertProviderClientBoundary(normalizedState, request),
-    evaluateReadiness: (request: ProviderRequestDescriptor) =>
-      evaluateFakeInertProviderReadiness(request, normalizedState),
-    attemptFake: (request: ProviderRequestDescriptor) => attemptFakeInertProviderRequest(request, normalizedState),
+    describeBoundary: (request?: ProviderRequestDescriptor) => describeBoundary(normalizedState, request),
+    evaluateReadiness: (request: ProviderRequestDescriptor) => evaluateReadiness(request, normalizedState),
+    attemptFake: (request: ProviderRequestDescriptor) => attemptFake(request, normalizedState),
     projectFakeError: (request: ProviderRequestDescriptor, errorCase?: FakeInertProviderErrorCase) =>
-      projectFakeInertProviderError(request, normalizedState, errorCase ?? errorCaseForState(normalizedState.state)),
+      projectError(request, normalizedState, errorCase ?? errorCaseForState(normalizedState.state)),
   });
 }
 
@@ -138,104 +139,21 @@ export function describeFakeInertProviderClientBoundary(
   state: FakeInertProviderBoundaryState = { state: 'fake-or-inert' },
   request?: ProviderRequestDescriptor,
 ): ProviderClientBoundaryDescriptor {
-  const normalizedState = normalizeState(state);
-  const normalizedRequest = request === undefined ? undefined : normalizeRequest(request);
-  const readinessStatus = readinessStatusForState(normalizedState.state);
-  const redactedMetadata = mergeMetadata(
-    normalizedState.redactedMetadata,
-    stateMetadata(normalizedState),
-    normalizedRequest?.redactedMetadata,
-  );
-
-  return Object.freeze({
-    boundaryKind: 'provider-client-contract',
-    providerKind: normalizedState.providerKind ?? normalizedRequest?.providerKind ?? DEFAULT_PROVIDER_KIND,
-    supportedOperationKinds: normalizeSupportedOperationKinds(
-      normalizedState.supportedOperationKinds,
-      normalizedRequest?.operationKind,
-    ),
-    boundaryPosture: boundaryPostureForState(normalizedState.state),
-    readinessStatus,
-    defaultNetworkBehavior: 'none',
-    defaultRuntimeStartup: 'none',
-    defaultSensitiveValueLoading: 'none',
-    providerPackageImportState: 'not-imported',
-    repositoryPosture: REPOSITORY_POSTURE,
-    safeSummary: stateSummary(normalizedState, readinessStatus),
-    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
-  });
+  return describeBoundary(normalizeState(state), request);
 }
 
 export function evaluateFakeInertProviderReadiness(
   request: ProviderRequestDescriptor,
   state: FakeInertProviderBoundaryState = { state: 'fake-or-inert' },
 ): ProviderReadinessBoundaryDescriptor {
-  const normalizedRequest = normalizeRequest(request);
-  const normalizedState = normalizeState(state);
-  const readinessStatus = readinessStatusForState(normalizedState.state);
-  const belowPassStatus = belowPassStatusForReadiness(readinessStatus);
-  const redactedMetadata = mergeMetadata(
-    normalizedRequest.redactedMetadata,
-    normalizedState.redactedMetadata,
-    stateMetadata(normalizedState),
-  );
-
-  return Object.freeze({
-    providerKind: normalizedState.providerKind ?? normalizedRequest.providerKind,
-    operationKind: normalizedRequest.operationKind,
-    readinessStatus,
-    ...(belowPassStatus === undefined ? {} : { belowPassStatus }),
-    attemptStatus: readinessAttemptStatusForState(normalizedState.state, normalizedRequest.attemptStatus),
-    acknowledgementClass: readinessAcknowledgementForState(normalizedState),
-    businessLifecycleClass: readinessBusinessLifecycleForState(normalizedState),
-    evidenceClass: readinessEvidenceForState(normalizedState.state),
-    repositoryPosture: REPOSITORY_POSTURE,
-    safeSummary: stateSummary(normalizedState, readinessStatus),
-    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
-  });
+  return evaluateReadiness(request, normalizeState(state));
 }
 
 export function attemptFakeInertProviderRequest(
   request: ProviderRequestDescriptor,
   state: FakeInertProviderBoundaryState = { state: 'fake-or-inert' },
 ): FakeInertProviderAttemptProjection {
-  const normalizedRequest = normalizeRequest(request);
-  const normalizedState = normalizeState(state);
-
-  if (isErrorState(normalizedState.state)) {
-    return projectFakeInertProviderError(normalizedRequest, normalizedState, errorCaseForState(normalizedState.state));
-  }
-
-  const attemptStatus = attemptStatusForResult(normalizedState.state);
-  const readinessStatus = readinessStatusForResult(normalizedState.state);
-  const redactedExternalRef = safeOptionalRef(normalizedState.fakeExternalRef ?? normalizedRequest.redactedExternalRef);
-  const redactedMetadata = mergeMetadata(
-    normalizedRequest.redactedMetadata,
-    normalizedState.redactedMetadata,
-    stateMetadata(normalizedState),
-  );
-
-  return Object.freeze({
-    providerKind: normalizedState.providerKind ?? normalizedRequest.providerKind,
-    operationKind: normalizedRequest.operationKind,
-    requestDescriptor: Object.freeze({
-      ...normalizedRequest,
-      attemptStatus,
-      readinessStatus,
-      ...(redactedExternalRef === undefined ? {} : { redactedExternalRef }),
-    }),
-    attemptStatus,
-    acknowledgementClass: resultAcknowledgementForState(normalizedState),
-    businessLifecycleClass: resultBusinessLifecycleForState(normalizedState),
-    readinessStatus,
-    evidenceClass: resultEvidenceForState(normalizedState.state),
-    retryable: normalizedState.retryable ?? (normalizedState.state === 'ready-to-attempt' || normalizedState.state === 'ready-to-run'),
-    unsafeOutputDetected: normalizedState.unsafeOutputDetected,
-    ...(redactedExternalRef === undefined ? {} : { redactedExternalRef }),
-    reasonCode: reasonCodeForState(normalizedState, readinessStatus),
-    safeMessage: resultMessageForState(normalizedState.state),
-    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
-  });
+  return attemptFake(request, normalizeState(state));
 }
 
 export function projectFakeInertProviderError(
@@ -243,28 +161,7 @@ export function projectFakeInertProviderError(
   state: FakeInertProviderBoundaryState = { state: 'blocked' },
   errorCase: FakeInertProviderErrorCase = 'blocked',
 ): RedactedProviderErrorProjection {
-  const normalizedRequest = normalizeRequest(request);
-  const normalizedState = normalizeState(state);
-  const normalizedErrorCase = normalizeErrorCase(errorCase);
-  const redactedMetadata = mergeMetadata(
-    normalizedRequest.redactedMetadata,
-    normalizedState.redactedMetadata,
-    stateMetadata(normalizedState),
-    errorMetadata(normalizedErrorCase),
-  );
-
-  return Object.freeze({
-    providerKind: normalizedState.providerKind ?? normalizedRequest.providerKind,
-    operationKind: normalizedRequest.operationKind,
-    acknowledgementClass: errorAcknowledgement(normalizedErrorCase),
-    businessLifecycleClass: errorBusinessLifecycle(normalizedErrorCase),
-    readinessStatus: errorReadinessStatus(normalizedErrorCase),
-    retryable: errorRetryable(normalizedErrorCase),
-    reasonCode: errorReasonCode(normalizedState, normalizedErrorCase),
-    safeMessage: errorMessage(normalizedErrorCase),
-    unsafeOutputDetected: normalizedErrorCase === 'unsafe' || normalizedState.unsafeOutputDetected,
-    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
-  });
+  return projectError(request, normalizeState(state), normalizeErrorCase(errorCase));
 }
 
 export function isFakeInertProviderProjectionJsonSafe(
@@ -277,9 +174,120 @@ export function isFakeInertProviderProjectionJsonSafe(
   }
 }
 
+function describeBoundary(
+  state: NormalizedFakeState,
+  request?: ProviderRequestDescriptor,
+): ProviderClientBoundaryDescriptor {
+  const normalizedRequest = request === undefined ? undefined : normalizeRequest(request);
+  const readinessStatus = readinessStatusForState(state.state);
+  const redactedMetadata = mergeMetadata(state.redactedMetadata, stateMetadata(state), normalizedRequest?.redactedMetadata);
+
+  return Object.freeze({
+    boundaryKind: 'provider-client-contract',
+    providerKind: state.providerKind ?? normalizedRequest?.providerKind ?? DEFAULT_PROVIDER_KIND,
+    supportedOperationKinds: supportedOperationKinds(state.supportedOperationKinds, normalizedRequest?.operationKind),
+    boundaryPosture: boundaryPostureForState(state.state),
+    readinessStatus,
+    defaultNetworkBehavior: 'none',
+    defaultRuntimeStartup: 'none',
+    defaultSensitiveValueLoading: 'none',
+    providerPackageImportState: 'not-imported',
+    repositoryPosture: REPOSITORY_POSTURE,
+    safeSummary: summaryForState(state, readinessStatus),
+    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
+  });
+}
+
+function evaluateReadiness(
+  request: ProviderRequestDescriptor,
+  state: NormalizedFakeState,
+): ProviderReadinessBoundaryDescriptor {
+  const normalizedRequest = normalizeRequest(request);
+  const readinessStatus = readinessStatusForState(state.state);
+  const belowPassStatus = belowPassStatus(readinessStatus);
+  const redactedMetadata = mergeMetadata(normalizedRequest.redactedMetadata, state.redactedMetadata, stateMetadata(state));
+
+  return Object.freeze({
+    providerKind: state.providerKind ?? normalizedRequest.providerKind,
+    operationKind: normalizedRequest.operationKind,
+    readinessStatus,
+    ...(belowPassStatus === undefined ? {} : { belowPassStatus }),
+    attemptStatus: attemptStatusForReadiness(state.state, normalizedRequest.attemptStatus),
+    acknowledgementClass: acknowledgementForReadiness(state),
+    businessLifecycleClass: businessForReadiness(state),
+    evidenceClass: evidenceForReadiness(state.state),
+    repositoryPosture: REPOSITORY_POSTURE,
+    safeSummary: summaryForState(state, readinessStatus),
+    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
+  });
+}
+
+function attemptFake(request: ProviderRequestDescriptor, state: NormalizedFakeState): FakeInertProviderAttemptProjection {
+  const normalizedRequest = normalizeRequest(request);
+
+  if (isErrorState(state.state)) {
+    return projectError(normalizedRequest, state, errorCaseForState(state.state));
+  }
+
+  const attemptStatus = attemptStatusForProjection(state.state);
+  const readinessStatus = readinessStatusForProjection(state.state);
+  const redactedExternalRef = safeOptionalRef(state.fakeExternalRef ?? normalizedRequest.redactedExternalRef);
+  const redactedMetadata = mergeMetadata(normalizedRequest.redactedMetadata, state.redactedMetadata, stateMetadata(state));
+
+  return Object.freeze({
+    providerKind: state.providerKind ?? normalizedRequest.providerKind,
+    operationKind: normalizedRequest.operationKind,
+    requestDescriptor: Object.freeze({
+      ...normalizedRequest,
+      attemptStatus,
+      readinessStatus,
+      ...(redactedExternalRef === undefined ? {} : { redactedExternalRef }),
+    }),
+    attemptStatus,
+    acknowledgementClass: acknowledgementForProjection(state),
+    businessLifecycleClass: businessForProjection(state),
+    readinessStatus,
+    evidenceClass: evidenceForProjection(state.state),
+    retryable: state.retryable ?? (state.state === 'ready-to-attempt' || state.state === 'ready-to-run'),
+    unsafeOutputDetected: state.unsafeOutputDetected,
+    ...(redactedExternalRef === undefined ? {} : { redactedExternalRef }),
+    reasonCode: state.reasonCode,
+    safeMessage: messageForProjection(state.state),
+    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
+  });
+}
+
+function projectError(
+  request: ProviderRequestDescriptor,
+  state: NormalizedFakeState,
+  errorCase: FakeInertProviderErrorCase,
+): RedactedProviderErrorProjection {
+  const normalizedRequest = normalizeRequest(request);
+  const normalizedErrorCase = normalizeErrorCase(errorCase);
+  const redactedMetadata = mergeMetadata(
+    normalizedRequest.redactedMetadata,
+    state.redactedMetadata,
+    stateMetadata(state),
+    Object.freeze({ errorCase: normalizedErrorCase, fakeOnly: true, realProviderAttempted: false }),
+  );
+
+  return Object.freeze({
+    providerKind: state.providerKind ?? normalizedRequest.providerKind,
+    operationKind: normalizedRequest.operationKind,
+    acknowledgementClass: acknowledgementForError(normalizedErrorCase),
+    businessLifecycleClass: businessForError(normalizedErrorCase),
+    readinessStatus: readinessForError(normalizedErrorCase),
+    retryable: normalizedErrorCase === 'unavailable' || normalizedErrorCase === 'timed-out',
+    reasonCode: state.reasonCode,
+    safeMessage: messageForError(normalizedErrorCase),
+    unsafeOutputDetected: normalizedErrorCase === 'unsafe' || state.unsafeOutputDetected,
+    ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
+  });
+}
+
 function normalizeState(state: FakeInertProviderBoundaryState): NormalizedFakeState {
   const stateKind = isStateKind(state.state) ? state.state : 'failed-safe';
-  const providerKind = state.providerKind === undefined ? undefined : safeRequiredRef(String(state.providerKind), DEFAULT_PROVIDER_KIND) as ProviderKind;
+  const providerKind = state.providerKind === undefined ? undefined : (safeRequiredRef(String(state.providerKind), DEFAULT_PROVIDER_KIND) as ProviderKind);
   const fakeAcknowledgementClass = normalizeAcknowledgement(state.fakeAcknowledgementClass);
   const fakeBusinessLifecycleClass = normalizeBusinessLifecycle(state.fakeBusinessLifecycleClass);
   const fakeExternalRef = safeOptionalRef(state.fakeExternalRef);
@@ -288,14 +296,14 @@ function normalizeState(state: FakeInertProviderBoundaryState): NormalizedFakeSt
   return Object.freeze({
     state: stateKind,
     ...(providerKind === undefined ? {} : { providerKind }),
-    supportedOperationKinds: normalizeSupportedOperationKinds(state.supportedOperationKinds),
+    supportedOperationKinds: supportedOperationKinds(state.supportedOperationKinds),
     networkGate: normalizeNetworkGate(state.networkGate, stateKind),
     credentialState: normalizeCredentialState(state.credentialState, stateKind),
     injectedPortState: normalizeInjectedPortState(state.injectedPortState, stateKind),
     ...(fakeAcknowledgementClass === undefined ? {} : { fakeAcknowledgementClass }),
     ...(fakeBusinessLifecycleClass === undefined ? {} : { fakeBusinessLifecycleClass }),
     ...(fakeExternalRef === undefined ? {} : { fakeExternalRef }),
-    reasonCode: safeRequiredRef(state.reasonCode ?? defaultReasonCodeForState(stateKind), DEFAULT_REASON_CODE),
+    reasonCode: safeRequiredRef(state.reasonCode ?? defaultReasonCode(stateKind), DEFAULT_REASON_CODE),
     safeSummary: safeText(state.safeSummary ?? DEFAULT_SAFE_SUMMARY, DEFAULT_SAFE_SUMMARY),
     ...(redactedMetadata === undefined ? {} : { redactedMetadata }),
     unsafeOutputDetected: state.unsafeOutputDetected === true || stateKind === 'unsafe-output',
@@ -305,7 +313,7 @@ function normalizeState(state: FakeInertProviderBoundaryState): NormalizedFakeSt
 
 function normalizeRequest(request: ProviderRequestDescriptor): ProviderRequestDescriptor {
   const correlationRef = safeOptionalRef(request.correlationRef);
-  const readinessStatus = normalizeReadinessStatus(request.readinessStatus);
+  const readinessStatus = normalizeReadiness(request.readinessStatus);
   const safeSummary = request.safeSummary === undefined ? undefined : safeText(request.safeSummary, DEFAULT_SAFE_SUMMARY);
   const redactedExternalRef = safeOptionalRef(request.redactedExternalRef);
   const redactedMetadata = mergeMetadata(request.redactedMetadata);
@@ -313,10 +321,10 @@ function normalizeRequest(request: ProviderRequestDescriptor): ProviderRequestDe
   return Object.freeze({
     providerKind: safeRequiredRef(String(request.providerKind), DEFAULT_PROVIDER_KIND) as ProviderKind,
     operationKind: safeRequiredRef(String(request.operationKind), DEFAULT_OPERATION_KIND) as ProviderOperationKind,
-    operationSafetyClass: normalizeSafetyClass(request.operationSafetyClass),
+    operationSafetyClass: normalizeSafety(request.operationSafetyClass),
     requestRef: safeRequiredRef(request.requestRef, DEFAULT_REQUEST_REF),
     ...(correlationRef === undefined ? {} : { correlationRef }),
-    attemptStatus: normalizeAttemptStatus(request.attemptStatus),
+    attemptStatus: normalizeAttempt(request.attemptStatus),
     ...(readinessStatus === undefined ? {} : { readinessStatus }),
     ...(safeSummary === undefined ? {} : { safeSummary }),
     ...(redactedExternalRef === undefined ? {} : { redactedExternalRef }),
@@ -324,7 +332,7 @@ function normalizeRequest(request: ProviderRequestDescriptor): ProviderRequestDe
   });
 }
 
-function normalizeSupportedOperationKinds(
+function supportedOperationKinds(
   input?: readonly ProviderOperationKind[],
   requestOperationKind?: ProviderOperationKind,
 ): readonly ProviderOperationKind[] {
@@ -335,8 +343,9 @@ function normalizeSupportedOperationKinds(
     'real-smoke-attempt',
     'runtime-binding-check',
   ]);
-  const source = input === undefined || input.length === 0 ? defaults : input;
-  const values = source.slice(0, MAX_METADATA_ARRAY_ITEMS).map((entry) => safeRequiredRef(String(entry), DEFAULT_OPERATION_KIND) as ProviderOperationKind);
+  const values = (input === undefined || input.length === 0 ? defaults : input)
+    .slice(0, MAX_METADATA_ARRAY_ITEMS)
+    .map((entry) => safeRequiredRef(String(entry), DEFAULT_OPERATION_KIND) as ProviderOperationKind);
 
   if (requestOperationKind !== undefined && !values.includes(requestOperationKind)) {
     values.push(safeRequiredRef(String(requestOperationKind), DEFAULT_OPERATION_KIND) as ProviderOperationKind);
@@ -380,22 +389,16 @@ function readinessStatusForState(state: FakeInertProviderBoundaryStateKind): Pro
   }
 }
 
-function belowPassStatusForReadiness(status: ProviderReadinessStatus): ProviderReadinessBelowPassStatus | undefined {
-  if (
-    status === 'skipped' ||
-    status === 'blocked' ||
-    status === 'ready-to-attempt' ||
-    status === 'ready-to-run' ||
-    status === 'acknowledgement-only'
-  ) {
+function belowPassStatus(status: ProviderReadinessStatus): ProviderReadinessBelowPassStatus | undefined {
+  if (status === 'skipped' || status === 'blocked' || status === 'ready-to-attempt' || status === 'ready-to-run' || status === 'acknowledgement-only') {
     return status;
   }
   return undefined;
 }
 
-function readinessAttemptStatusForState(
+function attemptStatusForReadiness(
   state: FakeInertProviderBoundaryStateKind,
-  requestAttemptStatus: ProviderAttemptStatus,
+  fallback: ProviderAttemptStatus,
 ): ProviderAttemptStatus {
   switch (state) {
     case 'absent':
@@ -408,7 +411,7 @@ function readinessAttemptStatusForState(
     case 'skipped':
       return 'skipped';
     case 'fake-or-inert':
-      return requestAttemptStatus === 'ready-to-run' ? 'ready-to-run' : 'ready-to-attempt';
+      return fallback === 'ready-to-run' ? 'ready-to-run' : 'ready-to-attempt';
     case 'ready-to-attempt':
       return 'ready-to-attempt';
     case 'ready-to-run':
@@ -422,7 +425,7 @@ function readinessAttemptStatusForState(
   }
 }
 
-function readinessAcknowledgementForState(state: NormalizedFakeState): ProviderAcknowledgementClass {
+function acknowledgementForReadiness(state: NormalizedFakeState): ProviderAcknowledgementClass {
   if (state.state === 'blocked' || state.state === 'missing-credential' || state.state === 'closed-network-gate' || state.state === 'missing-provider-port') {
     return 'blocked';
   }
@@ -438,9 +441,9 @@ function readinessAcknowledgementForState(state: NormalizedFakeState): ProviderA
   return 'not-attempted';
 }
 
-function readinessBusinessLifecycleForState(state: NormalizedFakeState): ProviderBusinessLifecycleClass {
+function businessForReadiness(state: NormalizedFakeState): ProviderBusinessLifecycleClass {
   if (state.state === 'acknowledged') {
-    return state.fakeBusinessLifecycleClass ?? 'pending';
+    return state.fakeBusinessLifecycleClass === 'failed' ? 'failed' : 'pending';
   }
   if (state.state === 'acknowledgement-only') {
     return 'not-applicable';
@@ -451,42 +454,27 @@ function readinessBusinessLifecycleForState(state: NormalizedFakeState): Provide
   return 'not-started';
 }
 
-function readinessEvidenceForState(state: FakeInertProviderBoundaryStateKind): ProviderEvidenceClass {
-  switch (state) {
-    case 'absent':
-      return 'none';
-    case 'fake-or-inert':
-      return 'descriptor-only';
-    case 'acknowledged':
-    case 'acknowledgement-only':
-      return 'acknowledgement-only';
-    case 'failed-safe':
-    case 'unsafe-output':
-      return 'failed-safe-evidence';
-    case 'blocked':
-    case 'skipped':
-    case 'ready-to-attempt':
-    case 'ready-to-run':
-    case 'missing-credential':
-    case 'closed-network-gate':
-    case 'missing-provider-port':
-      return 'readiness-only';
+function evidenceForReadiness(state: FakeInertProviderBoundaryStateKind): ProviderEvidenceClass {
+  if (state === 'absent') {
+    return 'none';
   }
+  if (state === 'fake-or-inert') {
+    return 'descriptor-only';
+  }
+  if (state === 'acknowledged' || state === 'acknowledgement-only') {
+    return 'acknowledgement-only';
+  }
+  if (state === 'failed-safe' || state === 'unsafe-output') {
+    return 'failed-safe-evidence';
+  }
+  return 'readiness-only';
 }
 
 function isErrorState(state: FakeInertProviderBoundaryStateKind): boolean {
-  return (
-    state === 'absent' ||
-    state === 'blocked' ||
-    state === 'failed-safe' ||
-    state === 'unsafe-output' ||
-    state === 'missing-credential' ||
-    state === 'closed-network-gate' ||
-    state === 'missing-provider-port'
-  );
+  return state === 'absent' || state === 'blocked' || state === 'failed-safe' || state === 'unsafe-output' || state === 'missing-credential' || state === 'closed-network-gate' || state === 'missing-provider-port';
 }
 
-function attemptStatusForResult(state: FakeInertProviderBoundaryStateKind): ProviderAttemptStatus {
+function attemptStatusForProjection(state: FakeInertProviderBoundaryStateKind): ProviderAttemptStatus {
   if (state === 'fake-or-inert') {
     return 'attempted';
   }
@@ -499,7 +487,7 @@ function attemptStatusForResult(state: FakeInertProviderBoundaryStateKind): Prov
   return 'blocked';
 }
 
-function readinessStatusForResult(state: FakeInertProviderBoundaryStateKind): ProviderReadinessStatus {
+function readinessStatusForProjection(state: FakeInertProviderBoundaryStateKind): ProviderReadinessStatus {
   if (state === 'fake-or-inert') {
     return 'attempted-redacted';
   }
@@ -512,19 +500,19 @@ function readinessStatusForResult(state: FakeInertProviderBoundaryStateKind): Pr
   return 'blocked';
 }
 
-function resultAcknowledgementForState(state: NormalizedFakeState): ProviderAcknowledgementClass {
+function acknowledgementForProjection(state: NormalizedFakeState): ProviderAcknowledgementClass {
   if (state.state === 'fake-or-inert' || state.state === 'acknowledged' || state.state === 'acknowledgement-only') {
     return state.fakeAcknowledgementClass ?? 'accepted';
   }
-  if (state.state === 'skipped') {
-    return 'skipped';
-  }
-  return 'not-attempted';
+  return state.state === 'skipped' ? 'skipped' : 'not-attempted';
 }
 
-function resultBusinessLifecycleForState(state: NormalizedFakeState): ProviderBusinessLifecycleClass {
-  if (state.state === 'fake-or-inert' || state.state === 'acknowledged') {
-    return state.fakeBusinessLifecycleClass ?? 'pending';
+function businessForProjection(state: NormalizedFakeState): ProviderBusinessLifecycleClass {
+  if (state.state === 'fake-or-inert') {
+    return state.fakeBusinessLifecycleClass === 'failed' ? 'failed' : 'pending';
+  }
+  if (state.state === 'acknowledged') {
+    return 'pending';
   }
   if (state.state === 'acknowledgement-only') {
     return 'not-applicable';
@@ -532,7 +520,7 @@ function resultBusinessLifecycleForState(state: NormalizedFakeState): ProviderBu
   return 'not-started';
 }
 
-function resultEvidenceForState(state: FakeInertProviderBoundaryStateKind): ProviderEvidenceClass {
+function evidenceForProjection(state: FakeInertProviderBoundaryStateKind): ProviderEvidenceClass {
   if (state === 'fake-or-inert') {
     return 'redacted-attempt-evidence';
   }
@@ -549,13 +537,10 @@ function errorCaseForState(state: FakeInertProviderBoundaryStateKind): FakeInert
   if (state === 'failed-safe') {
     return 'failed-safe';
   }
-  if (state === 'closed-network-gate' || state === 'missing-credential' || state === 'missing-provider-port' || state === 'absent' || state === 'blocked') {
-    return 'blocked';
-  }
-  return 'failed-safe';
+  return 'blocked';
 }
 
-function errorAcknowledgement(errorCase: FakeInertProviderErrorCase): ProviderAcknowledgementClass {
+function acknowledgementForError(errorCase: FakeInertProviderErrorCase): ProviderAcknowledgementClass {
   switch (errorCase) {
     case 'blocked':
       return 'blocked';
@@ -571,7 +556,7 @@ function errorAcknowledgement(errorCase: FakeInertProviderErrorCase): ProviderAc
   }
 }
 
-function errorBusinessLifecycle(errorCase: FakeInertProviderErrorCase): ProviderBusinessLifecycleClass {
+function businessForError(errorCase: FakeInertProviderErrorCase): ProviderBusinessLifecycleClass {
   if (errorCase === 'blocked') {
     return 'not-started';
   }
@@ -581,7 +566,7 @@ function errorBusinessLifecycle(errorCase: FakeInertProviderErrorCase): Provider
   return 'failed';
 }
 
-function errorReadinessStatus(errorCase: FakeInertProviderErrorCase): ProviderReadinessStatus {
+function readinessForError(errorCase: FakeInertProviderErrorCase): ProviderReadinessStatus {
   if (errorCase === 'blocked') {
     return 'blocked';
   }
@@ -589,31 +574,6 @@ function errorReadinessStatus(errorCase: FakeInertProviderErrorCase): ProviderRe
     return 'failed-safe';
   }
   return 'attempted-redacted';
-}
-
-function errorRetryable(errorCase: FakeInertProviderErrorCase): boolean {
-  return errorCase === 'unavailable' || errorCase === 'timed-out';
-}
-
-function errorReasonCode(state: NormalizedFakeState, errorCase: FakeInertProviderErrorCase): string {
-  return state.reasonCode.length === 0 ? safeRequiredRef('fake-inert-provider-' + errorCase, DEFAULT_REASON_CODE) : state.reasonCode;
-}
-
-function errorMessage(errorCase: FakeInertProviderErrorCase): string {
-  switch (errorCase) {
-    case 'blocked':
-      return 'Fake/inert provider request is blocked before any provider attempt.';
-    case 'unsafe':
-      return 'Fake/inert provider request failed safely because unsafe output was detected.';
-    case 'unavailable':
-      return 'Fake/inert provider request projected provider unavailable without remote execution.';
-    case 'timed-out':
-      return 'Fake/inert provider request projected timed out without remote execution.';
-    case 'rejected':
-      return 'Fake/inert provider request projected rejected without remote execution.';
-    case 'failed-safe':
-      return 'Fake/inert provider request failed safely without exposing provider details.';
-  }
 }
 
 function normalizeNetworkGate(
@@ -646,36 +606,47 @@ function normalizeInjectedPortState(
   return state === 'absent' || state === 'missing-provider-port' ? 'absent' : 'fake-inert';
 }
 
-function stateSummary(state: NormalizedFakeState, readinessStatus: ProviderReadinessStatus): string {
+function summaryForState(state: NormalizedFakeState, readinessStatus: ProviderReadinessStatus): string {
   return safeText(state.safeSummary + ' readiness=' + readinessStatus + '; state=' + state.state + '.', DEFAULT_SAFE_SUMMARY);
 }
 
-function resultMessageForState(state: FakeInertProviderBoundaryStateKind): string {
-  if (state === 'fake-or-inert') {
-    return 'Fake/inert provider attempt produced redacted attempt evidence without remote execution.';
-  }
-  if (state === 'acknowledged') {
-    return 'Fake/inert provider attempt produced provider acknowledgement only; business lifecycle remains separate.';
-  }
+function messageForProjection(state: FakeInertProviderBoundaryStateKind): string {
   if (state === 'acknowledgement-only') {
     return 'Provider acknowledgement-only evidence remains below pass and is not business success.';
   }
+  if (state === 'acknowledged') {
+    return 'Fake/inert provider acknowledgement remains separate from business lifecycle.';
+  }
   if (state === 'ready-to-attempt') {
-    return 'Ready-to-attempt is below pass and not provider success.';
+    return 'Ready-to-attempt is below pass and is not provider success.';
   }
   if (state === 'ready-to-run') {
-    return 'Ready-to-run is below pass and not provider success.';
+    return 'Ready-to-run is below pass and is not provider success.';
   }
-  return 'Fake/inert provider request did not prove provider or business success.';
+  if (state === 'fake-or-inert') {
+    return 'Fake/inert provider projection used redacted fake evidence without remote execution.';
+  }
+  return 'Fake/inert provider projection did not prove provider or business success.';
 }
 
-function reasonCodeForState(state: NormalizedFakeState, readinessStatus: ProviderReadinessStatus): string {
-  return state.reasonCode.length === 0
-    ? safeRequiredRef('fake-inert-provider-' + readinessStatus + '-' + state.state, DEFAULT_REASON_CODE)
-    : state.reasonCode;
+function messageForError(errorCase: FakeInertProviderErrorCase): string {
+  switch (errorCase) {
+    case 'blocked':
+      return 'Fake/inert provider request is blocked before any provider attempt.';
+    case 'unsafe':
+      return 'Fake/inert provider request failed safely because unsafe output was detected.';
+    case 'unavailable':
+      return 'Fake/inert provider request projected provider unavailable without remote execution.';
+    case 'timed-out':
+      return 'Fake/inert provider request projected timed out without remote execution.';
+    case 'rejected':
+      return 'Fake/inert provider request projected rejected without remote execution.';
+    case 'failed-safe':
+      return 'Fake/inert provider request failed safely without exposing provider details.';
+  }
 }
 
-function defaultReasonCodeForState(state: FakeInertProviderBoundaryStateKind): string {
+function defaultReasonCode(state: FakeInertProviderBoundaryStateKind): string {
   if (state === 'ready-to-attempt' || state === 'ready-to-run') {
     return 'fake-inert-provider-' + state + '-not-pass';
   }
@@ -700,93 +671,40 @@ function stateMetadata(state: NormalizedFakeState): ProviderClientJsonObject {
   });
 }
 
-function errorMetadata(errorCase: FakeInertProviderErrorCase): ProviderClientJsonObject {
-  return Object.freeze({ errorCase, fakeOnly: true, realProviderAttempted: false });
+function normalizeSafety(input: ProviderOperationSafetyClass): ProviderOperationSafetyClass {
+  return input === 'read-only' || input === 'persistent-write' || input === 'destructive' || input === 'unknown' ? input : 'unknown';
 }
 
-function normalizeSafetyClass(input: ProviderOperationSafetyClass): ProviderOperationSafetyClass {
-  if (input === 'read-only' || input === 'persistent-write' || input === 'destructive' || input === 'unknown') {
-    return input;
-  }
-  return 'unknown';
+function normalizeAttempt(input: ProviderAttemptStatus): ProviderAttemptStatus {
+  return input === 'not-attempted' || input === 'skipped' || input === 'blocked' || input === 'ready-to-attempt' || input === 'ready-to-run' || input === 'attempted' || input === 'acknowledged' || input === 'failed-safe' ? input : 'not-attempted';
 }
 
-function normalizeAttemptStatus(input: ProviderAttemptStatus): ProviderAttemptStatus {
-  if (
-    input === 'not-attempted' ||
-    input === 'skipped' ||
-    input === 'blocked' ||
-    input === 'ready-to-attempt' ||
-    input === 'ready-to-run' ||
-    input === 'attempted' ||
-    input === 'acknowledged' ||
-    input === 'failed-safe'
-  ) {
-    return input;
-  }
-  return 'not-attempted';
-}
-
-function normalizeReadinessStatus(input: ProviderReadinessStatus | undefined): ProviderReadinessStatus | undefined {
-  if (
-    input === 'not-evaluated' ||
-    input === 'not-configured' ||
-    input === 'skipped' ||
-    input === 'blocked' ||
-    input === 'ready-to-attempt' ||
-    input === 'ready-to-run' ||
-    input === 'attempted-redacted' ||
-    input === 'acknowledgement-only' ||
-    input === 'failed-safe'
-  ) {
+function normalizeReadiness(input: ProviderReadinessStatus | undefined): ProviderReadinessStatus | undefined {
+  if (input === 'not-evaluated' || input === 'not-configured' || input === 'skipped' || input === 'blocked' || input === 'ready-to-attempt' || input === 'ready-to-run' || input === 'attempted-redacted' || input === 'acknowledgement-only' || input === 'failed-safe') {
     return input;
   }
   return undefined;
 }
 
 function normalizeAcknowledgement(input: ProviderAcknowledgementClass | undefined): ProviderAcknowledgementClass | undefined {
-  if (
-    input === 'not-attempted' ||
-    input === 'accepted' ||
-    input === 'delivered' ||
-    input === 'rejected' ||
-    input === 'throttled' ||
-    input === 'unavailable' ||
-    input === 'timed-out' ||
-    input === 'blocked' ||
-    input === 'skipped' ||
-    input === 'unsafe'
-  ) {
+  if (input === 'not-attempted' || input === 'accepted' || input === 'delivered' || input === 'rejected' || input === 'throttled' || input === 'unavailable' || input === 'timed-out' || input === 'blocked' || input === 'skipped' || input === 'unsafe') {
     return input;
   }
   return undefined;
 }
 
 function normalizeBusinessLifecycle(input: ProviderBusinessLifecycleClass | undefined): ProviderBusinessLifecycleClass | undefined {
-  if (
-    input === 'not-started' ||
-    input === 'pending' ||
-    input === 'completed' ||
-    input === 'failed' ||
-    input === 'duplicate-suppressed' ||
-    input === 'permission-denied' ||
-    input === 'not-applicable'
-  ) {
+  if (input === 'not-started' || input === 'pending' || input === 'completed' || input === 'failed' || input === 'duplicate-suppressed' || input === 'permission-denied' || input === 'not-applicable') {
     return input;
   }
   return undefined;
 }
 
 function normalizeErrorCase(input: FakeInertProviderErrorCase): FakeInertProviderErrorCase {
-  if (input === 'blocked' || input === 'unsafe' || input === 'unavailable' || input === 'timed-out' || input === 'rejected' || input === 'failed-safe') {
-    return input;
-  }
-  return 'failed-safe';
+  return input === 'blocked' || input === 'unsafe' || input === 'unavailable' || input === 'timed-out' || input === 'rejected' || input === 'failed-safe' ? input : 'failed-safe';
 }
 
-function mergeMetadata(
-  ...inputs: readonly (ProviderClientJsonObject | undefined)[]
-): ProviderClientJsonObject | undefined {
+function mergeMetadata(...inputs: readonly (ProviderClientJsonObject | undefined)[]): ProviderClientJsonObject | undefined {
   const merged: Record<string, ProviderClientJsonValue> = {};
 
   for (const input of inputs) {
@@ -812,7 +730,6 @@ function metadataObject(input: unknown, depth: number): ProviderClientJsonObject
   }
 
   const output: Record<string, ProviderClientJsonValue> = {};
-
   for (const [key, value] of Object.entries(input)) {
     if (Object.keys(output).length >= MAX_METADATA_KEYS) {
       break;
@@ -838,13 +755,14 @@ function metadataValue(input: unknown, depth: number): ProviderClientJsonValue |
     return safeText(input, 'redacted');
   }
   if (Array.isArray(input)) {
-    const values = input
-      .slice(0, MAX_METADATA_ARRAY_ITEMS)
-      .map((entry) => metadataValue(entry, depth + 1))
-      .filter((entry): entry is ProviderClientJsonValue => entry !== undefined);
-    return Object.freeze(values);
+    return Object.freeze(
+      input
+        .slice(0, MAX_METADATA_ARRAY_ITEMS)
+        .map((entry) => metadataValue(entry, depth + 1))
+        .filter((entry): entry is ProviderClientJsonValue => entry !== undefined),
+    );
   }
-  return metadataObject(input, depth);
+  return depth >= MAX_METADATA_DEPTH ? undefined : metadataObject(input, depth);
 }
 
 function metadataKey(input: string): string | undefined {
@@ -864,9 +782,10 @@ function safeText(input: string, fallback: string): string {
     .replace(/\s+/gu, ' ')
     .trim()
     .replace(TRACE_LIKE_PATTERN, '[redacted]')
-    .replace(SENSITIVE_ASSIGNMENT_PATTERN, '[redacted]')
+    .replace(UNSAFE_ASSIGNMENT_PATTERN, '[redacted]')
     .replace(PROVIDER_NATIVE_REF_PATTERN, '[redacted]')
-    .replace(URL_LIKE_PATTERN, '[redacted]')
+    .replace(API_KEY_PATTERN, '[redacted]')
+    .replace(URL_OR_ENDPOINT_PATTERN, '[redacted]')
     .replace(LOCATION_LIKE_PATTERN, '[redacted]');
 
   if (normalized.length === 0) {
@@ -888,7 +807,7 @@ function safeRequiredRef(input: string, fallback: string): string {
     return fallback;
   }
   const normalized = input.replace(CONTROL_CHARACTER_PATTERN, ' ').trim();
-  if (normalized.length === 0 || normalized.length > MAX_SAFE_TEXT_LENGTH || !SAFE_REF_PATTERN.test(normalized)) {
+  if (normalized.length === 0 || normalized.length > MAX_SAFE_TEXT_LENGTH || !SAFE_REF_PATTERN.test(normalized) || UNSAFE_REF_PATTERN.test(normalized)) {
     return fallback;
   }
   return normalized;
