@@ -186,15 +186,15 @@ export function describeDomainEvent(input: LifeosDomainEventInput): LifeosDomain
     domainRef: context.domainRef,
     sourceScope: input.sourceScope ?? 'adapter-normalized-context',
     agentRefs: cloneRefs(context.agentRefs),
-    workspaceRef: context.workspaceRef,
-    actorRef: context.actorRef,
-    principalRef: context.principalRef,
-    correlationRef: context.correlationRef,
-    idempotencyRef: context.idempotencyRef,
     attachmentRefs: mergeRefs(context.safeAttachmentRefs, input.attachmentRefs),
     summary: boundedSummary(input.summary ?? context.safeBoundedSummary, defaultEventSummary(input.eventKind)),
     redactionStatus: input.redactionStatus ?? 'redacted-json-safe',
     contractPosture: input.contractPosture ?? 'fake-or-inert-below-production',
+    ...optionalEntry('workspaceRef', context.workspaceRef),
+    ...optionalEntry('actorRef', context.actorRef),
+    ...optionalEntry('principalRef', context.principalRef),
+    ...optionalEntry('correlationRef', context.correlationRef),
+    ...optionalEntry('idempotencyRef', context.idempotencyRef),
   } satisfies LifeosDomainEventDescriptor);
 }
 
@@ -203,13 +203,12 @@ export function describeDomainCommand(input: LifeosDomainCommandInput): LifeosDo
   const approvalRequirement = input.approvalRequirement ?? describeOptionalApprovalRequirement(input.approvalRequirementInput);
   const domainToOcaDeclaration =
     input.domainToOcaDeclaration ?? describeOptionalDomainToOcaDeclaration(input.domainToOcaDeclarationInput, context, approvalRequirement);
+  const inputShape = describeOptionalInputShape(input.inputFields);
+  const capabilityActionRef = input.capabilityActionRef ?? domainToOcaDeclaration?.capabilityActionRef;
   const idempotencyStrategy =
     input.idempotencyStrategy ??
     domainToOcaDeclaration?.idempotencyStrategy ??
-    describeIdempotencyStrategy(
-      input.idempotencyStrategyKind ?? defaultIdempotencyStrategyKind(input.commandKind, input.capabilityActionRef ?? domainToOcaDeclaration?.capabilityActionRef),
-      context.idempotencyRef,
-    );
+    describeIdempotencyStrategy(input.idempotencyStrategyKind ?? defaultIdempotencyStrategyKind(input.commandKind, capabilityActionRef), context.idempotencyRef);
 
   return Object.freeze({
     descriptorKind: 'lifeos-domain-command-descriptor',
@@ -221,14 +220,14 @@ export function describeDomainCommand(input: LifeosDomainCommandInput): LifeosDo
     summary: boundedSummary(input.summary ?? context.safeBoundedSummary, defaultCommandSummary(input.commandKind)),
     aliases: mergeAliases(context.safeAliases, input.aliases),
     agentRefs: cloneRefs(context.agentRefs),
-    workspaceRef: context.workspaceRef,
-    inputShape: describeOptionalInputShape(input.inputFields),
     policyRefs: cloneRefs(input.policyRefs),
-    approvalRequirement,
-    capabilityActionRef: input.capabilityActionRef ?? domainToOcaDeclaration?.capabilityActionRef,
-    domainToOcaDeclaration,
     idempotencyStrategy,
     contractBoundary: 'descriptor-only-not-handler',
+    ...optionalEntry('workspaceRef', context.workspaceRef),
+    ...optionalEntry('inputShape', inputShape),
+    ...optionalEntry('approvalRequirement', approvalRequirement),
+    ...optionalEntry('capabilityActionRef', capabilityActionRef),
+    ...optionalEntry('domainToOcaDeclaration', domainToOcaDeclaration),
   } satisfies LifeosDomainCommandDescriptor);
 }
 
@@ -248,9 +247,9 @@ export function describeApprovalRequirement(input: LifeosApprovalRequirementInpu
     approvalMode: input.approvalMode,
     riskClass: input.riskClass,
     summary: boundedSummary(input.summary, defaultApprovalSummary(input.approvalMode, input.riskClass)),
-    presentationRef: input.presentationRef,
-    correlationRef: input.correlationRef,
     approvalBoundary: 'declarative-requirement-only',
+    ...optionalEntry('presentationRef', input.presentationRef),
+    ...optionalEntry('correlationRef', input.correlationRef),
   } satisfies LifeosApprovalRequirement);
 }
 
@@ -265,11 +264,11 @@ export function declareDomainToOca(
     capabilityRef: input.capabilityRef,
     capabilityActionRef: input.capabilityActionRef,
     allowedForAgentRefs: cloneRefs(input.allowedForAgentRefs ?? context.agentRefs),
-    approvalRequirement,
     idempotencyStrategy:
       input.idempotencyStrategy ??
       describeIdempotencyStrategy(input.idempotencyStrategyKind ?? 'derived-from-capability-action-ref', input.idempotencyRef ?? context.idempotencyRef),
     ocaBoundary: 'domain-to-oca-declaration-not-oca-execution',
+    ...optionalEntry('approvalRequirement', approvalRequirement),
   } satisfies LifeosDomainToOcaDeclaration);
 }
 
@@ -303,22 +302,20 @@ export function projectPublicly(input: LifeosDomainProjectionInput): LifeosRedac
   const declarations = cloneItems(input.domainToOcaDeclarations);
   const approvalRequirements = cloneItems(input.approvalRequirements);
   const attachmentDescriptors = cloneItems(input.attachmentDescriptors);
+  const agentRef = firstRef(command?.agentRefs) ?? firstRef(event?.agentRefs) ?? firstRef(context.agentRefs);
+  const workspaceRef = command?.workspaceRef ?? event?.workspaceRef ?? context.workspaceRef;
+  const actorRef = event?.actorRef ?? context.actorRef;
+  const principalRef = event?.principalRef ?? context.principalRef;
+  const correlationRef = event?.correlationRef ?? command?.approvalRequirement?.correlationRef ?? context.correlationRef;
+  const idempotencyRef = event?.idempotencyRef ?? command?.idempotencyStrategy?.idempotencyRef ?? context.idempotencyRef;
 
   return Object.freeze({
     projectionKind: 'lifeos-redacted-public-domain-projection',
     domainRef: context.domainRef,
-    agentRef: firstRef(command?.agentRefs) ?? firstRef(event?.agentRefs) ?? firstRef(context.agentRefs),
-    workspaceRef: command?.workspaceRef ?? event?.workspaceRef ?? context.workspaceRef,
-    actorRef: event?.actorRef ?? context.actorRef,
-    principalRef: event?.principalRef ?? context.principalRef,
-    eventRef: event?.eventRef,
-    commandRef: command?.commandRef,
     policyRefs: mergeRefs(command?.policyRefs, collectPolicyRefs(input.policyRequirements)),
     approvalRefs: collectApprovalRefs(command, declarations, approvalRequirements),
     capabilityActionRefs: collectCapabilityActionRefs(command, declarations),
     attachmentRefs: mergeRefs(context.safeAttachmentRefs, event?.attachmentRefs, attachmentDescriptors.map((attachment) => attachment.attachmentRef)),
-    correlationRef: event?.correlationRef ?? command?.approvalRequirement?.correlationRef ?? context.correlationRef,
-    idempotencyRef: event?.idempotencyRef ?? command?.idempotencyStrategy?.idempotencyRef ?? context.idempotencyRef,
     summary: boundedSummary(input.summary ?? command?.summary ?? event?.summary ?? context.safeBoundedSummary, 'Redacted fake inert LifeOS domain projection.'),
     redactionStatus: input.redactionStatus ?? 'redacted-json-safe',
     contractPosture: input.contractPosture ?? commandPosture(command) ?? event?.contractPosture ?? 'fake-or-inert-below-production',
@@ -326,6 +323,14 @@ export function projectPublicly(input: LifeosDomainProjectionInput): LifeosRedac
     attemptGateState: invariant.attemptGateState,
     productionReady: false,
     safeScalarContext: describeSafeScalarContext(input.safeScalarContext ?? context.safeScalarContext),
+    ...optionalEntry('agentRef', agentRef),
+    ...optionalEntry('workspaceRef', workspaceRef),
+    ...optionalEntry('actorRef', actorRef),
+    ...optionalEntry('principalRef', principalRef),
+    ...optionalEntry('eventRef', event?.eventRef),
+    ...optionalEntry('commandRef', command?.commandRef),
+    ...optionalEntry('correlationRef', correlationRef),
+    ...optionalEntry('idempotencyRef', idempotencyRef),
   } satisfies LifeosRedactedPublicDomainProjection);
 }
 
@@ -342,13 +347,11 @@ function describeOptionalDomainToOcaDeclaration(
     return undefined;
   }
 
-  return declareDomainToOca(
-    {
-      ...input,
-      approvalRequirement: input.approvalRequirement ?? fallbackApprovalRequirement,
-    },
-    context,
-  );
+  if (input.approvalRequirement !== undefined || fallbackApprovalRequirement === undefined) {
+    return declareDomainToOca(input, context);
+  }
+
+  return declareDomainToOca({ ...input, approvalRequirement: fallbackApprovalRequirement }, context);
 }
 
 function describeOptionalInputShape(fields: readonly LifeosSafeFieldInput[] | undefined): LifeosSafeInputShapeDescriptor | undefined {
@@ -373,8 +376,8 @@ function describeSafeField(field: LifeosSafeFieldInput): LifeosSafeFieldDescript
     valueKind: field.valueKind,
     required: field.required ?? false,
     redactionStatus: field.redactionStatus ?? 'redacted-json-safe',
-    maxLength: field.maxLength,
-    maxItems: field.maxItems,
+    ...optionalEntry('maxLength', field.maxLength),
+    ...optionalEntry('maxItems', field.maxItems),
   } satisfies LifeosSafeFieldDescriptor);
 }
 
@@ -384,9 +387,9 @@ function describeIdempotencyStrategy(
 ): LifeosIdempotencyStrategyDescriptor {
   return Object.freeze({
     strategyKind,
-    idempotencyRef,
     replaySafe: true,
     duplicateExternalEffectAllowed: false,
+    ...optionalEntry('idempotencyRef', idempotencyRef),
   } satisfies LifeosIdempotencyStrategyDescriptor);
 }
 
@@ -513,6 +516,14 @@ function isDefined<T>(value: T | undefined): value is T {
 
 function isSafePrimitive(value: LifeosJsonPrimitive): boolean {
   return value === null || typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value));
+}
+
+function optionalEntry<Key extends string, Value>(key: Key, value: Value | undefined): Partial<Record<Key, Value>> {
+  if (value === undefined) {
+    return {};
+  }
+
+  return { [key]: value } as Record<Key, Value>;
 }
 
 function boundedAlias(value: string): string {
