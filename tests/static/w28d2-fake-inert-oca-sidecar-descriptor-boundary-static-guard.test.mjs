@@ -20,11 +20,6 @@ const REQUIRED_FAKE_INERT_DESCRIPTOR_VOCABULARY = Object.freeze([
   'fake-inert-descriptor-only',
   'redacted-json-safe',
   'redacted-summary-only',
-  'descriptorOnly: true',
-  'fakeOrInertDescriptorOnly: true',
-  'sidecarRuntimeImplemented: false',
-  'executionPass: false',
-  'productionReady: false',
   'no-oca-runtime-readiness-claim',
   'no-sidecar-readiness-claim',
   'no-provider-runtime-readiness-claim',
@@ -41,7 +36,6 @@ const REQUIRED_BLOCKED_EXECUTION_VOCABULARY = Object.freeze([
   'ready-to-attempt-not-execution-pass',
   'ready-to-run-not-execution-pass',
   'approval-required-before-runtime-attempt',
-  'providerAcknowledgementIsBusinessOutcome: false',
 ]);
 
 const REQUIRED_SAFE_PUBLIC_SUMMARY_VOCABULARY = Object.freeze([
@@ -53,6 +47,15 @@ const REQUIRED_SAFE_PUBLIC_SUMMARY_VOCABULARY = Object.freeze([
   'redacted descriptor detail',
   'providerAcknowledgementStatus',
   'businessOutcomeStatus',
+]);
+
+const REQUIRED_SAFE_POSTURE_PATTERNS = Object.freeze([
+  ['descriptor-only true marker', /\bdescriptorOnly\s*:\s*true\b/u],
+  ['fake or inert descriptor-only true marker', /\bfakeOrInertDescriptorOnly\s*:\s*true\b/u],
+  ['execution pass false marker', /\bexecutionPass\s*:\s*false\b/u],
+  ['production ready false marker', /\bproductionReady\s*:\s*false\b/u],
+  ['sidecar runtime implemented false marker', /\bsidecarRuntimeImplemented\s*:\s*false\b/u],
+  ['provider acknowledgement not business outcome marker', /\bproviderAcknowledgementIsBusinessOutcome\s*:\s*false\b/u],
 ]);
 
 const FORBIDDEN_IMPORT_PATTERNS = Object.freeze([
@@ -177,6 +180,10 @@ test('W28C boundary keeps fake inert descriptor-only posture explicit', () => {
     assertIncludes(source, expected, 'fake inert OCA sidecar descriptor boundary');
   }
 
+  for (const [label, pattern] of REQUIRED_SAFE_POSTURE_PATTERNS) {
+    assert.match(source, pattern, 'fake inert OCA sidecar descriptor boundary should preserve ' + label);
+  }
+
   assert.match(source, /\bboundaryKind\s*:\s*'fake-inert-oca-sidecar-descriptor-boundary'/u);
 });
 
@@ -187,9 +194,6 @@ test('W28C boundary keeps runtime attempt and execution pass blocked or false wh
     assertIncludes(source, expected, 'fake inert OCA sidecar descriptor boundary');
   }
 
-  assert.match(source, /\bdescriptorOnly\s*:\s*true\b/u);
-  assert.match(source, /\bexecutionPass\s*:\s*false\b/u);
-  assert.match(source, /\bproductionReady\s*:\s*false\b/u);
   assert.equal((source.match(/\bexecutionPass\s*:\s*false\b/gu) ?? []).length >= 4, true);
   assert.equal((source.match(/\bdescriptorOnly\s*:\s*true\b/gu) ?? []).length >= 4, true);
   assertNoMatch(source, /\bexecutionPass\s*:\s*true\b/u, 'execution pass must never be marked true');
