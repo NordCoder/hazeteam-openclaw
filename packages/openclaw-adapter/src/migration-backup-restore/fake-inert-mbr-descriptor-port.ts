@@ -57,7 +57,7 @@ export interface FakeInertMbrEvidenceInput {
 
 export interface FakeInertMbrDescriptorInputBase {
   readonly descriptorId: string;
-  readonly reasonCodes?: readonly SafeReasonCode[];
+  readonly reasonCodes?: readonly SafeReasonCode[] | undefined;
   readonly evidence?: readonly FakeInertMbrEvidenceInput[];
   readonly detailCode?: string;
 }
