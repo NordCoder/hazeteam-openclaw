@@ -79,7 +79,6 @@ test('W23D2 fake/inert provider client port exposes the local fake boundary surf
     [
       'export function createFakeInertProviderClientPort',
       'export interface FakeInertProviderClientPort',
-      'fakeInertProviderClientPort',
       'describeBoundary:',
       'evaluateReadiness:',
       'attemptFake:',
