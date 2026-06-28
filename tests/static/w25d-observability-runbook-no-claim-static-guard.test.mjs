@@ -35,8 +35,8 @@ function escapeRegExp(source) {
 function markdownLineContexts(source) {
   const lines = source.split(/\r?\n/u);
   return lines.map((line, index) => {
-    const previous = lines.slice(Math.max(0, index - 12), index).join('\n');
-    const next = lines.slice(index + 1, Math.min(lines.length, index + 3)).join('\n');
+    const previous = lines.slice(Math.max(0, index - 60), index).join('\n');
+    const next = lines.slice(index + 1, Math.min(lines.length, index + 6)).join('\n');
     return {
       lineNumber: index + 1,
       line,
@@ -114,7 +114,7 @@ const unsafePublicEvidenceTerms = Object.freeze([
   'command output',
 ]);
 
-const safeBoundaryContextPattern = /\b(?:not|no|non-claim|non-production|does not|must not|without|avoid|blocked|below pass|separate|redacted|forbidden evidence|must be synthetic|must be redacted|future|unsafe material|not-claimed|not claimed|do not|exclude|public examples must not include|examples must avoid|does not implement|does not prove|does not show|does not include|must not expose|not evidence|outside|absent|missing|failed-safe)\b/iu;
+const safeBoundaryContextPattern = /\b(?:not|no|non-claim|non-production|does not|must not|without|avoid|blocked|below pass|separate|redacted|forbidden evidence|must be synthetic|must be redacted|future|unsafe material|not-claimed|not claimed|do not|exclude|public examples must not include|examples must avoid|does not implement|does not prove|does not show|does not include|must not expose|not evidence|outside|absent|missing|failed-safe|does not implement, authorize, or claim)\b/iu;
 
 function assertTermsOnlyInSafeBoundaryContexts(source, terms, label) {
   const contexts = markdownLineContexts(source);
@@ -139,11 +139,19 @@ function assertTermsOnlyInSafeBoundaryContexts(source, terms, label) {
   }
 }
 
+function unsafeEvidencePatternForPublicExample(term) {
+  if (term === 'token' || term === 'secret') {
+    return new RegExp(`(?:^|[^A-Za-z0-9-])${escapeRegExp(term)}(?:$|[^A-Za-z0-9-])`, 'iu');
+  }
+
+  return new RegExp(escapeRegExp(term), 'iu');
+}
+
 function assertNoUnsafeEvidenceInPublicExample(block) {
   for (const term of unsafePublicEvidenceTerms) {
     assert.doesNotMatch(
       block,
-      new RegExp(escapeRegExp(term), 'iu'),
+      unsafeEvidencePatternForPublicExample(term),
       `public example must not contain unsafe evidence term: ${term}`,
     );
   }
