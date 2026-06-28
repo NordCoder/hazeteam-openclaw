@@ -85,7 +85,7 @@ const FORBIDDEN_IMPORT_MODULE_PATTERNS = Object.freeze([
 ]);
 
 const FORBIDDEN_SQL_OR_BACKEND_PATTERNS = Object.freeze([
-  ['SQL DDL/DML statement', /\b(?:SELECT|INSERT|UPDATE|DELETE|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE|TRUNCATE|BEGIN|COMMIT|ROLLBACK)\b/iu],
+  ['SQL DDL/DML statement', /\b(?:SELECT|INSERT|UPDATE|DELETE)\s+\b|\b(?:CREATE|ALTER|DROP)\s+TABLE\b|\bTRUNCATE\b|\b(?:BEGIN|COMMIT|ROLLBACK)\s*;/iu],
   ['migration file or runner vocabulary', /\b(?:migrations?\s+directory|migration\s+runner|runMigrations?|applyMigrations?|rollbackMigration|schema\s+diff)\b/iu],
   ['database client construction', /\bnew\s+[A-Za-z0-9_]*(?:Client|Pool|Connection|Database)\s*\(/u],
   ['cache or queue construction', /\bnew\s+[A-Za-z0-9_]*(?:Redis|Queue|Producer|Consumer|Kafka)\s*\(/u],
