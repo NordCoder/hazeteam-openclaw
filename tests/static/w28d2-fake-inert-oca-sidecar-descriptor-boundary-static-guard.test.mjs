@@ -219,13 +219,18 @@ test('W28C public summaries stay safe, redacted, and acknowledgement-separated',
 
   assert.match(
     source,
-    /providerAcknowledgementStatus:\s*\n\s*input\.providerAcknowledgementStatus/u,
-    'provider acknowledgement should remain explicit and separate from business outcome normalization',
+    /\bproviderAcknowledgementStatus\s*:/u,
+    'provider acknowledgement status should remain represented as its own public field',
   );
   assert.match(
     source,
-    /businessOutcomeStatus:\s*normalizeBusinessOutcomeStatus\(/u,
-    'business outcome should remain normalized separately from provider acknowledgement',
+    /\bbusinessOutcomeStatus\s*:/u,
+    'business outcome status should remain represented as its own public field',
+  );
+  assertNoMatch(
+    source,
+    /\bproviderAcknowledgementIsBusinessOutcome\s*:\s*true\b/u,
+    'provider acknowledgement must not be collapsed into business outcome',
   );
 });
 
