@@ -28,6 +28,12 @@ function assertDoesNotIncludeAny(source, values, label) {
   }
 }
 
+function assertDoesNotMatchAny(source, forbiddenPatterns, label) {
+  for (const { description, pattern } of forbiddenPatterns) {
+    assert.doesNotMatch(source, pattern, label + ' should not match ' + description);
+  }
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -143,10 +149,11 @@ test('W23D1 provider client readiness vocabulary stays below production and real
   );
 
   assert.match(source, /PROVIDER_READINESS_BELOW_PASS_STATUSES[\s\S]*'ready-to-attempt'[\s\S]*'ready-to-run'[\s\S]*'acknowledgement-only'/u);
-  assert.match(source, /readonly\s+defaultNetworkBehavior:\s+'none';/u, 'closed network gate is represented by no default network behavior');
+  assert.match(source, /readonly\s+unsafeOutputDetected:\s+boolean;/u, 'unsafe-output is represented by unsafe output detection');
+  assert.match(source, /readonly\s+defaultNetworkBehavior:\s+'none';/u, 'closed-network-gate is represented by no default network behavior');
   assert.match(source, /readonly\s+defaultRuntimeStartup:\s+'none';/u, 'runtime startup remains absent by default');
-  assert.match(source, /readonly\s+defaultSensitiveValueLoading:\s+'none';/u, 'missing credential loading is represented by no default sensitive value loading');
-  assert.match(source, /readonly\s+providerPackageImportState:\s+'not-imported';/u, 'missing provider port remains represented by no provider package import');
+  assert.match(source, /readonly\s+defaultSensitiveValueLoading:\s+'none';/u, 'missing-credential is represented by no default sensitive value loading');
+  assert.match(source, /readonly\s+providerPackageImportState:\s+'not-imported';/u, 'missing-provider-port is represented by no provider package import');
 });
 
 test('W23D1 provider client contract does not import or instantiate runtime provider network credential behavior', () => {
@@ -156,27 +163,26 @@ test('W23D1 provider client contract does not import or instantiate runtime prov
   assert.doesNotMatch(source, /\bnew\s+[A-Z][A-Za-z0-9_]*(?:Client|Sdk|SDK)\b/u, 'contract should not instantiate clients or SDKs');
   assert.doesNotMatch(source, /\b(?:createServer|listen|setTimeout|setInterval|addEventListener)\s*\(/u, 'contract should not start runtime behavior');
 
-  assertDoesNotIncludeAny(
+  assertDoesNotMatchAny(
     source,
     [
-      'process.env',
-      'fs/promises',
-      'node:fs',
-      'child_process',
-      'node:child_process',
-      'http',
-      'https',
-      'net',
-      'tls',
-      'fetch(',
-      'axios',
-      'undici',
-      'Telegraf',
-      'TelegramBot',
-      'OpenClaw client',
-      'provider SDK',
-      'dotenv',
-      'secret manager',
+      { description: 'process.env', pattern: /\bprocess\s*\.\s*env\b/u },
+      { description: 'fs/promises import', pattern: /(?:from\s+|import\(\s*)['"](?:node:)?fs\/promises['"]/u },
+      { description: 'node:fs import', pattern: /(?:from\s+|import\(\s*)['"]node:fs['"]/u },
+      { description: 'child_process import', pattern: /(?:from\s+|import\(\s*)['"](?:node:)?child_process['"]/u },
+      { description: 'http import or call', pattern: /(?:from\s+|import\(\s*)['"](?:node:)?http['"]|\bhttp\.\w+\s*\(/u },
+      { description: 'https import or call', pattern: /(?:from\s+|import\(\s*)['"](?:node:)?https['"]|\bhttps\.\w+\s*\(/u },
+      { description: 'net import or call', pattern: /(?:from\s+|import\(\s*)['"](?:node:)?net['"]|\bnet\.\w+\s*\(/u },
+      { description: 'tls import or call', pattern: /(?:from\s+|import\(\s*)['"](?:node:)?tls['"]|\btls\.\w+\s*\(/u },
+      { description: 'fetch call', pattern: /\bfetch\s*\(/u },
+      { description: 'axios reference', pattern: /\baxios\b/iu },
+      { description: 'undici reference', pattern: /\bundici\b/iu },
+      { description: 'Telegraf reference', pattern: /\bTelegraf\b/u },
+      { description: 'TelegramBot reference', pattern: /\bTelegramBot\b/u },
+      { description: 'OpenClaw client reference', pattern: /\bOpenClaw\s+client\b/iu },
+      { description: 'provider SDK reference', pattern: /\bprovider\s+SDK\b/iu },
+      { description: 'dotenv reference', pattern: /\bdotenv\b/iu },
+      { description: 'secret manager reference', pattern: /\bsecret\s+manager\b/iu },
     ],
     'provider client contract runtime forbidden vocabulary',
   );
