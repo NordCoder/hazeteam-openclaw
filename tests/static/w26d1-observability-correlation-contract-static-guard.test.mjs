@@ -46,10 +46,6 @@ const FORBIDDEN_BEHAVIOR_SNIPPETS = Object.freeze([
   'node:fs',
   'child_process',
   'node:child_process',
-  'http',
-  'https',
-  'net',
-  'tls',
   'fetch(',
   'axios',
   'undici',
@@ -63,6 +59,13 @@ const FORBIDDEN_BEHAVIOR_SNIPPETS = Object.freeze([
   'secret manager',
   'createServer',
   'listen(',
+]);
+
+const FORBIDDEN_BEHAVIOR_IMPORT_PATTERNS = Object.freeze([
+  ['http import or require', /\bfrom\s+['"](?:node:)?http['"]|\bimport\s*\(\s*['"](?:node:)?http['"]|\brequire\s*\(\s*['"](?:node:)?http['"]/u],
+  ['https import or require', /\bfrom\s+['"](?:node:)?https['"]|\bimport\s*\(\s*['"](?:node:)?https['"]|\brequire\s*\(\s*['"](?:node:)?https['"]/u],
+  ['net import or require', /\bfrom\s+['"](?:node:)?net['"]|\bimport\s*\(\s*['"](?:node:)?net['"]|\brequire\s*\(\s*['"](?:node:)?net['"]/u],
+  ['tls import or require', /\bfrom\s+['"](?:node:)?tls['"]|\bimport\s*\(\s*['"](?:node:)?tls['"]|\brequire\s*\(\s*['"](?:node:)?tls['"]/u],
 ]);
 
 const FORBIDDEN_PUBLIC_LEAK_SNIPPETS = Object.freeze([
@@ -154,6 +157,10 @@ test('W26B contract does not import or instantiate telemetry, provider, network,
 
   for (const forbidden of FORBIDDEN_BEHAVIOR_SNIPPETS) {
     assertDoesNotInclude(source, forbidden, 'observability correlation contract');
+  }
+
+  for (const [label, pattern] of FORBIDDEN_BEHAVIOR_IMPORT_PATTERNS) {
+    assert.equal(pattern.test(source), false, `observability correlation contract should not include ${label}`);
   }
 });
 
