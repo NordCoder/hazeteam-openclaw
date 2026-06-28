@@ -62,7 +62,6 @@ const expectedDescriptorOnlyPostureTerms = Object.freeze([
   'not-production-ready',
   'redacted',
   'descriptor',
-  'jsonSafe',
 ]);
 
 const forbiddenImportAndRuntimePatterns = Object.freeze([
@@ -122,12 +121,13 @@ test('W22D2 fake/inert credential loader exports the expected narrow port surfac
   assert.match(source, /export\s+function\s+resolveFakeInertCredentialResolution\s*\(/u);
 });
 
-test('W22D2 fake/inert credential loader preserves explicit fake states and descriptor-only posture', () => {
+test('W22D2 fake/inert credential loader preserves explicit fake states and descriptor-only JSON-safe posture', () => {
   const source = readFakeInertCredentialLoaderSource();
 
   assertSourceIncludesAll(source, expectedFakeInertStates, 'fake inert credential loader source');
   assertSourceIncludesAll(source, expectedDescriptorOnlyPostureTerms, 'fake inert credential loader source');
-  assert.match(source, /\bjsonSafe\b/u, 'fake inert credential loader should expose JSON-safe posture');
+  assert.match(source, /\bJsonSafe\b/u, 'fake inert credential loader should expose JSON-safe posture helper naming');
+  assert.match(source, /\bJSON\.stringify\s*\(/u, 'fake inert credential loader should verify JSON-safe public output');
 });
 
 test('W22D2 fake/inert credential loader imports only credential loader contract types', () => {
