@@ -255,11 +255,12 @@ test('W26C source keeps public safe-ref and summary redaction barriers active', 
     'normalizeCorrelationRef',
     'boundedSummaryText',
     'traceDumpSerializable: false',
-    'publicProjection: \'redacted-json-safe\'',
-    'raw-payload-contained',
-    'runtime-value-contained',
+    "publicProjection: 'redacted-json-safe'",
+    'SENSITIVE_MATERIAL_LIKE_SAFE_REF_PATTERN',
+    'DIAGNOSTIC_MATERIAL_LIKE_SAFE_REF_PATTERN',
+    'fallbackSafeRef',
+    'reason:unsafe-public-output-blocked',
   ]) {
     assertIncludes(source, expected, 'W26C redaction barrier');
   }
-}
-);
+});
