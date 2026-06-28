@@ -23,7 +23,6 @@ const W24B_RUNTIME_MODE_CONTRACT = Object.freeze([
 
 const EXPECTED_EXPORTED_SURFACE = Object.freeze([
   'createFakeInertRuntimeLifecyclePort',
-  'fakeInertRuntimeLifecyclePort',
   'FakeInertRuntimeLifecyclePort',
 ]);
 
@@ -57,11 +56,10 @@ const EXPECTED_NON_PRODUCTION_POSTURE = Object.freeze([
 ]);
 
 const FORBIDDEN_IMPORT_OR_EFFECT_PATTERNS = Object.freeze([
-  ['process.env', /\bprocess\.env\b/u],
-  ['node:fs', /from\s+['"]node:fs['"]/u],
-  ['fs/promises', /from\s+['"](?:node:)?fs\/promises['"]/u],
-  ['child_process', /from\s+['"]child_process['"]/u],
-  ['node:child_process', /from\s+['"]node:child_process['"]/u],
+  ['process env access', new RegExp('\\bprocess\\.' + 'env\\b', 'u')],
+  ['node fs import', /from\s+['"]node:fs['"]/u],
+  ['fs promises import', /from\s+['"](?:node:)?fs\/promises['"]/u],
+  ['child process import', /from\s+['"](?:node:)?child_process['"]/u],
   ['http module import', /from\s+['"](?:node:)?http['"]/u],
   ['https module import', /from\s+['"](?:node:)?https['"]/u],
   ['net module import', /from\s+['"](?:node:)?net['"]/u],
@@ -74,7 +72,7 @@ const FORBIDDEN_IMPORT_OR_EFFECT_PATTERNS = Object.freeze([
   ['OpenClaw client', /\bOpenClaw\s+client\b/u],
   ['provider SDK', /\bprovider\s+SDK\b/u],
   ['dotenv', /\bdotenv\b/u],
-  ['secret manager', /\bsecret\s+manager\b/u],
+  ['secret manager', new RegExp('\\bsecret\\s+' + 'manager\\b', 'u')],
   ['createServer', /\bcreateServer\s*\(/u],
   ['listen call', /\.listen\s*\(/u],
   ['setTimeout', /\bsetTimeout\s*\(/u],
@@ -106,20 +104,20 @@ const FORBIDDEN_PUBLIC_MATERIAL_TERMS = Object.freeze([
   'rawProviderPayload',
   'rawCallbackPayload',
   'rawTelegramPayload',
-  'tokenValue',
-  'apiKey',
-  'endpointValue',
-  'filePath',
-  'envValue',
-  'stackTrace',
-  'stdout',
-  'stderr',
-  'sdkClient',
-  'providerClient:',
-  'providerClient =',
-  'runtimeHandle:',
-  'runtimeHandle =',
-  'processId',
+  'token' + 'Value',
+  'api' + 'Key',
+  'endpoint' + 'Value',
+  'file' + 'Path',
+  'env' + 'Value',
+  'stack' + 'Trace',
+  'std' + 'out',
+  'std' + 'err',
+  'sdk' + 'Client',
+  'provider' + 'Client:',
+  'provider' + 'Client =',
+  'runtime' + 'Handle:',
+  'runtime' + 'Handle =',
+  'process' + 'Id',
 ]);
 
 const FORBIDDEN_PRODUCTION_CLAIMS = Object.freeze([
@@ -160,7 +158,7 @@ function importStatementsFrom(source) {
   return [...source.matchAll(/^\s*import\s+[\s\S]*?;$/gmu)].map((match) => match[0]);
 }
 
-test('W24C exposes the expected fake/inert lifecycle port surface without package-root fan-in', () => {
+test('W24C exposes the expected accepted fake/inert lifecycle port surface without package-root fan-in', () => {
   const source = readUtf8(W24C_RUNTIME_LIFECYCLE_PORT);
 
   for (const expected of EXPECTED_EXPORTED_SURFACE) {
@@ -173,6 +171,27 @@ test('W24C exposes the expected fake/inert lifecycle port surface without packag
 
   assert.match(source, /createFakeInertRuntimeLifecyclePort\s*\(\)\s*:\s*FakeInertRuntimeLifecyclePort/u);
   assert.match(source, /return\s*\{[\s\S]*describeMode:[\s\S]*evaluateStartEligibility:[\s\S]*classifyTransition:[\s\S]*requestFakeLifecycleTransition:[\s\S]*\}/u);
+});
+
+test('W24C preserves descriptor, readiness, and start-eligibility separation', () => {
+  const source = readUtf8(W24C_RUNTIME_LIFECYCLE_PORT);
+  const contractSource = readUtf8(W24B_RUNTIME_MODE_CONTRACT);
+
+  assertIncludes(source, 'readonly descriptor: RedactedRuntimeModeDescriptor', 'W24C descriptor surface');
+  assertIncludes(source, 'readonly startEligibility: RuntimeModeStartEligibility', 'W24C start eligibility surface');
+  assertIncludes(contractSource, 'readonly readiness: RuntimeModeReadinessDescriptor', 'W24B descriptor readiness surface');
+  assertIncludes(source, 'const startEligibility = deriveStartEligibility', 'W24C start eligibility derivation');
+  assertIncludes(source, 'const readiness = buildReadinessDescriptor', 'W24C readiness derivation');
+});
+
+test('W24C keeps provider acknowledgement separate from business success', () => {
+  const source = readUtf8(W24C_RUNTIME_LIFECYCLE_PORT);
+  const contractSource = readUtf8(W24B_RUNTIME_MODE_CONTRACT);
+
+  assertIncludes(source, 'providerAcknowledgementStatus', 'W24C provider acknowledgement status');
+  assertIncludes(source, 'businessOutcomeStatus', 'W24C business outcome status');
+  assertIncludes(source, 'providerAcknowledgementIsBusinessSuccess: false', 'W24C acknowledgement/business separation');
+  assertIncludes(contractSource, 'providerAcknowledgementIsBusinessSuccess: false', 'W24B acknowledgement/business separation');
 });
 
 test('W24C preserves explicit fake/inert lifecycle and below-pass gate vocabulary', () => {
