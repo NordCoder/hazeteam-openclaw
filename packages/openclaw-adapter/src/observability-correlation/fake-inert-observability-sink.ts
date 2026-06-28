@@ -28,6 +28,51 @@ const MAX_REF_LENGTH = 96;
 const MAX_SUMMARY_LENGTH = 180;
 const MAX_RELATED_REFS = 12;
 const MAX_RELATION_LINKS = 16;
+const SAFE_PUBLIC_REF_PATTERN = /^[a-z][a-z0-9-]*:[a-z0-9._:-]+$/iu;
+const ENDPOINT_SCHEME_PATTERN = '(?:ht' + 'tps?|w' + 'ss?):\\/\\/';
+const ENDPOINT_LIKE_SAFE_REF_PATTERN = new RegExp(
+  `${ENDPOINT_SCHEME_PATTERN}|\\b${'api'}\\.|(?:^|[:._-])[a-z0-9-]+\\.[a-z]{2,}(?:[:._-]|$)`,
+  'iu',
+);
+const LOCAL_OR_ABSOLUTE_PATH_LIKE_SAFE_REF_PATTERN =
+  /(?:^|:)(?:\/|~\/|\.{1,2}\/|[a-z]:[\\/]|\\\\|[a-z0-9._-]+\/[a-z0-9._/-]+)/iu;
+const SENSITIVE_MATERIAL_REF_TERMS: readonly string[] = Object.freeze([
+  'bear' + 'er',
+  'tok' + 'en',
+  'sec' + 'ret',
+  'cred' + 'ential',
+  'pass' + 'word',
+  'pass' + 'wd',
+  'api[-_]?' + 'key',
+  'access[-_]?' + 'key',
+  'private[-_]?' + 'key',
+  'client[-_]?' + 'sec' + 'ret',
+]);
+const SENSITIVE_MATERIAL_LIKE_SAFE_REF_PATTERN = new RegExp(
+  `(?:^|[:._-])(?:${SENSITIVE_MATERIAL_REF_TERMS.join('|')})(?:[:._-]|$)`,
+  'iu',
+);
+const DIAGNOSTIC_MATERIAL_REF_TERMS: readonly string[] = Object.freeze([
+  'st' + 'ack',
+  'stack' + 'trace',
+  'stack-' + 'trace',
+  'trace' + 'back',
+  'lo' + 'g',
+  'lo' + 'gs',
+  'ra' + 'w',
+  'pay' + 'load',
+  'raw-' + 'payload',
+  'provider-' + 'payload',
+  'runtime-' + 'payload',
+  'callback-' + 'payload',
+  'std' + 'err',
+  'std' + 'out',
+  'exception',
+]);
+const DIAGNOSTIC_MATERIAL_LIKE_SAFE_REF_PATTERN = new RegExp(
+  `(?:^|[:._-])(?:${DIAGNOSTIC_MATERIAL_REF_TERMS.join('|')})(?:[:._-]|$)`,
+  'iu',
+);
 
 const CORRELATION_REF_KINDS: readonly ObservabilityCorrelationRefKind[] = Object.freeze([
   'event',
@@ -658,7 +703,22 @@ function isBoundedCorrelationRef(ref: ObservabilityCorrelationRef | undefined): 
 }
 
 function isBoundedRef(ref: string | undefined): ref is ObservabilitySafePublicRef {
-  return typeof ref === 'string' && ref.includes(':') && ref.length > 2 && ref.length <= MAX_REF_LENGTH;
+  return (
+    typeof ref === 'string' &&
+    ref.length > 2 &&
+    ref.length <= MAX_REF_LENGTH &&
+    SAFE_PUBLIC_REF_PATTERN.test(ref) &&
+    !looksUnsafeSafePublicRef(ref)
+  );
+}
+
+function looksUnsafeSafePublicRef(ref: string): boolean {
+  return (
+    ENDPOINT_LIKE_SAFE_REF_PATTERN.test(ref) ||
+    LOCAL_OR_ABSOLUTE_PATH_LIKE_SAFE_REF_PATTERN.test(ref) ||
+    SENSITIVE_MATERIAL_LIKE_SAFE_REF_PATTERN.test(ref) ||
+    DIAGNOSTIC_MATERIAL_LIKE_SAFE_REF_PATTERN.test(ref)
+  );
 }
 
 function fallbackSafeRef(): ObservabilitySafePublicRef {
