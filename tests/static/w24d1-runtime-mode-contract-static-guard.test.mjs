@@ -216,5 +216,4 @@ test('runtime-mode contract avoids production readiness and real-runtime pass cl
   assertIncludes(source, 'readonly productionReady: false;', 'runtime-mode contract production posture');
   assertIncludes(source, 'ready-to-attempt-not-pass', 'runtime-mode contract non-pass readiness');
   assertIncludes(source, 'ready-to-run-not-pass', 'runtime-mode contract non-pass readiness');
-}
-);
+});
