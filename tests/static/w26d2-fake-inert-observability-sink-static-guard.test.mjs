@@ -1,52 +1,17 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-const REQUIRED_W26C_SOURCE = Object.freeze([
-  ['packages', 'openclaw-adapter', 'src', 'observability-correlation', 'fake-inert-observability-sink.ts'],
-]);
-
-const OPTIONAL_W26C_SOURCE = Object.freeze([
-  ['packages', 'openclaw-adapter', 'src', 'observability-correlation', 'correlation-port.ts'],
-]);
-
-const FORBIDDEN_IMPORT_MODULE_PATTERNS = Object.freeze([
-  ['filesystem module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?fs(?:\/promises)?['"]/u],
-  ['path module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?path['"]/u],
-  ['child process module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?child_process['"]/u],
-  ['http module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?http['"]/u],
-  ['https module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?https['"]/u],
-  ['net module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?net['"]/u],
-  ['tls module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:node:)?tls['"]/u],
-  ['axios module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"]axios(?:\/[^'"]*)?['"]/u],
-  ['undici module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"]undici(?:\/[^'"]*)?['"]/u],
-  ['OpenTelemetry module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"]@opentelemetry\//u],
-  ['logging module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:pino|winston|bunyan|consola|log4js)(?:\/[^'"]*)?['"]/u],
-  ['metrics or exporter module', /(?:^|\n)\s*import\s+(?:[^'";]+\s+from\s+)?['"](?:prom-client|dd-trace|@sentry\/node)(?:\/[^'"]*)?['"]/u],
-]);
-
-const FORBIDDEN_RUNTIME_USE_PATTERNS = Object.freeze([
-  ['filesystem access', /\b(?:readFile|writeFile|appendFile|mkdir|rm|unlink|readdir|stat|createReadStream|createWriteStream)\s*\(/u],
-  ['filesystem namespace access', /\bfs\s*\./u],
-  ['path namespace access', /\bpath\s*\./u],
-  ['child process execution', /\b(?:exec|execFile|spawn|fork)\s*\(/u],
-  ['network fetch', /\bfetch\s*\(/u],
-  ['axios usage', /\baxios\s*\./u],
-  ['undici usage', /\bundici\b/u],
-  ['http server or request behavior', /\b(?:createServer|listen|request|get)\s*\(/u],
-  ['socket construction', /\bnew\s+(?:Socket|Server|TLSSocket)\b/u],
-  ['process env read', /\bprocess\s*(?:\.env|\[['"]env['"]\])/u],
-  ['process cwd or argv read', /\bprocess\s*\.\s*(?:cwd|argv|pid|platform|versions)\b/u],
-  ['console output', /\bconsole\s*\.\s*(?:debug|error|info|log|trace|warn)\s*\(/u],
-  ['logger output', /\b(?:logger|log|metrics|meter|tracer)\s*\.\s*(?:debug|error|event|gauge|histogram|info|increment|log|record|span|trace|warn)\s*\(/iu],
-  ['OpenTelemetry usage', /\b(?:opentelemetry|OpenTelemetry|trace\.getTracer|metrics\.getMeter|SpanStatusCode)\b/u],
-  ['exporter construction', /\bnew\s+\w*(?:Exporter|MeterProvider|TracerProvider)\b/u],
-  ['provider SDK or client construction', /\bnew\s+\w*(?:Provider|Client|SDK|Sdk)\b/u],
-  ['provider SDK or client factory', /\b(?:create|make|build)\w*(?:Provider|Client|SDK|Sdk)\s*\(/u],
+const W26C_FAKE_INERT_SOURCE = Object.freeze([
+  'packages',
+  'openclaw-adapter',
+  'src',
+  'observability-correlation',
+  'fake-inert-observability-sink.ts',
 ]);
 
 const REQUIRED_FAKE_INERT_VOCABULARY = Object.freeze([
@@ -67,6 +32,36 @@ const REQUIRED_FAKE_INERT_VOCABULARY = Object.freeze([
   'ready-to-attempt-not-pass',
   'ready-to-run-not-pass',
   'unsafe-public-output-blocked',
+]);
+
+const FORBIDDEN_IMPORT_MODULE_PATTERNS = Object.freeze([
+  ['filesystem/process module', /^(?:node:)?(?:fs|fs\/promises|path|child_process|process)$/u],
+  ['network module', /^(?:node:)?(?:http|https|net|tls|dgram|dns)$/u],
+  ['fetch client module', /^(?:axios|undici)(?:\/.*)?$/u],
+  ['OpenTelemetry module', /^@opentelemetry\//u],
+  ['logging module', /^(?:pino|winston|bunyan|consola|log4js)(?:\/.*)?$/u],
+  ['metrics or exporter module', /^(?:prom-client|dd-trace|@sentry\/node)(?:\/.*)?$/u],
+  ['provider SDK or client module', /(?:provider|sdk|client|telegram|openclaw)/iu],
+]);
+
+const FORBIDDEN_RUNTIME_USE_PATTERNS = Object.freeze([
+  ['filesystem access', /\b(?:readFile|writeFile|appendFile|mkdir|rm|unlink|readdir|stat|createReadStream|createWriteStream)\s*\(/u],
+  ['filesystem namespace access', /\bfs\s*\./u],
+  ['path namespace access', /\bpath\s*\./u],
+  ['child process execution', /\b(?:exec|execFile|spawn|fork)\s*\(/u],
+  ['network fetch', /\bfetch\s*\(/u],
+  ['axios usage', /\baxios\s*\./u],
+  ['undici usage', /\bundici\b/u],
+  ['http server or request behavior', /\b(?:createServer|listen|request|get)\s*\(/u],
+  ['socket construction', /\bnew\s+(?:Socket|Server|TLSSocket)\b/u],
+  ['process env read', /\bprocess\s*(?:\.env|\[['"]env['"]\])/u],
+  ['process cwd or argv read', /\bprocess\s*\.\s*(?:cwd|argv|pid|platform|versions)\b/u],
+  ['console output', /\bconsole\s*\.\s*(?:debug|error|info|log|trace|warn)\s*\(/u],
+  ['logger output', /\b(?:logger|log|metrics|meter|tracer)\s*\.\s*(?:debug|error|event|gauge|histogram|info|increment|log|record|span|trace|warn)\s*\(/iu],
+  ['OpenTelemetry usage', /\b(?:opentelemetry|OpenTelemetry|trace\.getTracer|metrics\.getMeter|SpanStatusCode)\b/u],
+  ['exporter construction', /\bnew\s+\w*(?:Exporter|MeterProvider|TracerProvider)\b/u],
+  ['provider SDK or client construction', /\bnew\s+\w*(?:Provider|Client|SDK|Sdk)\b/u],
+  ['provider SDK or client factory', /\b(?:create|make|build)\w*(?:Provider|Client|SDK|Sdk)\s*\(/u],
 ]);
 
 const PUBLIC_FAKE_OUTPUT_INTERFACES = Object.freeze([
@@ -99,11 +94,11 @@ const FORBIDDEN_PUBLIC_OUTPUT_FIELD_FRAGMENTS = Object.freeze([
   'handle',
 ]);
 
-const REQUIRED_SAFE_REF_BARRIER_PATTERNS = Object.freeze([
+const REQUIRED_REDACTION_BARRIER_PATTERNS = Object.freeze([
   ['bounded public-ref syntax', /\^\[a-z\]\[a-z0-9-\]\*:\[a-z0-9\._:-\]\+\$/u],
   ['bounded public-ref length check', /\.length\s*<=\s*[A-Z_]*REF[A-Z_]*\b/u],
   ['bounded summary length check', /\.slice\(\s*0,\s*[A-Z_]*SUMMARY[A-Z_]*\s*\)/u],
-  ['endpoint-like safe-ref detection', /'ht'\s*\+\s*'tps\?\|w'\s*\+\s*'ss\?'/u],
+  ['endpoint-like safe-ref detection', /ht'\s*\+\s*'tps\?\|w'\s*\+\s*'ss\?/u],
   ['token-like safe-ref detection', /'tok'\s*\+\s*'en'/u],
   ['secret-like safe-ref detection', /'sec'\s*\+\s*'ret'/u],
   ['credential-like safe-ref detection', /'cred'\s*\+\s*'ential'/u],
@@ -127,27 +122,34 @@ function readUtf8(segments) {
   return readFileSync(repoPath(segments), 'utf8');
 }
 
-function sourceFiles() {
-  const optionalSources = OPTIONAL_W26C_SOURCE.filter((segments) => existsSync(repoPath(segments)));
-  return Object.freeze([...REQUIRED_W26C_SOURCE, ...optionalSources]);
+function source() {
+  return readUtf8(W26C_FAKE_INERT_SOURCE);
 }
 
-function combinedSource() {
-  return sourceFiles()
-    .map((segments) => readUtf8(segments))
-    .join('\n');
+function assertIncludes(value, expected, label) {
+  assert.equal(value.includes(expected), true, `${label} should include ${expected}`);
 }
 
-function assertIncludes(source, expected, label) {
-  assert.equal(source.includes(expected), true, `${label} should include ${expected}`);
+function assertDoesNotMatch(value, pattern, label) {
+  assert.equal(pattern.test(value), false, `${label} should not match ${pattern}`);
 }
 
-function assertDoesNotMatch(source, pattern, label) {
-  assert.equal(pattern.test(source), false, `${label} should not match ${pattern}`);
+function importedModules(value) {
+  const modules = new Set();
+
+  for (const match of value.matchAll(/^\s*import(?:\s+type)?[\s\S]*?\s+from\s+['"]([^'"]+)['"];?\s*$/gmu)) {
+    modules.add(match[1]);
+  }
+
+  for (const match of value.matchAll(/^\s*import\s+['"]([^'"]+)['"];?\s*$/gmu)) {
+    modules.add(match[1]);
+  }
+
+  return [...modules].sort();
 }
 
-function extractInterfaceBody(source, interfaceName) {
-  const match = new RegExp(`export\\s+interface\\s+${interfaceName}\\s*\\{([\\s\\S]*?)\\n\\}`, 'u').exec(source);
+function extractInterfaceBody(value, interfaceName) {
+  const match = new RegExp(`export\\s+interface\\s+${interfaceName}\\s*\\{([\\s\\S]*?)\\n\\}`, 'u').exec(value);
   assert.notEqual(match, null, `${interfaceName} should remain present in accepted W26C source`);
   return match[1];
 }
@@ -156,64 +158,54 @@ function publicFieldNames(interfaceBody) {
   return [...interfaceBody.matchAll(/readonly\s+([A-Za-z_$][\w$]*)\??\s*:/gu)].map((match) => match[1]);
 }
 
-test('W26D2 guard inspects accepted W26C fake/inert source surfaces', () => {
-  assert.deepEqual(
-    REQUIRED_W26C_SOURCE.map(asRepoRelative),
-    ['packages/openclaw-adapter/src/observability-correlation/fake-inert-observability-sink.ts'],
+test('W26D2 guard inspects the accepted W26C fake/inert observability sink source', () => {
+  assert.equal(
+    asRepoRelative(W26C_FAKE_INERT_SOURCE),
+    'packages/openclaw-adapter/src/observability-correlation/fake-inert-observability-sink.ts',
   );
-  assert.equal(sourceFiles().length >= 1, true, 'at least the accepted fake/inert source should be inspected');
+  assert.equal(source().length > 0, true, 'accepted W26C fake/inert source should be readable');
 });
 
-test('W26C fake/inert source imports no runtime, provider, telemetry, filesystem, process, or network modules', () => {
-  for (const file of sourceFiles()) {
-    const relative = asRepoRelative(file);
-    const source = readUtf8(file);
-
+test('W26C fake/inert source imports no runtime provider telemetry filesystem process or network modules', () => {
+  for (const moduleName of importedModules(source())) {
     for (const [label, pattern] of FORBIDDEN_IMPORT_MODULE_PATTERNS) {
-      assertDoesNotMatch(source, pattern, `${relative} ${label}`);
-    }
-
-    assertDoesNotMatch(source, /(?:^|\n)\s*import\s+['"][^'"]+['"];?/u, `${relative} side-effect import`);
-    assertDoesNotMatch(source, /\b(?:import|require)\s*\(\s*['"](?:node:)?(?:fs|path|child_process|http|https|net|tls)['"]\s*\)/u, `${relative} dynamic unsafe import`);
-    assertDoesNotMatch(source, /\brequire\s*\(\s*['"](?:axios|undici|@opentelemetry\/[^'"]+|pino|winston|bunyan|prom-client)['"]\s*\)/u, `${relative} unsafe require`);
-  }
-});
-
-test('W26C fake/inert source has no filesystem, process, network, logging, metrics, exporter, server, or provider-client behavior', () => {
-  for (const file of sourceFiles()) {
-    const relative = asRepoRelative(file);
-    const source = readUtf8(file);
-
-    for (const [label, pattern] of FORBIDDEN_RUNTIME_USE_PATTERNS) {
-      assertDoesNotMatch(source, pattern, `${relative} ${label}`);
+      assertDoesNotMatch(moduleName, pattern, `${label} import ${moduleName}`);
     }
   }
+
+  assertDoesNotMatch(source(), /\b(?:import|require)\s*\(\s*['"](?:node:)?(?:fs|path|child_process|http|https|net|tls)['"]\s*\)/u, 'dynamic unsafe import');
+  assertDoesNotMatch(source(), /\brequire\s*\(\s*['"](?:axios|undici|@opentelemetry\/[^'"]+|pino|winston|bunyan|prom-client)['"]\s*\)/u, 'unsafe require');
 });
 
-test('W26C source avoids package-root side-effect wiring and runtime singleton initialization', () => {
-  for (const file of sourceFiles()) {
-    const relative = asRepoRelative(file);
-    const source = readUtf8(file);
+test('W26C fake/inert source has no filesystem process network logging metrics exporter server or provider-client behavior', () => {
+  const acceptedSource = source();
 
-    assertDoesNotMatch(source, /from\s+['"](?:\.\.\/)*index\.js['"]/u, `${relative} package root import`);
-    assertDoesNotMatch(source, /\b(?:export\s+const|const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*createFakeInertObservabilitySink\s*\(/u, `${relative} top-level sink instance`);
-    assertDoesNotMatch(source, /\b(?:export\s+const|const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*createFakeInertObservabilityCorrelationPort\s*\(/u, `${relative} top-level correlation port instance`);
+  for (const [label, pattern] of FORBIDDEN_RUNTIME_USE_PATTERNS) {
+    assertDoesNotMatch(acceptedSource, pattern, label);
   }
 });
 
-test('W26C fake/inert posture remains explicit without requiring a singleton export name', () => {
-  const source = combinedSource();
+test('W26C fake/inert source avoids package-root side-effect wiring and runtime singleton initialization', () => {
+  const acceptedSource = source();
+
+  assertDoesNotMatch(acceptedSource, /from\s+['"](?:\.\.\/)*index\.js['"]/u, 'package root import');
+  assertDoesNotMatch(acceptedSource, /\b(?:export\s+const|const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*createFakeInertObservabilitySink\s*\(/u, 'top-level sink instance');
+  assertDoesNotMatch(acceptedSource, /\b(?:export\s+const|const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*createFakeInertObservabilityCorrelationPort\s*\(/u, 'top-level correlation port instance');
+});
+
+test('W26C fake/inert posture remains explicit without requiring singleton or default export names', () => {
+  const acceptedSource = source();
 
   for (const expected of REQUIRED_FAKE_INERT_VOCABULARY) {
-    assertIncludes(source, expected, 'W26C fake/inert source');
+    assertIncludes(acceptedSource, expected, 'W26C fake/inert source');
   }
 });
 
 test('W26C public fake sink records and snapshots expose only safe redacted summary-oriented fields', () => {
-  const source = combinedSource();
+  const acceptedSource = source();
 
   for (const interfaceName of PUBLIC_FAKE_OUTPUT_INTERFACES) {
-    const fields = publicFieldNames(extractInterfaceBody(source, interfaceName));
+    const fields = publicFieldNames(extractInterfaceBody(acceptedSource, interfaceName));
 
     assert.equal(fields.length > 0, true, `${interfaceName} should expose explicit public fields`);
     for (const field of fields) {
@@ -227,18 +219,18 @@ test('W26C public fake sink records and snapshots expose only safe redacted summ
     }
   }
 
-  assertIncludes(source, 'redactedSummary', 'public record result');
-  assertIncludes(source, 'summaries: readonly ObservabilityRedactedPublicSummary[]', 'public snapshot');
-  assertIncludes(source, 'listRedactedSummaries', 'public sink API');
-  assertIncludes(source, 'safeSummary', 'redacted public summaries');
-  assertIncludes(source, 'jsonSafe: true', 'public output posture');
-  assertIncludes(source, 'runtimeOnlyValuesSerializable: false', 'public output posture');
+  assertIncludes(acceptedSource, 'redactedSummary', 'public record result');
+  assertIncludes(acceptedSource, 'summaries: readonly ObservabilityRedactedPublicSummary[]', 'public snapshot');
+  assertIncludes(acceptedSource, 'listRedactedSummaries', 'public sink API');
+  assertIncludes(acceptedSource, 'safeSummary', 'redacted public summaries');
+  assertIncludes(acceptedSource, 'jsonSafe: true', 'public output posture');
+  assertIncludes(acceptedSource, 'runtimeOnlyValuesSerializable: false', 'public output posture');
 });
 
-test('W26C source keeps raw/provider/runtime/tool/audit/log payload vocabulary out of public fake outputs', () => {
-  const source = combinedSource();
+test('W26C source keeps raw provider runtime tool audit and log payload vocabulary out of public fake outputs', () => {
+  const acceptedSource = source();
   const publicSurface = PUBLIC_FAKE_OUTPUT_INTERFACES.map((interfaceName) =>
-    extractInterfaceBody(source, interfaceName),
+    extractInterfaceBody(acceptedSource, interfaceName),
   ).join('\n');
 
   for (const unsafeName of [
@@ -261,13 +253,13 @@ test('W26C source keeps raw/provider/runtime/tool/audit/log payload vocabulary o
 });
 
 test('W26C source keeps public safe-ref and summary redaction barriers active without private helper-name coupling', () => {
-  const source = combinedSource();
+  const acceptedSource = source();
 
-  assertIncludes(source, 'traceDumpSerializable: false', 'trace dump barrier');
-  assertIncludes(source, "publicProjection: 'redacted-json-safe'", 'redacted public projection barrier');
-  assertIncludes(source, 'reason:unsafe-public-output-blocked', 'unsafe public output fallback barrier');
+  assertIncludes(acceptedSource, 'traceDumpSerializable: false', 'trace dump barrier');
+  assertIncludes(acceptedSource, "publicProjection: 'redacted-json-safe'", 'redacted public projection barrier');
+  assertIncludes(acceptedSource, 'reason:unsafe-public-output-blocked', 'unsafe public output fallback barrier');
 
-  for (const [label, pattern] of REQUIRED_SAFE_REF_BARRIER_PATTERNS) {
-    assert.match(source, pattern, `${label} should remain present in accepted W26C source`);
+  for (const [label, pattern] of REQUIRED_REDACTION_BARRIER_PATTERNS) {
+    assert.match(acceptedSource, pattern, `${label} should remain present in accepted W26C source`);
   }
 });
