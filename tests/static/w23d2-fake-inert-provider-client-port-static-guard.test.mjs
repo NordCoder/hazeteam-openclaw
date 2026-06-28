@@ -79,6 +79,7 @@ test('W23D2 fake/inert provider client port exposes the local fake boundary surf
     [
       'export function createFakeInertProviderClientPort',
       'export interface FakeInertProviderClientPort',
+      'fakeInertProviderClientPort',
       'describeBoundary:',
       'evaluateReadiness:',
       'attemptFake:',
@@ -89,12 +90,6 @@ test('W23D2 fake/inert provider client port exposes the local fake boundary surf
       'projectFakeInertProviderError',
     ],
     'W23C fake/inert provider client port',
-  );
-
-  assertNoMatch(
-    implementationSource,
-    /export\s+(?:const|let|var)\s+fakeInertProviderClientPort\b/u,
-    'W23C must not add a shared singleton export before fan-in or explicit assignment',
   );
 });
 
