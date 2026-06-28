@@ -204,14 +204,14 @@ function evaluateReadiness(
 ): ProviderReadinessBoundaryDescriptor {
   const normalizedRequest = normalizeRequest(request);
   const readinessStatus = readinessStatusForState(state.state);
-  const belowPassStatus = belowPassStatus(readinessStatus);
+  const readinessBelowPassStatus = belowPassStatus(readinessStatus);
   const redactedMetadata = mergeMetadata(normalizedRequest.redactedMetadata, state.redactedMetadata, stateMetadata(state));
 
   return Object.freeze({
     providerKind: state.providerKind ?? normalizedRequest.providerKind,
     operationKind: normalizedRequest.operationKind,
     readinessStatus,
-    ...(belowPassStatus === undefined ? {} : { belowPassStatus }),
+    ...(readinessBelowPassStatus === undefined ? {} : { belowPassStatus: readinessBelowPassStatus }),
     attemptStatus: attemptStatusForReadiness(state.state, normalizedRequest.attemptStatus),
     acknowledgementClass: acknowledgementForReadiness(state),
     businessLifecycleClass: businessForReadiness(state),
