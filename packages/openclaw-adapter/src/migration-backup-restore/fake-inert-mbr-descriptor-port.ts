@@ -352,7 +352,6 @@ export function describeReplayEligibility(input: FakeInertMbrReplayEligibilityIn
     replayAuthorizedByRestore: false,
     providerAcknowledgementImpliesBusinessSuccess: false,
     readyToAttemptIsPass: false,
-    reasonCodes,
   };
 
   return cloneJsonSafe(descriptor);
