@@ -51,9 +51,13 @@ const requiredBoundaryLanguage = Object.freeze([
   'ready-to-attempt',
   'ready-to-run',
   'provider acknowledgement',
+  'acknowledgement-only',
   'business success',
+  'business-success-not-claimed',
   'unsafe public output',
+  'failed-safe-unsafe-public-output-blocked',
   'fake/inert observability summary',
+  'fake-inert-observability-summary',
   'restore-replay-planning-not-implemented',
   'incident-recovery-docs-only',
 ]);
@@ -135,6 +139,16 @@ function assertTermsOnlyInSafeBoundaryContexts(source, terms, label) {
   }
 }
 
+function assertNoUnsafeEvidenceInPublicExample(block) {
+  for (const term of unsafePublicEvidenceTerms) {
+    assert.doesNotMatch(
+      block,
+      new RegExp(escapeRegExp(term), 'iu'),
+      `public example must not contain unsafe evidence term: ${term}`,
+    );
+  }
+}
+
 function fencedCodeBlocks(source) {
   const blocks = [];
   const fencePattern = /^~~~[^\n]*\n([\s\S]*?)\n~~~/gmu;
@@ -181,6 +195,7 @@ test('W25 docs preserve required claim-safe boundary language', () => {
   assert.match(combined, /ready-to-run[^\n.]*not pass|ready-to-run-not-pass/iu);
   assert.match(combined, /provider acknowledgement[^\n.]*business success/iu);
   assert.match(combined, /business success[^\n.]*missing|business-success-not-claimed/iu);
+  assert.match(combined, /restore or replay planning not implemented|restore-replay-planning-not-implemented/iu);
   assert.match(combined, /incident(?: or |-)recovery[^\n]*documentation[^\n]*without runtime behavior|incident-recovery-docs-only/iu);
 });
 
@@ -218,7 +233,7 @@ test('W25 public examples stay synthetic, redacted, and free of real-looking end
     assert.doesNotMatch(block, /wss?:\/\//iu, 'public example must not contain WebSocket endpoints');
     assert.doesNotMatch(block, /\blocalhost\b|\b127\.0\.0\.1\b/iu, 'public example must not contain local endpoints');
     assert.doesNotMatch(block, /\bapi\.|\.com\/|\.ru\/|\.io\//iu, 'public example must not contain real-looking endpoint examples');
-    assert.doesNotMatch(block, /\b(?:token|secret|stdout|stderr|stack trace|command output|connector internals|sdk handle|client handle)\b/iu);
+    assertNoUnsafeEvidenceInPublicExample(block);
     assert.match(block, /redacted|synthetic|example|not-claimed|not-production-ready/iu, 'public example must stay synthetic or redacted');
   }
 });
