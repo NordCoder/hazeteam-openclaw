@@ -99,6 +99,22 @@ const FORBIDDEN_PUBLIC_OUTPUT_FIELD_FRAGMENTS = Object.freeze([
   'handle',
 ]);
 
+const REQUIRED_SAFE_REF_BARRIER_PATTERNS = Object.freeze([
+  ['bounded public-ref syntax', /\^\[a-z\]\[a-z0-9-\]\*:\[a-z0-9\._:-\]\+\$/u],
+  ['bounded public-ref length check', /\.length\s*<=\s*[A-Z_]*REF[A-Z_]*\b/u],
+  ['bounded summary length check', /\.slice\(\s*0,\s*[A-Z_]*SUMMARY[A-Z_]*\s*\)/u],
+  ['endpoint-like safe-ref detection', /'ht'\s*\+\s*'tps\?\|w'\s*\+\s*'ss\?'/u],
+  ['token-like safe-ref detection', /'tok'\s*\+\s*'en'/u],
+  ['secret-like safe-ref detection', /'sec'\s*\+\s*'ret'/u],
+  ['credential-like safe-ref detection', /'cred'\s*\+\s*'ential'/u],
+  ['password-like safe-ref detection', /'pass'\s*\+\s*'word'/u],
+  ['stack-like safe-ref detection', /'st'\s*\+\s*'ack'/u],
+  ['raw-like safe-ref detection', /'ra'\s*\+\s*'w'/u],
+  ['payload-like safe-ref detection', /'pay'\s*\+\s*'load'/u],
+  ['stderr-like safe-ref detection', /'std'\s*\+\s*'err'/u],
+  ['stdout-like safe-ref detection', /'std'\s*\+\s*'out'/u],
+]);
+
 function repoPath(segments) {
   return path.join(repoRoot, ...segments);
 }
@@ -244,23 +260,14 @@ test('W26C source keeps raw/provider/runtime/tool/audit/log payload vocabulary o
   }
 });
 
-test('W26C source keeps public safe-ref and summary redaction barriers active', () => {
+test('W26C source keeps public safe-ref and summary redaction barriers active without private helper-name coupling', () => {
   const source = combinedSource();
 
-  for (const expected of [
-    'looksUnsafeSafePublicRef',
-    'normalizeSafeRef',
-    'normalizeEventRef',
-    'normalizeAuditRef',
-    'normalizeCorrelationRef',
-    'boundedSummaryText',
-    'traceDumpSerializable: false',
-    "publicProjection: 'redacted-json-safe'",
-    'SENSITIVE_MATERIAL_LIKE_SAFE_REF_PATTERN',
-    'DIAGNOSTIC_MATERIAL_LIKE_SAFE_REF_PATTERN',
-    'fallbackSafeRef',
-    'reason:unsafe-public-output-blocked',
-  ]) {
-    assertIncludes(source, expected, 'W26C redaction barrier');
+  assertIncludes(source, 'traceDumpSerializable: false', 'trace dump barrier');
+  assertIncludes(source, "publicProjection: 'redacted-json-safe'", 'redacted public projection barrier');
+  assertIncludes(source, 'reason:unsafe-public-output-blocked', 'unsafe public output fallback barrier');
+
+  for (const [label, pattern] of REQUIRED_SAFE_REF_BARRIER_PATTERNS) {
+    assert.match(source, pattern, `${label} should remain present in accepted W26C source`);
   }
 });
