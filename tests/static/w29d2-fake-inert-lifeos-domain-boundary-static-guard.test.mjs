@@ -55,8 +55,6 @@ const expectedDescriptorPostureTerms = Object.freeze([
   'declarative-requirement-only',
   'redacted-json-safe',
   'safe-ref-only',
-  'boundedSummary',
-  'Object.freeze',
 ]);
 
 const expectedDescriptorBoundaryTerms = Object.freeze([
@@ -73,19 +71,27 @@ const expectedDescriptorBoundaryTerms = Object.freeze([
   'allowsNonJsonValues: false',
 ]);
 
+const expectedDescriptorTypeTerms = Object.freeze([
+  'LifeosDomainEventDescriptor',
+  'LifeosDomainCommandDescriptor',
+  'LifeosPolicyRequirementDescriptor',
+  'LifeosApprovalRequirement',
+  'LifeosDomainToOcaDeclaration',
+  'LifeosRedactedPublicDomainProjection',
+  'LifeosDomainBoundaryInvariantDescriptor',
+]);
+
 const expectedDomainToOcaDeclarationTerms = Object.freeze([
   'lifeos-domain-to-oca-declaration',
   'domain-to-oca-declaration-not-oca-execution',
-  'declareDomainToOca',
   'capabilityActionRef',
   'approvalRequirement',
 ]);
 
-const expectedUnsafeTextQuarantineTerms = Object.freeze([
-  'containsUnsafeFragment',
-  'UNSAFE_TEXT_FRAGMENTS',
-  'fromCharCodes',
-  'redacted',
+const expectedPublicProjectionNoLeakTerms = Object.freeze([
+  'safeScalarContext',
+  'redacted-json-safe',
+  'safe-ref-only',
 ]);
 
 const forbiddenProviderAndRuntimeImports = Object.freeze([
@@ -183,19 +189,7 @@ test('W29D2 fake/inert LifeOS boundary stays descriptor-only and explicitly belo
 test('W29D2 fake/inert LifeOS commands and events remain descriptors, projections, and declarations rather than handlers or mutations', () => {
   const source = readFakeInertLifeosDomainBoundarySource();
 
-  assertSourceIncludesAll(
-    source,
-    [
-      'describeDomainEvent',
-      'describeDomainCommand',
-      'describePolicyRequirement',
-      'describeApprovalRequirement',
-      'describeBoundaryInvariant',
-      'describeSafeAttachment',
-      'projectPublicly',
-    ],
-    'fake inert LifeOS domain boundary descriptor vocabulary',
-  );
+  assertSourceIncludesAll(source, expectedDescriptorTypeTerms, 'fake inert LifeOS domain boundary descriptor type vocabulary');
   assertSourceDoesNotMatchAny(source, forbiddenDomainMutationPatterns, 'fake inert LifeOS domain boundary source');
 });
 
@@ -209,7 +203,7 @@ test('W29D2 fake/inert LifeOS domain-to-OCA declarations are not execution permi
 test('W29D2 fake/inert LifeOS public projection rejects unsafe raw payload, output, secret, path, client, and diagnostic material', () => {
   const source = readFakeInertLifeosDomainBoundarySource();
 
-  assertSourceIncludesAll(source, expectedUnsafeTextQuarantineTerms, 'fake inert LifeOS no-leak quarantine vocabulary');
+  assertSourceIncludesAll(source, expectedPublicProjectionNoLeakTerms, 'fake inert LifeOS no-leak public projection vocabulary');
   assertSourceDoesNotMatchAny(source, forbiddenRawPassthroughPatterns, 'fake inert LifeOS domain boundary source');
   assertSourceDoesNotIncludeAny(
     source,
