@@ -48,11 +48,11 @@ const EXPECTED_FAKE_INERT_VOCABULARY = Object.freeze([
 ]);
 
 const EXPECTED_NON_PRODUCTION_POSTURE = Object.freeze([
-  'not-production-ready',
-  'redacted',
-  'jsonSafe',
-  'descriptor',
-  'not-implemented',
+  ['not-production-ready', 'productionReady: false'],
+  ['redacted', 'redacted-runtime-mode-descriptor'],
+  ['jsonSafe', 'assertAndCloneJsonSafe'],
+  ['descriptor', 'descriptor-only-not-runtime-readiness'],
+  ['not-implemented', 'runtimeBehaviorImplemented: false'],
 ]);
 
 const FORBIDDEN_IMPORT_OR_EFFECT_PATTERNS = Object.freeze([
@@ -200,19 +200,8 @@ test('W24C preserves explicit fake/inert lifecycle and below-pass gate vocabular
 test('W24C preserves non-production, redacted, JSON-safe, descriptor-only posture', () => {
   const source = readUtf8(W24C_RUNTIME_LIFECYCLE_PORT);
 
-  assertIncludes(source, 'productionReady: false', 'W24C production readiness posture');
-  assertIncludes(source, 'redacted-runtime-mode-descriptor', 'W24C redacted descriptor posture');
-  assertIncludes(source, 'assertAndCloneJsonSafe', 'W24C JSON-safe posture');
-  assertIncludes(source, 'descriptor-only-not-runtime-readiness', 'W24C descriptor-only posture');
-  assertIncludes(source, 'runtimeBehaviorImplemented: false', 'W24C not-implemented posture');
-
-  for (const expected of EXPECTED_NON_PRODUCTION_POSTURE) {
-    const normalizedExpected = expected === 'jsonSafe' ? 'JsonSafe' : expected;
-    assert.equal(
-      source.toLowerCase().includes(expected.toLowerCase()) || source.includes(normalizedExpected),
-      true,
-      `W24C should preserve ${expected} posture`,
-    );
+  for (const [posture, evidence] of EXPECTED_NON_PRODUCTION_POSTURE) {
+    assertIncludes(source, evidence, `W24C ${posture} posture`);
   }
 });
 
