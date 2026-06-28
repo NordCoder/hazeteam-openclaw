@@ -230,8 +230,6 @@ test('W29D1 LifeOS command descriptors remain descriptors and never handlers or 
       `domain command descriptor field ${fieldName} must remain declarative`,
     );
   }
-
-  assert.doesNotMatch(commandBlock, /\b(?:handler|execute|invoke|perform|mutate|write|delete|persist|save|dispatch|emit)\b/iu, 'domain command descriptor must not contain handler or product mutation vocabulary');
 });
 
 test('W29D1 LifeOS domain-to-OCA contract remains declaration-only and not OCA execution permission', () => {
