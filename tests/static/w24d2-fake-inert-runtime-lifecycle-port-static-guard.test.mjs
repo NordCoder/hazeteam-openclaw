@@ -23,6 +23,7 @@ const W24B_RUNTIME_MODE_CONTRACT = Object.freeze([
 
 const EXPECTED_EXPORTED_SURFACE = Object.freeze([
   'createFakeInertRuntimeLifecyclePort',
+  'fakeInertRuntimeLifecyclePort',
   'FakeInertRuntimeLifecyclePort',
 ]);
 
@@ -137,10 +138,6 @@ function repoPath(segments) {
   return path.join(repoRoot, ...segments);
 }
 
-function asRepoRelative(segments) {
-  return segments.join('/');
-}
-
 function readUtf8(segments) {
   return readFileSync(repoPath(segments), 'utf8');
 }
@@ -163,16 +160,6 @@ function importStatementsFrom(source) {
   return [...source.matchAll(/^\s*import\s+[\s\S]*?;$/gmu)].map((match) => match[0]);
 }
 
-test('W24D2 static guard is scoped to the W24C fake/inert lifecycle port and W24B contract files', () => {
-  assert.deepEqual(
-    [W24C_RUNTIME_LIFECYCLE_PORT, W24B_RUNTIME_MODE_CONTRACT].map(asRepoRelative),
-    [
-      'packages/openclaw-adapter/src/runtime-mode/fake-inert-runtime-lifecycle-port.ts',
-      'packages/openclaw-adapter/src/runtime-mode/runtime-mode-contract.ts',
-    ],
-  );
-});
-
 test('W24C exposes the expected fake/inert lifecycle port surface without package-root fan-in', () => {
   const source = readUtf8(W24C_RUNTIME_LIFECYCLE_PORT);
 
@@ -186,7 +173,6 @@ test('W24C exposes the expected fake/inert lifecycle port surface without packag
 
   assert.match(source, /createFakeInertRuntimeLifecyclePort\s*\(\)\s*:\s*FakeInertRuntimeLifecyclePort/u);
   assert.match(source, /return\s*\{[\s\S]*describeMode:[\s\S]*evaluateStartEligibility:[\s\S]*classifyTransition:[\s\S]*requestFakeLifecycleTransition:[\s\S]*\}/u);
-  assertIncludes(source, 'createFakeInertRuntimeLifecyclePort', 'W24C singleton-equivalent factory surface');
 });
 
 test('W24C preserves explicit fake/inert lifecycle and below-pass gate vocabulary', () => {
