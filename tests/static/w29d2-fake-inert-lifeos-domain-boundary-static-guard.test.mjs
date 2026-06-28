@@ -28,6 +28,12 @@ function assertSourceIncludesAll(source, values, context) {
   }
 }
 
+function assertSourceMatchesAll(source, patterns, context) {
+  for (const [pattern, label] of patterns) {
+    assert.match(source, pattern, `${context} should match ${label}`);
+  }
+}
+
 function assertSourceDoesNotMatchAny(source, patterns, context) {
   for (const [pattern, label] of patterns) {
     assert.doesNotMatch(source, pattern, `${context} should not contain ${label}`);
@@ -57,18 +63,18 @@ const expectedDescriptorPostureTerms = Object.freeze([
   'safe-ref-only',
 ]);
 
-const expectedDescriptorBoundaryTerms = Object.freeze([
-  'domainDescriptorsAreProductBehavior: false',
-  'domainCommandDescriptorsAreHandlers: false',
-  'domainToOcaDeclarationsAreOcaExecution: false',
-  'providerAcknowledgementBoundary: input.providerAcknowledgementBoundary ?? \'not-attempted\'',
-  'attemptGateState: input.attemptGateState ?? \'not-configured\'',
-  'productionReady: false',
-  'duplicateExternalEffectAllowed: false',
-  'allowsFunctions: false',
-  'allowsClasses: false',
-  'allowsSymbols: false',
-  'allowsNonJsonValues: false',
+const expectedDescriptorBoundaryPatterns = Object.freeze([
+  [/domainDescriptorsAreProductBehavior\s*:\s*false/u, 'domain descriptors are not product behavior'],
+  [/domainCommandDescriptorsAreHandlers\s*:\s*false/u, 'domain command descriptors are not handlers'],
+  [/domainToOcaDeclarationsAreOcaExecution\s*:\s*false/u, 'domain-to-OCA declarations are not OCA execution'],
+  [/providerAcknowledgementBoundary\s*:\s*input\.providerAcknowledgementBoundary\s*\?\?\s*['"]not-attempted['"]/u, 'provider acknowledgement remains not-attempted by default'],
+  [/attemptGateState\s*:\s*input\.attemptGateState\s*\?\?\s*['"]not-configured['"]/u, 'attempt gate remains not-configured by default'],
+  [/productionReady\s*:\s*false/u, 'production readiness is false'],
+  [/duplicateExternalEffectAllowed\s*:\s*false/u, 'duplicate external effect is not allowed'],
+  [/allowsFunctions\s*:\s*false/u, 'safe input shape rejects functions'],
+  [/allowsClasses\s*:\s*false/u, 'safe input shape rejects classes'],
+  [/allowsSymbols\s*:\s*false/u, 'safe input shape rejects symbols'],
+  [/allowsNonJsonValues\s*:\s*false/u, 'safe input shape rejects non-JSON values'],
 ]);
 
 const expectedDescriptorTypeTerms = Object.freeze([
@@ -182,7 +188,7 @@ test('W29D2 fake/inert LifeOS boundary stays descriptor-only and explicitly belo
   const source = readFakeInertLifeosDomainBoundarySource();
 
   assertSourceIncludesAll(source, expectedDescriptorPostureTerms, 'fake inert LifeOS domain boundary source');
-  assertSourceIncludesAll(source, expectedDescriptorBoundaryTerms, 'fake inert LifeOS domain boundary source');
+  assertSourceMatchesAll(source, expectedDescriptorBoundaryPatterns, 'fake inert LifeOS domain boundary source');
   assert.doesNotMatch(source.replaceAll('productionReady: false', ''), /\bproductionReady\s*:\s*true\b/u, 'fake inert LifeOS domain boundary must not claim production readiness');
 });
 
