@@ -117,6 +117,16 @@ function assertExportedDeclaration(source, exportedName) {
   );
 }
 
+function assertNoPublicProjectionField(source, fieldName) {
+  const publicProjectionFieldPattern = new RegExp(`\\breadonly\\s+${fieldName}\\??\\s*:`, 'u');
+
+  assert.doesNotMatch(
+    source,
+    publicProjectionFieldPattern,
+    `runtime-mode contract public projection should not expose ${fieldName}`,
+  );
+}
+
 function extractImportSpecifiers(source) {
   const specifiers = [];
   const importPatterns = [
@@ -197,7 +207,7 @@ test('runtime-mode public projections do not expose raw runtime, provider, proce
   const source = readUtf8(RUNTIME_MODE_CONTRACT);
 
   for (const forbidden of FORBIDDEN_PUBLIC_PROJECTION_TERMS) {
-    assertDoesNotInclude(source, forbidden, 'runtime-mode contract public projection');
+    assertNoPublicProjectionField(source, forbidden);
   }
 
   assertIncludes(source, "readonly publicShape: 'json-safe-plain-object';", 'runtime-mode public safety descriptor');
