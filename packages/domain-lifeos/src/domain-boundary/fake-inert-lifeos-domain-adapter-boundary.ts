@@ -209,7 +209,6 @@ export function describeDomainCommand(input: LifeosDomainCommandInput): LifeosDo
     describeIdempotencyStrategy(
       input.idempotencyStrategyKind ?? defaultIdempotencyStrategyKind(input.commandKind, input.capabilityActionRef ?? domainToOcaDeclaration?.capabilityActionRef),
       context.idempotencyRef,
-      input.commandKind,
     );
 
   return Object.freeze({
@@ -382,7 +381,6 @@ function describeSafeField(field: LifeosSafeFieldInput): LifeosSafeFieldDescript
 function describeIdempotencyStrategy(
   strategyKind: LifeosIdempotencyStrategyKind,
   idempotencyRef: LifeosIdempotencyRef | undefined,
-  commandKind?: LifeosDomainCommandKind,
 ): LifeosIdempotencyStrategyDescriptor {
   return Object.freeze({
     strategyKind,
@@ -486,7 +484,7 @@ function mergeAliases(...sources: readonly (readonly string[] | undefined)[]): r
 }
 
 function mergeRefs<T extends string>(...sources: readonly (readonly T[] | undefined)[]): readonly T[] {
-  return uniqueRefs(sources.flatMap((source) => source ?? [])).slice(0, MAX_REF_COUNT);
+  return Object.freeze(uniqueRefs(sources.flatMap((source) => source ?? [])).slice(0, MAX_REF_COUNT));
 }
 
 function cloneRefs<T extends string>(source: readonly T[] | undefined): readonly T[] {
