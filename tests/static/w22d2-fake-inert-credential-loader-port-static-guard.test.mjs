@@ -130,7 +130,7 @@ test('W22D2 fake/inert credential loader preserves explicit fake states and desc
 
   assertSourceIncludesAll(source, expectedFakeInertStates, 'fake inert credential loader source');
   assertSourceIncludesAll(source, expectedDescriptorOnlyPostureTerms, 'fake inert credential loader source');
-  assert.match(source, /\bJsonSafe\b/u, 'fake inert credential loader should expose JSON-safe posture helper naming');
+  assert.match(source, /\bisFakeInertCredentialLoaderOutputJsonSafe\b/u, 'fake inert credential loader should expose JSON-safe posture helper naming');
   assert.match(source, /\bJSON\.stringify\s*\(/u, 'fake inert credential loader should verify JSON-safe public output');
 });
 
