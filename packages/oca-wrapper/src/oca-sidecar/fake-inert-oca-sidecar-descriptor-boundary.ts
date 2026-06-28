@@ -144,6 +144,9 @@ const MAX_LABEL_LENGTH = 64;
 const MAX_SUMMARY_LENGTH = 220;
 const REDACTED_DETAIL_TEXT = 'redacted descriptor detail';
 
+type DetailValueScalar = string | number | boolean | null;
+type DetailValueArray = readonly DetailValueScalar[];
+
 export function createFakeInertOcaSidecarDescriptorBoundary(): FakeInertOcaSidecarDescriptorBoundary {
   return Object.freeze({
     boundaryKind: 'fake-inert-oca-sidecar-descriptor-boundary',
@@ -388,14 +391,18 @@ function normalizeDetails(details: readonly OcaSidecarSafeDetail[]): readonly Oc
 }
 
 function normalizeDetailValue(value: OcaSidecarSafeDetailValue): OcaSidecarSafeDetailValue {
-  if (Array.isArray(value)) {
+  if (isDetailValueArray(value)) {
     return Object.freeze(value.slice(0, MAX_DETAIL_VALUES).map(normalizeScalar));
   }
 
   return normalizeScalar(value);
 }
 
-function normalizeScalar(value: string | number | boolean | null): string | number | boolean | null {
+function isDetailValueArray(value: OcaSidecarSafeDetailValue): value is DetailValueArray {
+  return Array.isArray(value);
+}
+
+function normalizeScalar(value: DetailValueScalar): DetailValueScalar {
   if (typeof value === 'string') {
     return normalizeSafeText(value);
   }
