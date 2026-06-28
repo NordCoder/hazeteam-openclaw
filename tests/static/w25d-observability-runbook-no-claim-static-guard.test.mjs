@@ -110,7 +110,7 @@ const unsafePublicEvidenceTerms = Object.freeze([
   'command output',
 ]);
 
-const safeBoundaryContextPattern = /\b(?:not|no|non-claim|non-production|does not|must not|without|avoid|blocked|below pass|separate|redacted|forbidden evidence|must be synthetic|must be redacted|future|unsafe material|not-claimed|not claimed|do not|exclude|public examples must not include|examples must avoid|does not implement|does not prove|does not show|does not include|must not expose|not evidence|outside|absent|missing|failed-safe)/iu;
+const safeBoundaryContextPattern = /\b(?:not|no|non-claim|non-production|does not|must not|without|avoid|blocked|below pass|separate|redacted|forbidden evidence|must be synthetic|must be redacted|future|unsafe material|not-claimed|not claimed|do not|exclude|public examples must not include|examples must avoid|does not implement|does not prove|does not show|does not include|must not expose|not evidence|outside|absent|missing|failed-safe)\b/iu;
 
 function assertTermsOnlyInSafeBoundaryContexts(source, terms, label) {
   const contexts = markdownLineContexts(source);
