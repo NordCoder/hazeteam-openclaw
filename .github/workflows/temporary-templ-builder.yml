@@ -1,0 +1,26 @@
+name: Temporary templ builder
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.5'
+      - name: Build templ
+        run: |
+          go install github.com/a-h/templ/cmd/templ@v0.3.1020
+          cp "$(go env GOPATH)/bin/templ" ./templ
+      - uses: actions/upload-artifact@v4
+        with:
+          name: templ-v0.3.1020-linux-amd64
+          path: ./templ
+          if-no-files-found: error
